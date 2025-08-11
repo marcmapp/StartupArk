@@ -1,0 +1,21 @@
+[
+    {
+      "name": "Basic",
+      "price": "$10/month",
+      "amount": 1000,
+      "features": ["Feature 1", "Feature 2", "Feature 3"]
+    },
+    {
+      "name": "Pro",
+      "price": "$30/month",
+      "amount": 3000,
+      "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4"]
+    },
+    {
+      "name": "Enterprise",
+      "price": "Custom Pricing",
+      "amount": 5000,
+      "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Dedicated Support"]
+    }
+  ]
+  

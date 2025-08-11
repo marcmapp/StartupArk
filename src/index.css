@@ -1,0 +1,31 @@
+@import url('https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* Light Theme (Corporate Growth) */
+    @apply bg-gray-50 text-gray-900;
+
+    /* Dark Theme (Cyber/Tech) */
+    @apply dark:bg-zinc-900 dark:text-gray-100;
+  }
+
+  /* Text Colors for Dark Theme */
+  .text-primary {
+    @apply text-purple-600 dark:text-purple-400;
+  }
+  .text-secondary {
+    @apply text-cyan-600 dark:text-cyan-300;
+  }
+  .text-highlight {
+    @apply text-amber-600 dark:text-amber-300;
+  }
+
+  /* Optional: Heading Styles */
+  h1, h2, h3 {
+    @apply text-primary font-bold;
+  }
+}

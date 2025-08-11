@@ -1,0 +1,12 @@
+[
+    { "to": "/mdoc", "name": "Mdoc", "icon": "copy-alt" },
+    { "to": "/mbin", "name": "Mbin", "icon": "trash" },
+    { "to": "/legalit", "name": "Legalit", "icon": "user-badge","type": "solid" },
+    { "to": "/s-mart", "name": "S-mart", "icon": "business", "type": "solid" },
+    { "to": "/", "name": "Soon", "icon": "cart-alt", "color": "gray" },
+    { "to": "/", "name": "Soon", "icon": "cart-add", "type": "solid", "color": "gray" },
+    { "to": "/mchat", "name": "mchat", "icon": "message-alt-dots", "type": "solid", "color": "gray" },
+    { "to": "/", "name": "Soon", "icon": "terminal", "type": "solid", "color": "gray" },
+    { "to": "/", "name": "Razor", "icon": "shield", "type": "solid", "color": "gray" }
+  ]
+  
