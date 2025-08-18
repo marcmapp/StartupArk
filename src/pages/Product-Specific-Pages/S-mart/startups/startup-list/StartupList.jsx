@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import StartupCard from './StartupCard';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import FilterDropdown from './FilterDropdown';
-import LoadingSkeleton from './startup-description-page/components/LoadingSkeleton';
-import { Link } from 'react-router-dom';
+import LoadingSkeleton from '../../../../../components/Loader';
+
 const StartupList = ({ showOnlyFavorites = false }) => {
   const [startups, setStartups] = useState([]);
   const [filteredStartups, setFilteredStartups] = useState([]);
@@ -14,39 +14,63 @@ const StartupList = ({ showOnlyFavorites = false }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('All');
+  const [currentUserStartupId, setCurrentUserStartupId] = useState(null);
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const navigate = useNavigate();
+
+  const getAuthToken = () => {
+    return localStorage.getItem('token') || document.cookie
+      .split('; ')
+      .find(row => row.startsWith('token='))
+      ?.split('=')[1];
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           navigate("/");
           return;
         }
-        
-        // Fetch startups and favorites in parallel
-        const [startupsRes, favoritesRes] = await Promise.all([
+
+        // Fetch all data in parallel
+        const [startupsRes, favoritesRes, userStartupRes] = await Promise.all([
           axios.get(`${baseUrl}/api/smart/startups`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get(`${baseUrl}/api/smart/favorites`, {
             headers: { Authorization: `Bearer ${token}` },
+          }),
+          // Get the user's startup ID from their profile
+          axios.get(`${baseUrl}/api/smart/dashboard`, {
+            headers: { Authorization: `Bearer ${token}` },
           })
         ]);
-        
-        setStartups(startupsRes.data);
-        setFavorites(favoritesRes.data.map(fav => fav._id));
-        setFilteredStartups(startupsRes.data);
-      } catch (err) {
-        setError(err.response?.data?.error || 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
+        // Make sure availability data is included in the startups
+    const startupsWithAvailability = startupsRes.data.map(startup => ({
+      ...startup,
+      availability: startup.availability || null
+    }));
+    
+    setStartups(startupsWithAvailability);
+    setFavorites(favoritesRes.data.map(fav => fav._id));
+    setFilteredStartups(startupsWithAvailability);
+    
+    const userStartup = userStartupRes.data.find(
+      item => item.role === 'startup'
+    );
+    if (userStartup) {
+      setCurrentUserStartupId(userStartup._id);
+    }
+  } catch (err) {
+    setError(err.response?.data?.error || 'Failed to fetch data');
+  } finally {
+    setLoading(false);
+  }
+  };
     fetchData();
-  }, []);
+  }, [baseUrl, navigate]);
 
   const handleToggleFavorite = async (startupId, isFavorite) => {
     try {
@@ -81,18 +105,16 @@ const StartupList = ({ showOnlyFavorites = false }) => {
         startup.startupName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         startup.tagline.toLowerCase().includes(searchTerm.toLowerCase()) ||
         startup.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      );
     }
 
     if (selectedIndustry !== 'All') {
       results = results.filter(startup =>
-        startup.industry === selectedIndustry)
+        startup.industry === selectedIndustry);
     }
 
     setFilteredStartups(results);
   }, [searchTerm, selectedIndustry, startups, favorites, showOnlyFavorites]);
-
-
 
   const industries = ['All', ...new Set(startups.map(startup => startup.industry))];
 
@@ -178,16 +200,17 @@ const StartupList = ({ showOnlyFavorites = false }) => {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredStartups.map(startup => (
-                 <StartupCard 
-    key={startup._id} 
-    startup={startup} 
-    isFavorite={favorites.includes(startup._id)}
-    onToggleFavorite={handleToggleFavorite}
-  />
-                ))}
-              </div>
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {filteredStartups.map(startup => (
+        <StartupCard 
+          key={startup._id} 
+          startup={startup} 
+          isFavorite={favorites.includes(startup._id)}
+          onToggleFavorite={handleToggleFavorite}
+          isCurrentUser={currentUserStartupId === startup._id}
+        />
+      ))}
+    </div>
             )}
           </>
         )}

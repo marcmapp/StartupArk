@@ -36,6 +36,15 @@ import OrdersPage from "../pages/Product-Specific-Pages/S-mart/startups/orders/O
 import ChatPage from "../pages/Product-Specific-Pages/S-mart/chat/ChatPage"
 import BlogPage from "../pages/Product-Specific-Pages/S-mart/blog/BlogPage"
 import VirtualCardPublicView from "../pages/Product-Specific-Pages/S-mart/startups/VirtualCardPublicView";
+
+
+//bookings
+import UserBookingsPage from "../pages/Product-Specific-Pages/S-mart/bookings/UserBookingsPage";
+import StartupBookingsPage from "../pages/Product-Specific-Pages/S-mart/bookings/StartupBookingsPage";
+import UserCalendarPage from "../pages/Product-Specific-Pages/S-mart/calendars/UserCalendarPage";
+import StartupCalendarPage from "../pages/Product-Specific-Pages/S-mart/calendars/StartupCalendarPage";
+
+
 // ** Public Routes (No Auth Required) **
 export const publicRoutes = [
   { path: "/", element: <Navigate to="/login" /> },
@@ -66,14 +75,24 @@ export const privateRoutes = [
 
   { path: "/smart/startups", element: <PrivateRoute><StartupList /></PrivateRoute> },
   { path: "/smart/startups/:id", element: <PrivateRoute><StartupDetail /></PrivateRoute> },
+  { path: "/smart/startups-by-id/:id", element: <PrivateRoute><StartupDetail /></PrivateRoute> },
 
   { path: "/smart/editprofile", element: <PrivateRoute><EditStartupProfile /></PrivateRoute> },
 
 
 
   { path: "/smart/bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><OrdersPage /></LayoutWrapper ></PrivateRoute> },
+  //usersbookings  
+  { path: "/smart/my-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><UserBookingsPage /></LayoutWrapper ></PrivateRoute> },
+    //startupsbookings  
+    { path: "/smart/manage-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupBookingsPage /></LayoutWrapper ></PrivateRoute> },
+
+
   { path: "/smart/chat", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><ChatPage /></LayoutWrapper ></PrivateRoute> },
   { path: "/smart/blog", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><BlogPage /></LayoutWrapper ></PrivateRoute> },
+
+  { path: "/smart/usercalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><UserCalendarPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/smart/startupcalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupCalendarPage /></LayoutWrapper ></PrivateRoute> },
 
   { path: "/vc/:id", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><VirtualCardPublicView /></LayoutWrapper ></PrivateRoute> },
 ];

@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import DefaultLogo from '../../../../../assets/MP-white-bg.png';
 import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
-
+import { FiClock, FiCheckCircle } from 'react-icons/fi';
 import { getImageUrl } from '../../../../../utils/imageUrls';
-const StartupCard = ({ startup, isFavorite, onToggleFavorite }) => {
 
+const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const logoUrl = getImageUrl(startup.logo, baseUrl);
 
@@ -20,13 +20,39 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite }) => {
     }
   };
 
+  // Format availability display
+  const formatAvailability = (availability) => {
+    if (!availability || !availability.days || availability.days.length === 0) {
+      return null;
+    }
+
+    const formatTime = (time) => {
+      const [hours, mins] = time.split(':');
+      const hour = parseInt(hours);
+      return hour >= 12
+        ? `${hour === 12 ? 12 : hour - 12}:${mins} PM`
+        : `${hour}:${mins} AM`;
+    };
+
+    let timeRangeStr = '';
+    if (availability.timeRange) {
+      if (typeof availability.timeRange === 'string') {
+        timeRangeStr = availability.timeRange;
+      } else if (availability.timeRange.start && availability.timeRange.end) {
+        timeRangeStr = `${formatTime(availability.timeRange.start)} - ${formatTime(availability.timeRange.end)}`;
+      }
+    }
+
+    return `${availability.days.length} days • ${timeRangeStr}`;
+  };
+
   return (
     <Link 
       to={`/smart/startups/${startup._id}`} 
       className="block h-full"
     >
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full group relative">
-        {/* Favorite button - tech-themed with circuit board pattern */}
+        {/* Favorite button */}
         <button 
           onClick={handleFavoriteClick}
           className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-gray-100 transition-colors"
@@ -41,8 +67,16 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite }) => {
             </div>
           )}
         </button>
-        
-        {/* Rest of your card content remains the same */}
+
+        {/* Current user badge */}
+        {isCurrentUser && (
+          <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-medium flex items-center">
+            <FiCheckCircle className="mr-1" size={14} />
+            Your Startup
+          </div>
+        )}
+
+        {/* Logo and basic info */}
         <div className="p-5 flex items-start gap-4">
           <div className="flex-shrink-0 h-16 w-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center">
             <img
@@ -67,10 +101,21 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite }) => {
           </div>
         </div>
 
-        <div className="px-5 pb-5 flex-grow">
-          <p className="text-gray-600 mb-4 line-clamp-3 text-sm">
+        {/* Description and tags */}
+        <div className="px-5 pb-3 flex-grow">
+          <p className="text-gray-600 mb-3 line-clamp-3 text-sm">
             {startup.description}
           </p>
+
+          {/* Availability badge */}
+          {startup.availability?.days?.length > 0 && (
+            <div className="flex items-center mb-3 text-sm">
+              <FiClock className="text-gray-400 mr-1.5" size={14} />
+              <span className="text-gray-600">
+                {formatAvailability(startup.availability)}
+              </span>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             <span className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full">
@@ -89,6 +134,7 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite }) => {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
           <div className="text-indigo-600 hover:text-indigo-800 font-medium text-sm inline-flex items-center group">
             View Details

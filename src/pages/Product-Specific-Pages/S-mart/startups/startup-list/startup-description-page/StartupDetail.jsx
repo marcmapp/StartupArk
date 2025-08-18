@@ -7,7 +7,7 @@ import StartupDetailHeader from './StartupDetailHeader';
 import ContactCard from './components/ContactCard';
 import TeamMembers from './components/TeamMembers';
 import Gallery from './components/Gallery';
-
+import QRCode from 'react-qr-code';
 const StartupDetail = () => {
   const { id } = useParams();
   const [startup, setStartup] = useState(null);
@@ -16,37 +16,49 @@ const StartupDetail = () => {
   const [activeTab, setActiveTab] = useState('about');
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const navigate = useNavigate();
+const [currentUserStartupId, setCurrentUserStartupId] = useState(null);
 
+console.log("Current user startup ID:", currentUserStartupId);
+console.log("Viewed startup ID:", startup?._id);
+console.log("Is current user:", currentUserStartupId === startup?._id);
+  // Update the fetch function to properly include products
   useEffect(() => {
-  const fetchStartup = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    
-    const res = await axios.get(`${baseUrl}/api/smart/startups-by-id/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    
-    // The backend now handles all image URL processing
-    setStartup(res.data);
-  } catch (err) {
-    setError(err.response?.data?.error || 'Failed to fetch startup details');
-    console.error('Fetch error:', err);
-  } finally {
-    setLoading(false);
-  }
-};
-    
-    fetchStartup();
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        // Fetch both startup details and user profile in parallel
+        const [startupRes, userProfileRes] = await Promise.all([
+          axios.get(`${baseUrl}/api/smart/startups-by-id/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${baseUrl}/api/smart/dashboard`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        ]);
+
+        setStartup(startupRes.data);
+        
+        // Get the user's startup ID from their profile
+        const userStartup = userProfileRes.data.find(
+          item => item.role === 'startup'
+        );
+        if (userStartup) {
+          setCurrentUserStartupId(userStartup._id);
+        }
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [id, baseUrl, navigate]);
-
-
-// Inside your component, update the data processing:
-
-
 
   if (loading) return <LoadingStartupDetail />;
   if (error) return <ErrorState error={error} />;
@@ -56,8 +68,8 @@ const StartupDetail = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back button */}
       <div className="mb-6">
-        <Link 
-          to="/smart/user-dashboard" 
+        <Link
+          to="/smart/user-dashboard"
           className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +80,10 @@ const StartupDetail = () => {
       </div>
 
       {/* Header Section */}
-      <StartupDetailHeader startup={startup} />
+ <StartupDetailHeader 
+      startup={startup} 
+      isCurrentUser={currentUserStartupId === startup?._id}
+    />
 
       {/* Main Content */}
       <div className="mt-8 flex flex-col lg:flex-row gap-8">
@@ -105,6 +120,24 @@ const StartupDetail = () => {
                   Gallery ({startup.gallery.length})
                 </button>
               )}
+              {/* In the tab navigation section */}
+              {/* Products tab - always show but check length */}
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`${activeTab === 'products' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              >
+                Products {startup.products?.length > 0 && `(${startup.products.length})`}
+              </button>
+
+              {/* Virtual Card tab - only show if exists */}
+              {startup.virtualCard && (
+                <button
+                  onClick={() => setActiveTab('vc')}
+                  className={`${activeTab === 'vc' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                >
+                  Virtual Card
+                </button>
+              )}
             </nav>
           </div>
 
@@ -114,7 +147,7 @@ const StartupDetail = () => {
               <div className="prose max-w-none">
                 <h3 className="text-xl font-semibold mb-4">Our Story</h3>
                 <p className="whitespace-pre-line">{startup.bio}</p>
-                
+
                 {startup.mission && (
                   <>
                     <h3 className="text-xl font-semibold mt-8 mb-4">Our Mission</h3>
@@ -135,7 +168,7 @@ const StartupDetail = () => {
               <div className="prose max-w-none">
                 <h3 className="text-xl font-semibold mb-4">What We Do</h3>
                 <p className="whitespace-pre-line">{startup.description}</p>
-                
+
                 {startup.problemStatement && (
                   <>
                     <h3 className="text-xl font-semibold mt-8 mb-4">The Problem We Solve</h3>
@@ -165,8 +198,167 @@ const StartupDetail = () => {
               </div>
             )}
 
-            {activeTab === 'team' && <TeamMembers team={startup.team} />}
+            {activeTab === 'team' && <TeamMembers team={startup.formData?.team || startup.team || []} />}
             {activeTab === 'gallery' && <Gallery images={startup.gallery} />}
+            {/* In the tab content section */}
+            {activeTab === 'products' && (
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold">Products</h3>
+
+                {startup.products && startup.products.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {startup.products.map((product, index) => (
+                      <div key={product._id || index} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                        {product.featuredImage && (
+                          <div className="h-48 bg-gray-100 overflow-hidden">
+                            <img
+                              src={product.featuredImage}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <h3 className="text-lg font-semibold">{product.name}</h3>
+                          <p className="text-gray-600 mt-1 text-sm">{product.shortDescription || product.description}</p>
+
+                          {product.tags?.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {product.tags.map((tag, tagIndex) => (
+                                <span key={tagIndex} className="bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {product.website && (
+                            <div className="mt-3">
+                              <a
+                                href={product.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center"
+                              >
+                                Visit website
+                                <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No products listed</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      This startup hasn't added any products yet.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'vc' && startup.virtualCard && (
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold">Virtual Business Card</h3>
+
+                <div className="max-w-md mx-auto bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                  <div className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="max-w-[70%]">
+                        <h3 className="text-xl font-bold text-gray-900 truncate">{startup.startupName}</h3>
+                        <p className="text-gray-600 text-base truncate">{startup.tagline}</p>
+                      </div>
+                      {startup.logo && (
+                        <img
+                          src={startup.logo}
+                          alt="Logo"
+                          className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-sm"
+                        />
+                      )}
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Industry</p>
+                        <p className="font-medium">{startup.industry || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Location</p>
+                        <p className="font-medium">{startup.location || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Founded</p>
+                        <p className="font-medium">{startup.foundedYear || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Stage</p>
+                        <p className="font-medium">{startup.fundingStage || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <p className="text-sm text-gray-500">Contact</p>
+                      <p className="font-medium">{startup.email || 'N/A'}</p>
+                      {startup.website && (
+                        <a
+                          href={startup.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:underline text-sm truncate block"
+                        >
+                          {startup.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="mt-6 flex justify-center">
+                      <QRCode
+                        value={`${window.location.origin}/vc/${startup.virtualCard.shareId}`}
+                        size={96}
+                        level="H"
+                      />
+                    </div>
+
+                    <div className="mt-4 text-center text-xs text-gray-500">
+                      Scan to view digital profile
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-4 mt-6">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/vc/${startup.virtualCard.shareId}`);
+                      // Show a temporary "Copied!" message
+                    }}
+                    className="flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -180,35 +372,35 @@ const StartupDetail = () => {
                 <p className="text-sm text-gray-500">Industry</p>
                 <p className="text-gray-900 font-medium">{startup.industry}</p>
               </div>
-              
+
               {startup.foundedYear && (
                 <div>
                   <p className="text-sm text-gray-500">Founded</p>
                   <p className="text-gray-900 font-medium">{startup.foundedYear}</p>
                 </div>
               )}
-              
+
               {startup.teamSize && (
                 <div>
                   <p className="text-sm text-gray-500">Team Size</p>
                   <p className="text-gray-900 font-medium">{startup.teamSize}</p>
                 </div>
               )}
-              
+
               {startup.fundingStage && (
                 <div>
                   <p className="text-sm text-gray-500">Funding Stage</p>
                   <p className="text-gray-900 font-medium">{startup.fundingStage}</p>
                 </div>
               )}
-              
+
               {startup.businessModel && (
                 <div>
                   <p className="text-sm text-gray-500">Business Model</p>
                   <p className="text-gray-900 font-medium">{startup.businessModel}</p>
                 </div>
               )}
-              
+
               {startup.location && (
                 <div>
                   <p className="text-sm text-gray-500">Location</p>
@@ -219,10 +411,10 @@ const StartupDetail = () => {
           </div>
 
           {/* Contact Card */}
-          <ContactCard 
-            email={startup.email} 
-            phone={startup.phone} 
-            website={startup.website} 
+          <ContactCard
+            email={startup.email}
+            phone={startup.phone}
+            website={startup.website}
             contactName={startup.name}
           />
 
@@ -232,10 +424,10 @@ const StartupDetail = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Connect With Us</h3>
               <div className="flex space-x-4">
                 {startup.linkedin && (
-                  <a 
-                    href={startup.linkedin.includes('http') ? startup.linkedin : `https://${startup.linkedin}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={startup.linkedin.includes('http') ? startup.linkedin : `https://${startup.linkedin}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-indigo-600"
                   >
                     <span className="sr-only">LinkedIn</span>
@@ -245,10 +437,10 @@ const StartupDetail = () => {
                   </a>
                 )}
                 {startup.twitter && (
-                  <a 
-                    href={startup.twitter.includes('http') ? startup.twitter : `https://twitter.com/${startup.twitter}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={startup.twitter.includes('http') ? startup.twitter : `https://twitter.com/${startup.twitter}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-indigo-600"
                   >
                     <span className="sr-only">Twitter</span>
@@ -258,10 +450,10 @@ const StartupDetail = () => {
                   </a>
                 )}
                 {startup.facebook && (
-                  <a 
-                    href={startup.facebook.includes('http') ? startup.facebook : `https://facebook.com/${startup.facebook}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={startup.facebook.includes('http') ? startup.facebook : `https://facebook.com/${startup.facebook}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-indigo-600"
                   >
                     <span className="sr-only">Facebook</span>
@@ -285,7 +477,7 @@ const LoadingStartupDetail = () => (
     <div className="mb-6">
       <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
     </div>
-    
+
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-6">
         <div className="h-96 bg-gray-200 rounded-lg animate-pulse"></div>
@@ -296,7 +488,7 @@ const LoadingStartupDetail = () => (
           <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
         </div>
       </div>
-      
+
       <div className="space-y-6">
         <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
         <div className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>

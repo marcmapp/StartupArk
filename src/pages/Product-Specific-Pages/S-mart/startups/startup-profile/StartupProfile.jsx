@@ -1,16 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+/* eslint-disable no-unused-vars */
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  FiEdit2, 
-  FiExternalLink, 
-  FiLinkedin, 
-  FiTwitter, 
-  FiFacebook, 
+import {
+  FiEdit2,
+  FiExternalLink,
+  FiLinkedin,
+  FiTwitter,
+  FiFacebook,
   FiPlus,
   FiShare2,
   FiCopy,
-  FiDownload
+  FiDownload,
+  FiCalendar,
+  FiLoader,
+  FiClock,
+  FiHome,
+  FiUsers,
+  FiImage,
+  FiFilm,
+  FiPackage,
+  FiCreditCard,
+  FiChevronDown
+
 } from 'react-icons/fi';
 import { FaQrcode } from 'react-icons/fa';
 import AddProductForm from '../../products/AddProductForm';
@@ -18,7 +30,7 @@ import Loader from '../../../../../components/Loader';
 import QRCode from 'react-qr-code';
 import html2canvas from 'html2canvas';
 
-const StartupProfile = () => {
+const StartupProfile = ({ startupId }) => {
   const navigate = useNavigate();
   const [startupData, setStartupData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,11 +45,132 @@ const StartupProfile = () => {
   const [vcError, setVcError] = useState(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
+  const [availability, setAvailability] = useState({
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  });
+  const [isEditingAvailability, setIsEditingAvailability] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState(null);
   const getAuthToken = () => {
     return localStorage.getItem('token');
   };
+  const toggleDay = (day) => {
+    setSelectedDays(prev =>
+      prev.includes(day)
+        ? prev.filter(d => d !== day)
+        : [...prev, day]
+    );
+  };
+  // Fetch availability on component mount
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      try {
+        const response = await fetch(`${baseUrl}/api/smart/${startupId}/availability`);
+        if (response.ok) {
+          const data = await response.json();
+          setAvailability(data);
+        }
+      } catch (error) {
+        console.error('Error fetching availability:', error);
+      }
+    };
 
+    if (startupId) fetchAvailability();
+  }, [startupId]);
+
+  const handleSaveAvailability = async () => {
+    try {
+      setAvailabilityLoading(true);
+
+      // 1. Convert short day names to full names
+      const fullDays = selectedDays.map(day => ({
+        'Mon': 'Monday',
+        'Tue': 'Tuesday',
+        'Wed': 'Wednesday',
+        'Thu': 'Thursday',
+        'Fri': 'Friday',
+        'Sat': 'Saturday',
+        'Sun': 'Sunday'
+      }[day]));
+
+      // 2. Validate time format (HH:MM)
+      if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+        throw new Error("Time must be in HH:MM format");
+      }
+
+      // 3. Ensure timezone exists
+      const timezone = availability?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      const availabilityData = {
+        days: fullDays,
+        timeRange: { start: startTime, end: endTime },
+        timezone
+      };
+
+      console.log("Final Payload:", availabilityData); // Debug
+
+      // 4. Use getAuthToken() consistently
+      const token = getAuthToken();
+      const response = await axios.put(
+        `${baseUrl}/api/smart/availability`,
+        availabilityData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Update UI
+      setStartupData(prev => ({
+        ...prev,
+        availability: response.data.availability
+      }));
+      setIsEditingAvailability(false);
+    } catch (error) {
+      console.error("Save failed:", error);
+      setAvailabilityError(
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to save availability"
+      );
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
+  // Enhanced formatting with icons and tooltips
+  const formatAvailability = (availability) => {
+    if (!availability || !availability.days || availability.days.length === 0) {
+      return null;
+    }
+
+    const formatTime = (time) => {
+      // Convert "09:00" to "9:00 AM"
+      const [hours, mins] = time.split(':');
+      const hour = parseInt(hours);
+      return hour >= 12
+        ? `${hour === 12 ? 12 : hour - 12}:${mins} PM`
+        : `${hour}:${mins} AM`;
+    };
+
+    // Handle timeRange (now checks for object structure)
+    let timeRangeStr = '';
+    if (availability.timeRange) {
+      if (typeof availability.timeRange === 'string') {
+        // Backward compatibility (if timeRange is a string like "09:00-17:00")
+        timeRangeStr = availability.timeRange;
+      } else if (availability.timeRange.start && availability.timeRange.end) {
+        // Format as "9:00 AM - 5:00 PM"
+        timeRangeStr = `${formatTime(availability.timeRange.start)} - ${formatTime(availability.timeRange.end)}`;
+      }
+    }
+
+    return `${availability.days.join(', ')} ${timeRangeStr}`;
+  };
   const getUserId = () => {
     const user = localStorage.getItem('user');
     if (!user) return null;
@@ -88,7 +221,7 @@ const StartupProfile = () => {
       const token = getAuthToken();
       const user = getUserId();
       let userId;
-      
+
       try {
         const userObj = typeof user === 'string' ? JSON.parse(user) : user;
         userId = userObj?.id || userObj?._id || user;
@@ -267,54 +400,263 @@ const StartupProfile = () => {
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow overflow-hidden mb-4 sm:mb-8">
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3 sm:space-x-4">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6 sm:mb-10">
+        {/* Profile Header */}
+        <div className="p-5 sm:p-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+            {/* Left Side - Logo & Info */}
+            <div className="flex items-start space-x-4 sm:space-x-5">
               {startupData.logo ? (
                 <img
                   src={startupData.logo}
                   alt="Startup logo"
-                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover border border-gray-200"
+                  className="h-18 w-18 sm:h-24 sm:w-24 rounded-xl object-cover border-2 border-gray-100 shadow-sm"
                   onError={(e) => {
                     e.target.src = '/default-startup-logo.png';
                     e.target.onerror = null;
                   }}
                 />
               ) : (
-                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
-                  <span className="text-xl sm:text-2xl font-medium text-gray-400">
+                <div className="h-18 w-18 sm:h-24 sm:w-24 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-200 flex items-center justify-center shadow-sm">
+                  <span className="text-2xl sm:text-3xl font-bold text-gray-400">
                     {startupData.startupName?.charAt(0) || 'S'}
                   </span>
                 </div>
               )}
-              <div className="max-w-xs sm:max-w-none">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{startupData.startupName}</h1>
-                <p className="text-gray-600 text-sm sm:text-base truncate">{startupData.tagline}</p>
+
+              <div className="space-y-1.5">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {startupData.startupName}
+                </h1>
+                <p className="text-gray-600 text-sm sm:text-base">
+                  {startupData.tagline}
+                </p>
+
+                {/* Enhanced Availability Badge */}
+                {startupData?.availability?.days?.length > 0 ? (
+                  <div className="flex items-center mt-2">
+                    <div className="flex items-center bg-blue-50 rounded-full px-3 py-1.5">
+                      <FiClock className="text-blue-600 mr-2" size={14} />
+                      <span className="text-sm font-medium text-gray-700">
+                        Available: {formatAvailability(startupData.availability)}
+                      </span>
+                      <button
+                        onClick={() => setIsEditingAvailability(true)}
+                        className="ml-2 text-blue-600 hover:text-blue-800 transition-colors"
+                        aria-label="Edit availability"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingAvailability(true)}
+                    className="mt-2 flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    <FiCalendar className="mr-1.5" size={14} />
+                    Set Availability
+                  </button>
+                )}
               </div>
             </div>
-            <button
-              onClick={handleEdit}
-              className="flex items-center px-3 py-1 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm sm:text-base"
-            >
-              <FiEdit2 className="mr-1 sm:mr-2" />
-              Edit Profile
-            </button>
+
+            {/* Right Side - Buttons */}
+            <div className="flex flex-col sm:flex-row items-end gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+              {!startupData.availability && (
+                <button
+                  onClick={() => setIsEditingAvailability(true)}
+                  className="flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md w-full sm:w-auto"
+                >
+                  <FiCalendar className="mr-2" />
+                  Set Availability
+                </button>
+              )}
+              <button
+                onClick={handleEdit}
+                className="flex items-center justify-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md w-full sm:w-auto"
+              >
+                <FiEdit2 className="mr-2" />
+                Edit Profile
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Enhanced Availability Modal */}
+        {isEditingAvailability && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">Set Your Availability</h2>
+                  <button
+                    onClick={() => setIsEditingAvailability(false)}
+                    className="text-gray-400 hover:text-gray-500 transition-colors"
+                    aria-label="Close modal"
+                  >
+                    <FiHome size={20} />
+                  </button>
+                </div>
+
+                {availabilityError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm flex items-start">
+                    <FiAlertCircle className="mr-2 mt-0.5 flex-shrink-0" />
+                    {availabilityError}
+                  </div>
+                )}
+
+                <div className="space-y-5">
+                  {/* Days Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Days <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleDay(day)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedDays.includes(day)
+                              ? 'bg-blue-500 text-white shadow-sm'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Time Range */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time Range <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-1">
+                        <select
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className="appearance-none border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                          disabled={availabilityLoading}
+                        >
+                          {Array.from({ length: 24 }, (_, i) => {
+                            const hour = i < 10 ? `0${i}` : i;
+                            return (
+                              <option key={i} value={`${hour}:00`}>{`${hour}:00`}</option>
+                            );
+                          })}
+                        </select>
+                        <FiChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
+                      </div>
+                      <span className="text-gray-500">to</span>
+                      <div className="relative flex-1">
+                        <select
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                          className="appearance-none border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                          disabled={availabilityLoading}
+                        >
+                          {Array.from({ length: 24 }, (_, i) => {
+                            const hour = i < 10 ? `0${i}` : i;
+                            return (
+                              <option key={i} value={`${hour}:00`}>{`${hour}:00`}</option>
+                            );
+                          })}
+                        </select>
+                        <FiChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timezone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Timezone <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={availability.timezone}
+                        onChange={(e) => setAvailability(prev => ({
+                          ...prev,
+                          timezone: e.target.value
+                        }))}
+                        className="appearance-none border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      >
+                        {Intl.supportedValuesOf('timeZone').map(tz => (
+                          <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                        ))}
+                      </select>
+                      <FiChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+                <button
+                  onClick={() => setIsEditingAvailability(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium text-sm"
+                  disabled={availabilityLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveAvailability}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center justify-center transition-all ${availabilityLoading || selectedDays.length === 0
+                      ? 'bg-blue-300 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md'
+                    }`}
+                  disabled={availabilityLoading || selectedDays.length === 0}
+                >
+                  {availabilityLoading ? (
+                    <>
+                      <FiLoader className="animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Availability'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Tabs */}
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto">
+          <nav className="-mb-px flex space-x-6 sm:space-x-8 px-5 sm:px-8 overflow-x-auto">
             {['overview', 'team', 'gallery', 'pitch', 'products', 'vc'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-3 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${activeTab === tab ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                className={`py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${activeTab === tab
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
-                {tab === 'vc' ? 'Virtual Card' : 
-                 tab === 'products' ? `Products (${products.length})` : 
-                 tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'vc' ? (
+                  <>
+                    <FiCreditCard className="inline mr-1.5" />
+                    Virtual Card
+                  </>
+                ) : tab === 'products' ? (
+                  <>
+                    <FiPackage className="inline mr-1.5" />
+                    Products ({products.length})
+                  </>
+                ) : (
+                  <>
+                    {tab === 'overview' && <FiHome className="inline mr-1.5" />}
+                    {tab === 'team' && <FiUsers className="inline mr-1.5" />}
+                    {tab === 'gallery' && <FiImage className="inline mr-1.5" />}
+                    {tab === 'pitch' && <FiFilm className="inline mr-1.5" />}
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </>
+                )}
               </button>
             ))}
           </nav>
@@ -748,7 +1090,7 @@ const StartupProfile = () => {
                 </div>
 
                 {/* Virtual Card Design */}
-                <div 
+                <div
                   id="virtual-card"
                   className="max-w-xs sm:max-w-md mx-auto bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl sm:rounded-2xl shadow-lg overflow-hidden border border-gray-200"
                 >
@@ -759,9 +1101,9 @@ const StartupProfile = () => {
                         <p className="text-gray-600 text-sm sm:text-base truncate">{startupData.tagline}</p>
                       </div>
                       {startupData.logo && (
-                        <img 
-                          src={startupData.logo} 
-                          alt="Logo" 
+                        <img
+                          src={startupData.logo}
+                          alt="Logo"
                           className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover border-2 border-white shadow-sm"
                         />
                       )}
@@ -790,9 +1132,9 @@ const StartupProfile = () => {
                       <p className="text-xs sm:text-sm text-gray-500">Contact</p>
                       <p className="font-medium text-sm sm:text-base">{startupData.email || 'N/A'}</p>
                       {startupData.website && (
-                        <a 
-                          href={startupData.website} 
-                          target="_blank" 
+                        <a
+                          href={startupData.website}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-indigo-600 hover:underline text-xs sm:text-sm truncate block"
                         >
@@ -802,7 +1144,7 @@ const StartupProfile = () => {
                     </div>
 
                     <div className="mt-4 sm:mt-6 flex justify-center">
-                      <QRCode 
+                      <QRCode
                         value={`${window.location.origin}/vc/${vcData._id}`}
                         size={96}
                         level="H"
@@ -852,7 +1194,7 @@ const StartupProfile = () => {
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm">
                   <h3 className="text-lg font-medium mb-3 sm:mb-4">Share Virtual Card</h3>
-                  
+
                   <div className="space-y-3 sm:space-y-4">
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">

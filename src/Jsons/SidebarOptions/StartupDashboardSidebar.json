@@ -18,7 +18,7 @@
     ]
   },
 {
-    "to": "/smart/bookings",
+    "to": "/smart/manage-bookings",
     "name": "Bookings",
     "icon": "briefcase",
     "type": "solid",
@@ -31,6 +31,13 @@
     "icon": "star",
     "type": "solid",
     "note": "To Go Startups"
+  },
+{
+    "to": "/smart/startupcalender",
+    "name": "calender",
+    "icon": "briefcase",
+    "type": "solid",
+    "note": "calender"
   },
   {
     "to": "/smart/chat",
