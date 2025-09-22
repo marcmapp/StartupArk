@@ -29,9 +29,10 @@ const LoginPage = () => {
 
 // Auth storage helper (can be moved to authHelpers.js)
 const storeAuthData = (token, user) => {
+  console.log('Storing user data:', user);
   localStorage.setItem('token', token);
   localStorage.setItem('user', JSON.stringify(user));
-  localStorage.setItem('userId', user._id); // Explicitly store userId
+localStorage.setItem('userId', user.id || user._id); // Handle both cases
 };
 
 const handleLogin = async (e) => {

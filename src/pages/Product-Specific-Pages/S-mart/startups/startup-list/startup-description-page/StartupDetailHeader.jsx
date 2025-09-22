@@ -1,7 +1,10 @@
-import { FiClock, FiCalendar, FiChevronDown, FiX,FiCheck } from 'react-icons/fi';
+import { FiClock, FiCalendar, FiChevronDown, FiX,FiCheck, FiMessageSquare  } from 'react-icons/fi';
 import { getImageUrl } from '../../../../../../utils/imageUrls';
 import { useState,useEffect } from 'react';
 import { Link } from 'react-router-dom';
+
+
+
 const formatAvailability = (availability) => {
   if (!availability || !availability.days || availability.days.length === 0) {
     return null;
@@ -185,6 +188,17 @@ const handleBookMeeting = async () => {
             {/* Show Book button only if:
                 - User is not viewing their own startup
                 - Startup has availability set */}
+
+{!isCurrentUser && (
+  <Link
+    to={`/smart/chat/${startup._id}`}
+    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+  >
+    <FiMessageSquare className="mr-2" />
+    Chat
+  </Link>
+)}
+            
            {!isCurrentUser && startup?.availability?.days?.length > 0 && (
   existingBooking ? (
     <Link

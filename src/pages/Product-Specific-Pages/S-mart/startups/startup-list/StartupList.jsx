@@ -47,28 +47,29 @@ const StartupList = ({ showOnlyFavorites = false }) => {
             headers: { Authorization: `Bearer ${token}` },
           })
         ]);
+        
         // Make sure availability data is included in the startups
-    const startupsWithAvailability = startupsRes.data.map(startup => ({
-      ...startup,
-      availability: startup.availability || null
-    }));
-    
-    setStartups(startupsWithAvailability);
-    setFavorites(favoritesRes.data.map(fav => fav._id));
-    setFilteredStartups(startupsWithAvailability);
-    
-    const userStartup = userStartupRes.data.find(
-      item => item.role === 'startup'
-    );
-    if (userStartup) {
-      setCurrentUserStartupId(userStartup._id);
-    }
-  } catch (err) {
-    setError(err.response?.data?.error || 'Failed to fetch data');
-  } finally {
-    setLoading(false);
-  }
-  };
+        const startupsWithAvailability = startupsRes.data.map(startup => ({
+          ...startup,
+          availability: startup.availability || null
+        }));
+        
+        setStartups(startupsWithAvailability);
+        setFavorites(favoritesRes.data.map(fav => fav._id));
+        setFilteredStartups(startupsWithAvailability);
+        
+        const userStartup = userStartupRes.data.find(
+          item => item.role === 'startup'
+        );
+        if (userStartup) {
+          setCurrentUserStartupId(userStartup._id);
+        }
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchData();
   }, [baseUrl, navigate]);
 
@@ -136,8 +137,8 @@ const StartupList = ({ showOnlyFavorites = false }) => {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="px-4 py-8 w-full overflow-hidden"> {/* Added overflow-hidden */}
+      <div className="max-w-7xl mx-auto w-full"> {/* Ensure full width with constraint */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">
@@ -200,17 +201,17 @@ const StartupList = ({ showOnlyFavorites = false }) => {
                 )}
               </div>
             ) : (
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {filteredStartups.map(startup => (
-        <StartupCard 
-          key={startup._id} 
-          startup={startup} 
-          isFavorite={favorites.includes(startup._id)}
-          onToggleFavorite={handleToggleFavorite}
-          isCurrentUser={currentUserStartupId === startup._id}
-        />
-      ))}
-    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full"> {/* Added w-full */}
+                {filteredStartups.map(startup => (
+                  <StartupCard 
+                    key={startup._id} 
+                    startup={startup} 
+                    isFavorite={favorites.includes(startup._id)}
+                    onToggleFavorite={handleToggleFavorite}
+                    isCurrentUser={currentUserStartupId === startup._id}
+                  />
+                ))}
+              </div>
             )}
           </>
         )}

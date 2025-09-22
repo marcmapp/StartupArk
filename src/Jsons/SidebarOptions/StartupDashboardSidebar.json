@@ -1,6 +1,11 @@
 [
-  { "to": "/smart/startup-dashboard", "name": "Dashboard", "icon": "home", "type": "solid" },
-{
+  {
+    "to": "/smart/startup-dashboard",
+    "name": "Dashboard",
+    "icon": "home",
+    "type": "solid"
+  },
+  {
     "to": "/smart/startupsList",
     "name": "Startup List",
     "icon": "calendar",
@@ -13,26 +18,37 @@
     "icon": "box",
     "type": "solid",
     "children": [
-      { "to": "/products/showcase", "name": "Showcase" },
-      { "to": "/products/launchpad", "name": "Launchpad" }
+      {
+        "to": "/products/showcase",
+        "name": "Showcase"
+      },
+      {
+        "to": "/products/launchpad",
+        "name": "Launchpad"
+      }
     ]
   },
-{
+  {
     "to": "/smart/manage-bookings",
     "name": "Bookings",
     "icon": "briefcase",
     "type": "solid",
     "note": "Projects"
   },
-    { "to": "/notifications", "name": "Notifications", "icon": "bell", "type": "solid" },
-    {
+  {
+    "to": "/notifications",
+    "name": "Notifications",
+    "icon": "bell",
+    "type": "solid"
+  },
+  {
     "to": "/smart/favorites",
     "name": "Favorite Startups",
     "icon": "star",
     "type": "solid",
     "note": "To Go Startups"
   },
-{
+  {
     "to": "/smart/startupcalender",
     "name": "calender",
     "icon": "briefcase",
@@ -44,10 +60,10 @@
     "name": "Chat",
     "icon": "chat",
     "type": "solid",
-    "features": ["video"]
+    "features": [
+      "video"
+    ]
   },
-
-
   {
     "to": "/smart/blog",
     "name": "Blog",

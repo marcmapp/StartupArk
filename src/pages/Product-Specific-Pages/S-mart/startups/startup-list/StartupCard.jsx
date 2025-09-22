@@ -1,9 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DefaultLogo from '../../../../../assets/MP-white-bg.png';
-import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
-import { FiClock, FiCheckCircle } from 'react-icons/fi';
+import { FiClock, FiCheckCircle, FiHeart, FiArrowRight } from 'react-icons/fi';
 import { getImageUrl } from '../../../../../utils/imageUrls';
 
 const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser }) => {
@@ -49,36 +47,32 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser }) =
   return (
     <Link 
       to={`/smart/startups/${startup._id}`} 
-      className="block h-full"
+      className="block h-full group"
     >
-      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full group relative">
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full hover:border-indigo-100 relative">
         {/* Favorite button */}
         <button 
           onClick={handleFavoriteClick}
-          className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-gray-100 transition-colors"
+          className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-gray-100 transition-colors group/favorite"
           aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
         >
-          {isFavorite ? (
-            <HeartSolid className="h-5 w-5 text-red-500 fill-current" />
-          ) : (
-            <div className="relative">
-              <HeartOutline className="h-5 w-5 text-gray-400 stroke-current" />
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 opacity-0 group-hover:opacity-20 rounded-full transition-opacity" />
-            </div>
-          )}
+          <FiHeart 
+            className={`h-5 w-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover/favorite:text-red-300'}`} 
+            strokeWidth={isFavorite ? 2 : 1.5}
+          />
         </button>
 
         {/* Current user badge */}
         {isCurrentUser && (
-          <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-medium flex items-center">
-            <FiCheckCircle className="mr-1" size={14} />
+          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full bg-indigo-100/90 backdrop-blur-sm text-indigo-800 text-xs font-medium flex items-center shadow-sm">
+            <FiCheckCircle className="mr-1.5" size={12} />
             Your Startup
           </div>
         )}
 
         {/* Logo and basic info */}
-        <div className="p-5 flex items-start gap-4">
-          <div className="flex-shrink-0 h-16 w-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center">
+        <div className="p-5 pb-4 flex items-start gap-4">
+          <div className="flex-shrink-0 h-16 w-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center group-hover:border-indigo-200 transition-colors">
             <img
               src={logoUrl}
               alt={`${startup.startupName} logo`}
@@ -92,42 +86,42 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser }) =
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900 mb-1 truncate">
+            <h3 className="text-lg font-bold text-gray-900 mb-1 truncate group-hover:text-indigo-600 transition-colors">
               {startup.startupName}
             </h3>
-            <p className="text-indigo-600 font-medium truncate">
+            <p className="text-indigo-600 font-medium text-sm truncate">
               {startup.tagline}
             </p>
           </div>
         </div>
 
         {/* Description and tags */}
-        <div className="px-5 pb-3 flex-grow">
-          <p className="text-gray-600 mb-3 line-clamp-3 text-sm">
+        <div className="px-5 pb-4 flex-grow">
+          <p className="text-gray-600 mb-3 line-clamp-3 text-sm leading-relaxed">
             {startup.description}
           </p>
 
           {/* Availability badge */}
           {startup.availability?.days?.length > 0 && (
-            <div className="flex items-center mb-3 text-sm">
-              <FiClock className="text-gray-400 mr-1.5" size={14} />
-              <span className="text-gray-600">
+            <div className="flex items-center mb-3 text-sm text-gray-500 bg-gray-50/50 px-3 py-1.5 rounded-lg">
+              <FiClock className="mr-2" size={14} />
+              <span>
                 {formatAvailability(startup.availability)}
               </span>
             </div>
           )}
 
           <div className="flex flex-wrap gap-2">
-            <span className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full">
+            <span className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full border border-indigo-100">
               {startup.industry}
             </span>
             {startup.fundingStage && (
-              <span className="bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-full">
+              <span className="bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-full border border-green-100">
                 {startup.fundingStage}
               </span>
             )}
             {startup.location && (
-              <span className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full">
+              <span className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full border border-blue-100">
                 {startup.location}
               </span>
             )}
@@ -135,13 +129,10 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser }) =
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
-          <div className="text-indigo-600 hover:text-indigo-800 font-medium text-sm inline-flex items-center group">
-            View Details
-            <svg className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 group-hover:bg-indigo-50/30 transition-colors">
+          <div className="text-indigo-600 hover:text-indigo-800 font-medium text-sm inline-flex items-center group/link">
+            View details
+            <FiArrowRight className="ml-2 transition-transform group-hover/link:translate-x-1" />
           </div>
         </div>
       </div>

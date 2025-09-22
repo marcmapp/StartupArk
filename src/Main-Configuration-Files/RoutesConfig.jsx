@@ -33,7 +33,7 @@ import Startups from "../pages/Product-Specific-Pages/S-mart/startups/startup-li
 import ProductDetail from "../pages/Product-Specific-Pages/S-mart/products/ProductDetail";
 import FavoritesPage from "../pages/Product-Specific-Pages/S-mart/startups/startup-list/FavoritesPage";
 import OrdersPage from "../pages/Product-Specific-Pages/S-mart/startups/orders/OrdersPage";
-import ChatPage from "../pages/Product-Specific-Pages/S-mart/chat/ChatPage"
+
 import BlogPage from "../pages/Product-Specific-Pages/S-mart/blog/BlogPage"
 import VirtualCardPublicView from "../pages/Product-Specific-Pages/S-mart/startups/VirtualCardPublicView";
 
@@ -43,6 +43,9 @@ import UserBookingsPage from "../pages/Product-Specific-Pages/S-mart/bookings/Us
 import StartupBookingsPage from "../pages/Product-Specific-Pages/S-mart/bookings/StartupBookingsPage";
 import UserCalendarPage from "../pages/Product-Specific-Pages/S-mart/calendars/UserCalendarPage";
 import StartupCalendarPage from "../pages/Product-Specific-Pages/S-mart/calendars/StartupCalendarPage";
+import ChatPage from "../pages/Product-Specific-Pages/S-mart/chat/ChatPage";
+import ConversationsList from "../pages/Product-Specific-Pages/S-mart/chat/ConversationsList";
+import ChatInterface from "../pages/Product-Specific-Pages/S-mart/chat/ChatInterface";
 
 
 // ** Public Routes (No Auth Required) **
@@ -54,23 +57,23 @@ export const publicRoutes = [
 
 // ** Private Routes (Require Auth) **
 export const privateRoutes = [
-  { path: "/dashboard", element:( <PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Dashboard /></LayoutWrapper></PrivateRoute> )},
-  { path: "/pricing", element: (<PrivateRoute><LayoutWrapper sidebarOptions={Pricingpagesidebar}><Pricing /></LayoutWrapper></PrivateRoute> )},
-  { path: "/settings", element:( <PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Settings /></LayoutWrapper></PrivateRoute> )},
+  { path: "/dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Dashboard /></LayoutWrapper></PrivateRoute>) },
+  { path: "/pricing", element: (<PrivateRoute><LayoutWrapper sidebarOptions={Pricingpagesidebar}><Pricing /></LayoutWrapper></PrivateRoute>) },
+  { path: "/settings", element: (<PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Settings /></LayoutWrapper></PrivateRoute>) },
 
   // pages
   { path: "/smart", element: <PrivateRoute><Smart /></PrivateRoute> },
-  
-  { path: "/smart/user-dashboard", element:( <PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><SmartUserDashboard /></LayoutWrapper></PrivateRoute> )},
-  { path: "/smart/startup-dashboard", element:( <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupDashboard /></LayoutWrapper ></PrivateRoute> )},
-  { path: "/smart/profile", element:( <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><SmartStartupProfile /></LayoutWrapper ></PrivateRoute> )},
 
-  { path: "/products", element:( <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><ProductShowcasePage /></LayoutWrapper ></PrivateRoute> )},
-  
-   { path: "/products/:id", element:( <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><ProductDetail /></LayoutWrapper ></PrivateRoute> )},
-  { path: "/smart/startupsList", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><Startups /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/favorites", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><FavoritesPage /></LayoutWrapper ></PrivateRoute> },
-    
+  { path: "/smart/user-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><SmartUserDashboard /></LayoutWrapper></PrivateRoute>) },
+  { path: "/smart/startup-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupDashboard /></LayoutWrapper ></PrivateRoute>) },
+  { path: "/smart/profile", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><SmartStartupProfile /></LayoutWrapper ></PrivateRoute>) },
+
+  { path: "/products", element: (<PrivateRoute><LayoutWrapper ><ProductShowcasePage /></LayoutWrapper ></PrivateRoute>) },
+
+  { path: "/products/:id", element: (<PrivateRoute><LayoutWrapper ><ProductDetail /></LayoutWrapper ></PrivateRoute>) },
+  { path: "/smart/startupsList", element: <PrivateRoute><LayoutWrapper ><Startups /></LayoutWrapper ></PrivateRoute> },
+  { path: "/smart/favorites", element: <PrivateRoute><LayoutWrapper ><FavoritesPage /></LayoutWrapper ></PrivateRoute> },
+
 
 
   { path: "/smart/startups", element: <PrivateRoute><StartupList /></PrivateRoute> },
@@ -83,18 +86,24 @@ export const privateRoutes = [
 
   { path: "/smart/bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><OrdersPage /></LayoutWrapper ></PrivateRoute> },
   //usersbookings  
-  { path: "/smart/my-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><UserBookingsPage /></LayoutWrapper ></PrivateRoute> },
-    //startupsbookings  
-    { path: "/smart/manage-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupBookingsPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/smart/my-bookings", element: <PrivateRoute><LayoutWrapper ><UserBookingsPage /></LayoutWrapper ></PrivateRoute> },
+  //startupsbookings  
+  { path: "/smart/manage-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupBookingsPage /></LayoutWrapper ></PrivateRoute> },
 
+  //chat
+  // { path: "/smart/chat/:startupId", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><ChatPage /></LayoutWrapper ></PrivateRoute> },
+  // { path: "/smart/conversations", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><ConversationsList /></LayoutWrapper ></PrivateRoute> },
 
-  { path: "/smart/chat", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><ChatPage /></LayoutWrapper ></PrivateRoute> },
+  // Update your routes
+  { path: "/smart/chat", element: <PrivateRoute><LayoutWrapper ><ChatInterface /></LayoutWrapper></PrivateRoute> },
+  { path: "/smart/chat/:startupId", element: <PrivateRoute><LayoutWrapper ><ChatInterface /></LayoutWrapper></PrivateRoute> },
+
   { path: "/smart/blog", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><BlogPage /></LayoutWrapper ></PrivateRoute> },
 
-  { path: "/smart/usercalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><UserCalendarPage /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/startupcalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupCalendarPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/smart/usercalender", element: <PrivateRoute><LayoutWrapper ><UserCalendarPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/smart/startupcalender", element: <PrivateRoute><LayoutWrapper ><StartupCalendarPage /></LayoutWrapper ></PrivateRoute> },
 
-  { path: "/vc/:id", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><VirtualCardPublicView /></LayoutWrapper ></PrivateRoute> },
+  { path: "/vc/:id", element: <PrivateRoute><LayoutWrapper ><VirtualCardPublicView /></LayoutWrapper ></PrivateRoute> },
 ];
 
 
