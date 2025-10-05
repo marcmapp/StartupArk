@@ -46,7 +46,7 @@ const EditStartupProfile = () => {
     if (!key) return null;
     if (key.startsWith('http')) return key;
     if (key.startsWith('blob:')) return key;
-    return `${baseUrl}/api/smart/file/${encodeURIComponent(key)}`;
+    return `${baseUrl}/smart/api/smart/file/${encodeURIComponent(key)}`;
   };
 
   // Data processor with error handling
@@ -88,7 +88,7 @@ const EditStartupProfile = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${baseUrl}/api/smart/dashboard`, {
+        const response = await axios.get(`${baseUrl}/smart/api/smart/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -152,7 +152,7 @@ const EditStartupProfile = () => {
     const filetype = file.type;
 
     try {
-      const response = await axios.get(`${baseUrl}/api/smart/upload-url`, {
+      const response = await axios.get(`${baseUrl}/smart/api/smart/upload-url`, {
         params: { filename, filetype, filecategory: category },
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -194,7 +194,7 @@ const deleteFileFromS3 = async (key) => {
     const token = localStorage.getItem('token');
     console.log('Attempting to delete file:', key);
     const response = await axios.post(
-      `${baseUrl}/api/smart/delete-file`,
+      `${baseUrl}/smart/api/smart/delete-file`,
       { key },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -496,7 +496,7 @@ const handleSubmit = async (e) => {
 
     // Submit the form data
     const response = await axios.post(
-      `${baseUrl}/api/smart/form/startup`,
+      `${baseUrl}/smart/api/smart/form/startup`,
       { formData: submissionData },
       { headers: { Authorization: `Bearer ${token}` } }
     );

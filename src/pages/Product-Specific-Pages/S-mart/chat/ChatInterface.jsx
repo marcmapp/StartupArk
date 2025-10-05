@@ -180,7 +180,7 @@ const ChatInterface = () => {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/chat/conversations`, {
+        const response = await fetch(`${baseUrl}/smart/api/chat/conversations`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -295,7 +295,7 @@ const ChatInterface = () => {
         socket.emit('join_conversation', selectedConversation._id);
 
         // Fetch messages
-        const messagesRes = await fetch(`${baseUrl}/api/chat/messages/${selectedConversation._id}`, {
+        const messagesRes = await fetch(`${baseUrl}/smart/api/chat/messages/${selectedConversation._id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -317,7 +317,7 @@ const ChatInterface = () => {
         // Only fetch startup details if the current user is NOT a startup
         if (currentUser.role !== 'startup' && selectedConversation.startupId) {
           const startupId = selectedConversation.startupId._id || selectedConversation.startupId;
-          const startupRes = await fetch(`${baseUrl}/api/smart/startups-by-id/${startupId}`, {
+          const startupRes = await fetch(`${baseUrl}/smart/api/smart/startups-by-id/${startupId}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -347,7 +347,7 @@ const ChatInterface = () => {
   // Mark messages as read
   const markMessagesAsRead = async (conversationId) => {
     try {
-      const response = await fetch(`${baseUrl}/api/chat/messages/${conversationId}/read`, {
+      const response = await fetch(`${baseUrl}/smart/api/chat/messages/${conversationId}/read`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -600,7 +600,7 @@ const ChatInterface = () => {
       formData.append('conversationId', selectedConversation._id);
       
       // Send audio message to server
-      const response = await fetch(`${baseUrl}/api/chat/audio-message`, {
+      const response = await fetch(`${baseUrl}/smart/api/chat/audio-message`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -657,7 +657,7 @@ const ChatInterface = () => {
         formData.append('conversationId', selectedConversation._id);
         formData.append('fileType', file.type.split('/')[0]); // 'image', 'video', or 'application'
         
-        const response = await fetch(`${baseUrl}/api/chat/media-message`, {
+        const response = await fetch(`${baseUrl}/smart/api/chat/media-message`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`

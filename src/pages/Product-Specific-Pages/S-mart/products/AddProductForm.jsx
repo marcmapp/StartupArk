@@ -43,8 +43,8 @@ const AddProductForm = ({ onSuccess, isEdit, initialData }) => {
       const token = localStorage.getItem('token');
       const method = isEdit ? 'put' : 'post';
       const url = isEdit 
-        ? `${baseUrl}/api/smart/products/${initialData._id}`
-        : `${baseUrl}/api/smart/products`;
+        ? `${baseUrl}/smart/api/smart/products/${initialData._id}`
+        : `${baseUrl}/smart/api/smart/products`;
 
       // Clean data before sending (remove empty strings)
       const cleanedData = {

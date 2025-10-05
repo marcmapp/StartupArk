@@ -45,7 +45,7 @@ const [existingBooking, setExistingBooking] = useState(null);
 useEffect(() => {
   const checkExistingBooking = async () => {
     try {
-      const response = await fetch(`${baseUrl}/api/bookings/check?startupId=${startup._id}`, {
+      const response = await fetch(`${baseUrl}/smart/api/bookings/check?startupId=${startup._id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -115,7 +115,7 @@ const handleBookMeeting = async () => {
     setBookingLoading(true);
     setBookingError(null);
     
-    const response = await fetch(`${baseUrl}/api/bookings`, {
+    const response = await fetch(`${baseUrl}/smart/api/bookings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

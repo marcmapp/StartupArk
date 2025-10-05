@@ -23,7 +23,7 @@ const VirtualCardPublicView = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/smart/virtual-card/${id}`);
+        const response = await axios.get(`/smart/api/smart/virtual-card/${id}`);
         setData(response.data);
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to load virtual card');

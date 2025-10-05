@@ -21,7 +21,7 @@ const StartupDashboard = () => {
     if (!key) return null;
     if (key.startsWith('http')) return key;
     if (key.startsWith('blob:')) return key;
-    return `${baseUrl}/api/smart/file/${encodeURIComponent(key)}`;
+    return `${baseUrl}/smart/api/smart/file/${encodeURIComponent(key)}`;
   };
   const processStartupData = (data) => {
     if (!data) return null;
@@ -51,7 +51,7 @@ const StartupDashboard = () => {
           return;
         }
 
-        const response = await axios.get(`${baseUrl}/api/smart/dashboard`, {
+        const response = await axios.get(`${baseUrl}/smart/api/smart/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         

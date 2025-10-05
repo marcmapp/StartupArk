@@ -34,7 +34,7 @@ const StartupDetailsForm = ({
           {formData.logo ? (
             <div className="relative">
               <img 
-                src={isBlobUrl(formData.logo) ? formData.logo : `${baseUrl}/api/smart/file/${formData.logo}`}
+                src={isBlobUrl(formData.logo) ? formData.logo : `${baseUrl}/smart/api/smart/file/${formData.logo}`}
                 alt="Startup logo" 
                 className="h-20 w-20 rounded-lg object-cover border border-gray-200"
               />
@@ -439,7 +439,7 @@ const StartupDetailsForm = ({
             {formData.gallery.map((image, index) => (
               <div key={index} className="relative group">
                 <img
-                  src={isBlobUrl(image.url) ? image.url : `${baseUrl}/api/smart/file/${image.url}`}
+                  src={isBlobUrl(image.url) ? image.url : `${baseUrl}/smart/api/smart/file/${image.url}`}
                   alt={`Gallery ${index + 1}`}
                   className="w-full h-32 object-cover rounded-lg"
                 />
@@ -488,7 +488,7 @@ const StartupDetailsForm = ({
                   <div className="flex items-center space-x-3 md:col-span-1">
                     {member.avatar ? (
                       <img 
-                        src={isBlobUrl(member.avatar) ? member.avatar : `${baseUrl}/api/smart/file/${member.avatar}`}
+                        src={isBlobUrl(member.avatar) ? member.avatar : `${baseUrl}/smart/api/smart/file/${member.avatar}`}
                         alt={`${member.name}'s avatar`}
                         className="h-12 w-12 rounded-full object-cover"
                       />

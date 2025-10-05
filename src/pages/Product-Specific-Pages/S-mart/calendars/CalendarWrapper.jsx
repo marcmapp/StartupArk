@@ -30,7 +30,7 @@ const CalendarWrapper = ({ type }) => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/bookings/calendar-events/${type}`, {
+        const response = await fetch(`${baseUrl}/smart/api/bookings/calendar-events/${type}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

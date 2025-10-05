@@ -34,6 +34,8 @@ import ProductDetail from "../pages/Product-Specific-Pages/S-mart/products/Produ
 import FavoritesPage from "../pages/Product-Specific-Pages/S-mart/startups/startup-list/FavoritesPage";
 import OrdersPage from "../pages/Product-Specific-Pages/S-mart/startups/orders/OrdersPage";
 
+import Hub from "../pages/Product-Specific-Pages/S-mart/hub/Hub";
+
 import BlogPage from "../pages/Product-Specific-Pages/S-mart/blog/BlogPage"
 import VirtualCardPublicView from "../pages/Product-Specific-Pages/S-mart/startups/VirtualCardPublicView";
 
@@ -104,6 +106,9 @@ export const privateRoutes = [
   { path: "/smart/startupcalender", element: <PrivateRoute><LayoutWrapper ><StartupCalendarPage /></LayoutWrapper ></PrivateRoute> },
 
   { path: "/vc/:id", element: <PrivateRoute><LayoutWrapper ><VirtualCardPublicView /></LayoutWrapper ></PrivateRoute> },
+
+
+  { path: "/smart/hub", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><Hub /></LayoutWrapper ></PrivateRoute> },
 ];
 
 

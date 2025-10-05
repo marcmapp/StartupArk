@@ -21,13 +21,13 @@ export default function SmartSetup({onComplete}) {
     async function fetchRole() {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`${baseUrl}/api/smart/role`, {
+        const res = await axios.get(`${baseUrl}/smart/api/smart/role`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setRole(res.data.role);
         
         // Check if this is first-time setup
-        const setupRes = await axios.get(`${baseUrl}/api/smart/first-time`, {
+        const setupRes = await axios.get(`${baseUrl}/smart/api/smart/first-time`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setIsFirstTimeSetup(setupRes.data.isFirstTime);
@@ -47,7 +47,7 @@ export default function SmartSetup({onComplete}) {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const res = await axios.get(`${baseUrl}/api/smart/agreement/${role}`, {
+        const res = await axios.get(`${baseUrl}/smart/api/smart/agreement/${role}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAgreementDone(res.data.agreed);
@@ -68,7 +68,7 @@ export default function SmartSetup({onComplete}) {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const res = await axios.get(`${baseUrl}/api/smart/form/${role}`, {
+        const res = await axios.get(`${baseUrl}/smart/api/smart/form/${role}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFormDone(res.data.hasFormData);
@@ -110,7 +110,7 @@ async function handleRoleSelect(selectedRole) {
   try {
     const token = localStorage.getItem('token');
     await axios.post(
-      `${baseUrl}/api/smart/role`,
+      `${baseUrl}/smart/api/smart/role`,
       { role: selectedRole },
       { headers: { Authorization: `Bearer ${token}` } }
     );

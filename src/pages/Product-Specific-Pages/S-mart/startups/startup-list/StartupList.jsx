@@ -36,14 +36,14 @@ const StartupList = ({ showOnlyFavorites = false }) => {
 
         // Fetch all data in parallel
         const [startupsRes, favoritesRes, userStartupRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/smart/startups`, {
+          axios.get(`${baseUrl}/smart/api/smart/startups`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`${baseUrl}/api/smart/favorites`, {
+          axios.get(`${baseUrl}/smart/api/smart/favorites`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           // Get the user's startup ID from their profile
-          axios.get(`${baseUrl}/api/smart/dashboard`, {
+          axios.get(`${baseUrl}/smart/api/smart/dashboard`, {
             headers: { Authorization: `Bearer ${token}` },
           })
         ]);
@@ -77,7 +77,7 @@ const StartupList = ({ showOnlyFavorites = false }) => {
     try {
       const token = localStorage.getItem("token");
       const method = isFavorite ? 'post' : 'delete';
-      const url = `${baseUrl}/api/smart/favorites/${startupId}`;
+      const url = `${baseUrl}/smart/api/smart/favorites/${startupId}`;
       
       await axios[method](url, null, {
         headers: { Authorization: `Bearer ${token}` }

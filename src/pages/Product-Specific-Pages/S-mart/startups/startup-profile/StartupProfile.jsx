@@ -68,7 +68,7 @@ const StartupProfile = ({ startupId }) => {
   useEffect(() => {
     const fetchAvailability = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/smart/${startupId}/availability`);
+        const response = await fetch(`${baseUrl}/smart/api/smart/${startupId}/availability`);
         if (response.ok) {
           const data = await response.json();
           setAvailability(data);
@@ -115,7 +115,7 @@ const StartupProfile = ({ startupId }) => {
       // 4. Use getAuthToken() consistently
       const token = getAuthToken();
       const response = await axios.put(
-        `${baseUrl}/api/smart/availability`,
+        `${baseUrl}/smart/api/smart/availability`,
         availabilityData,
         {
           headers: {
@@ -202,7 +202,7 @@ const StartupProfile = ({ startupId }) => {
     try {
       setVcLoading(true);
       const token = getAuthToken();
-      const response = await axios.get(`${baseUrl}/api/smart/virtual-card`, {
+      const response = await axios.get(`${baseUrl}/smart/api/smart/virtual-card`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -236,7 +236,7 @@ const StartupProfile = ({ startupId }) => {
       }
 
       const response = await axios.get(
-        `${baseUrl}/api/smart/startup-products/${userId}`,
+        `${baseUrl}/smart/api/smart/startup-products/${userId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -259,7 +259,7 @@ const StartupProfile = ({ startupId }) => {
     if (!key) return null;
     if (key.startsWith('http')) return key;
     if (key.startsWith('blob:')) return key;
-    return `${baseUrl}/api/smart/file/${encodeURIComponent(key)}`;
+    return `${baseUrl}/smart/api/smart/file/${encodeURIComponent(key)}`;
   };
 
   const processStartupData = (data) => {
@@ -290,7 +290,7 @@ const StartupProfile = ({ startupId }) => {
         return;
       }
 
-      const response = await axios.get(`${baseUrl}/api/smart/dashboard`, {
+      const response = await axios.get(`${baseUrl}/smart/api/smart/dashboard`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -320,7 +320,7 @@ const StartupProfile = ({ startupId }) => {
       setVcLoading(true);
       const token = getAuthToken();
       const response = await axios.post(
-        `${baseUrl}/api/smart/virtual-card`,
+        `${baseUrl}/smart/api/smart/virtual-card`,
         { startupId: startupData._id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -928,7 +928,7 @@ const StartupProfile = ({ startupId }) => {
 
                 <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
                   <a
-                    href={startupData.pitchDeckUrl || `${baseUrl}/api/smart/file/${encodeURIComponent(startupData.pitchDeck)}`}
+                    href={startupData.pitchDeckUrl || `${baseUrl}/smart/api/smart/file/${encodeURIComponent(startupData.pitchDeck)}`}
                     download
                     className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center text-sm sm:text-base"
                   >
@@ -938,7 +938,7 @@ const StartupProfile = ({ startupId }) => {
 
                   {startupData.pitchDeck.endsWith('.pdf') && (
                     <a
-                      href={startupData.pitchDeckUrl || `${baseUrl}/api/smart/file/${encodeURIComponent(startupData.pitchDeck)}`}
+                      href={startupData.pitchDeckUrl || `${baseUrl}/smart/api/smart/file/${encodeURIComponent(startupData.pitchDeck)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1 sm:px-4 sm:py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center text-sm sm:text-base"

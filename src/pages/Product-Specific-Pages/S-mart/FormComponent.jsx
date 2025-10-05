@@ -99,7 +99,7 @@ function FormComponent({ role, onSubmit }) {
     
     try {
       // Get signed URL from backend
-      const response = await axios.get(`${baseUrl}/api/smart/upload-url`, {
+      const response = await axios.get(`${baseUrl}/smart/api/smart/upload-url`, {
         params: {
           filename: encodeURIComponent(file.name),
           filetype: file.type,
@@ -266,7 +266,7 @@ function FormComponent({ role, onSubmit }) {
 
       // Submit form
       await axios.post(
-        `${baseUrl}/api/smart/form/${role}`, 
+        `${baseUrl}/smart/api/smart/form/${role}`, 
         { formData: finalFormData }, 
         { headers: { Authorization: `Bearer ${token}` } }
       );

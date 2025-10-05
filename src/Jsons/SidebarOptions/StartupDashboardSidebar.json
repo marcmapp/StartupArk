@@ -36,8 +36,8 @@
     "note": "Projects"
   },
   {
-    "to": "/notifications",
-    "name": "Notifications",
+    "to": "/smart/hub",
+    "name": "Resource HUB",
     "icon": "bell",
     "type": "solid"
   },

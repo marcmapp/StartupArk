@@ -16,7 +16,7 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${baseUrl}/api/smart/products/${id}`);
+        const response = await axios.get(`${baseUrl}/smart/api/smart/products/${id}`);
         setProduct(response.data);
       } catch (err) {
         console.error('Error fetching product:', err);
@@ -35,7 +35,7 @@ const ProductDetail = () => {
   const getImageUrl = (key) => {
     if (!key) return '/default-product.png';
     if (key.startsWith('http')) return key;
-    return `${baseUrl}/api/smart/file/${encodeURIComponent(key)}`;
+    return `${baseUrl}/smart/api/smart/file/${encodeURIComponent(key)}`;
   };
 
   if (loading) {

@@ -43,13 +43,13 @@ const UserDashboard = () => {
     setRoleSwitchLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const setupCheck = await axios.get(`${baseUrl}/api/smart/form/startup`, {
+      const setupCheck = await axios.get(`${baseUrl}/smart/api/smart/form/startup`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (setupCheck.data.hasFormData) {
         await axios.post(
-          `${baseUrl}/api/smart/role`,
+          `${baseUrl}/smart/api/smart/role`,
           { role },
           { headers: { Authorization: `Bearer ${token}` } }
         );

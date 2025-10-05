@@ -90,7 +90,7 @@ const ChatPage = () => {
         setError(null);
 
         // Fetch startup details
-        const startupRes = await fetch(`${baseUrl}/api/smart/startups-by-id/${startupId}`, {
+        const startupRes = await fetch(`${baseUrl}/smart/api/smart/startups-by-id/${startupId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -104,7 +104,7 @@ const ChatPage = () => {
         setStartup(startupData);
 
         // Get or create conversation
-        const convRes = await fetch(`${baseUrl}/api/chat/conversation`, {
+        const convRes = await fetch(`${baseUrl}/smart/api/chat/conversation`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ const ChatPage = () => {
         }
 
         // Fetch messages
-        const messagesRes = await fetch(`${baseUrl}/api/chat/messages/${convData._id}`, {
+        const messagesRes = await fetch(`${baseUrl}/smart/api/chat/messages/${convData._id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

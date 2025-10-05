@@ -32,7 +32,7 @@ const ConversationsList = () => {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/chat/conversations`, {
+        const response = await fetch(`${baseUrl}/smart/api/chat/conversations`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

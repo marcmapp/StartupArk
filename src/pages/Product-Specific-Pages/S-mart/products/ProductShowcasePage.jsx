@@ -22,7 +22,7 @@ const ProductShowcase = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`${baseUrl}/api/smart/products`);
+        const response = await axios.get(`${baseUrl}/smart/api/smart/products`);
         setProducts(response.data || []);
         
         // Extract unique tags and industries for filters
@@ -54,7 +54,7 @@ const ProductShowcase = () => {
   const getImageUrl = (key) => {
     if (!key) return '/default-product.png';
     if (key.startsWith('http')) return key;
-    return `${baseUrl}/api/smart/file/${encodeURIComponent(key)}`;
+    return `${baseUrl}/smart/api/smart/file/${encodeURIComponent(key)}`;
   };
 
   const handleTagToggle = (tag) => {

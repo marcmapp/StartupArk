@@ -12,7 +12,7 @@ const StartupBookingsPage = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/api/bookings/startup`, {
+      const response = await fetch(`${baseUrl}/smart/api/bookings/startup`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -32,7 +32,7 @@ const StartupBookingsPage = () => {
 
   const updateBookingStatus = async (bookingId, status) => {
     try {
-      const response = await fetch(`${baseUrl}/api/bookings/${bookingId}/status`, {
+      const response = await fetch(`${baseUrl}/smart/api/bookings/${bookingId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

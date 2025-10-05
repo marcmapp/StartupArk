@@ -33,10 +33,10 @@ console.log("Is current user:", currentUserStartupId === startup?._id);
 
         // Fetch both startup details and user profile in parallel
         const [startupRes, userProfileRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/smart/startups-by-id/${id}`, {
+          axios.get(`${baseUrl}/smart/api/smart/startups-by-id/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`${baseUrl}/api/smart/dashboard`, {
+          axios.get(`${baseUrl}/smart/api/smart/dashboard`, {
             headers: { Authorization: `Bearer ${token}` },
           })
         ]);

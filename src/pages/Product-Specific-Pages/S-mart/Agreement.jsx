@@ -13,7 +13,7 @@ function Agreement({ role, onAgree }) {
 
   const handleAgree = () => {
     axios
-      .post(`${baseUrl}/api/smart/agreement/${role}`, {}, {
+      .post(`${baseUrl}/smart/api/smart/agreement/${role}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(() => onAgree());

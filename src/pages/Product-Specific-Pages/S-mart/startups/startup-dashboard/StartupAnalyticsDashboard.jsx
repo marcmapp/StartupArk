@@ -42,13 +42,13 @@ const StartupDashboard = () => {
         });
         
         if (userRes.data.smartRole !== 'startup') {
-          const forms = await axios.get(`${baseUrl}/api/smart/form/startup`, {
+          const forms = await axios.get(`${baseUrl}/smart/api/smart/form/startup`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           
           if (forms.data.hasFormData) {
             await axios.post(
-              `${baseUrl}/api/smart/role`,
+              `${baseUrl}/smart/api/smart/role`,
               { role: 'startup' },
               { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -64,13 +64,13 @@ const StartupDashboard = () => {
         }
 
         // Fetch dashboard metrics
-        const metricsRes = await axios.get(`${baseUrl}/api/smart/startups/metrics`, {
+        const metricsRes = await axios.get(`${baseUrl}/smart/api/smart/startups/metrics`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMetrics(metricsRes.data);
 
         // Fetch recent activity
-        const activityRes = await axios.get(`${baseUrl}/api/smart/activity`, {
+        const activityRes = await axios.get(`${baseUrl}/smart/api/smart/activity`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { limit: 5 }
         });
@@ -94,7 +94,7 @@ const StartupDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `${baseUrl}/api/smart/role`,
+        `${baseUrl}/smart/api/smart/role`,
         { role },
         { headers: { Authorization: `Bearer ${token}` } }
       );

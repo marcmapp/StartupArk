@@ -12,7 +12,7 @@ const UserBookingsPage = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/api/bookings/user`, {
+      const response = await fetch(`${baseUrl}/smart/api/bookings/user`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
