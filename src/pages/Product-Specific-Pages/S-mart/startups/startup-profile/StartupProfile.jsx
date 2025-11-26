@@ -334,7 +334,7 @@ const StartupProfile = ({ startupId }) => {
   };
 
   const handleEdit = () => {
-    navigate('/smart/editprofile');
+    navigate('/smart/startup-edit-profile');
   };
 
   const handleShare = () => {
@@ -1092,12 +1092,12 @@ const StartupProfile = ({ startupId }) => {
                 {/* Virtual Card Design */}
                 <div
                   id="virtual-card"
-                  className="max-w-xs sm:max-w-md mx-auto bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl sm:rounded-2xl shadow-lg overflow-hidden border border-gray-200"
+                  className="max-w-xs sm:max-w-md mx-auto border-2 border-black rounded-xl sm:rounded-2xl shadow-lg overflow-hidden"
                 >
                   <div className="p-4 sm:p-6">
                     <div className="flex justify-between items-start">
                       <div className="max-w-[70%]">
-                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{startupData.startupName}</h3>
+                        <h3 className="text-lg sm:text-xl font-bold text-highlight truncate">{startupData.startupName}</h3>
                         <p className="text-gray-600 text-sm sm:text-base truncate">{startupData.tagline}</p>
                       </div>
                       {startupData.logo && (
@@ -1112,25 +1112,25 @@ const StartupProfile = ({ startupId }) => {
                     <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4">
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">Industry</p>
-                        <p className="font-medium text-sm sm:text-base">{startupData.industry || 'N/A'}</p>
+                        <p className="font-medium text-sm sm:text-base text-secondary">{startupData.industry || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">Location</p>
-                        <p className="font-medium text-sm sm:text-base">{startupData.location || 'N/A'}</p>
+                        <p className="font-medium text-sm sm:text-base text-secondary">{startupData.location || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">Founded</p>
-                        <p className="font-medium text-sm sm:text-base">{startupData.foundedYear || 'N/A'}</p>
+                        <p className="font-medium text-sm sm:text-base text-secondary">{startupData.foundedYear || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">Stage</p>
-                        <p className="font-medium text-sm sm:text-base">{startupData.fundingStage || 'N/A'}</p>
+                        <p className="font-medium text-sm sm:text-base text-secondary">{startupData.fundingStage || 'N/A'}</p>
                       </div>
                     </div>
 
                     <div className="mt-4 sm:mt-6">
                       <p className="text-xs sm:text-sm text-gray-500">Contact</p>
-                      <p className="font-medium text-sm sm:text-base">{startupData.email || 'N/A'}</p>
+                      <p className="font-medium text-sm sm:text-base text-secondary">{startupData.email || 'N/A'}</p>
                       {startupData.website && (
                         <a
                           href={startupData.website}

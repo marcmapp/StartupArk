@@ -66,18 +66,7 @@ console.log("Is current user:", currentUserStartupId === startup?._id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Back button */}
-      <div className="mb-6">
-        <Link
-          to="/smart/user-dashboard"
-          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Startups
-        </Link>
-      </div>
+      
 
       {/* Header Section */}
  <StartupDetailHeader 
@@ -298,25 +287,25 @@ console.log("Is current user:", currentUserStartupId === startup?._id);
                     <div className="mt-6 grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Industry</p>
-                        <p className="font-medium">{startup.industry || 'N/A'}</p>
+                        <p className="font-medium text-cyan-600">{startup.industry || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Location</p>
-                        <p className="font-medium">{startup.location || 'N/A'}</p>
+                        <p className="font-medium text-cyan-600">{startup.location || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Founded</p>
-                        <p className="font-medium">{startup.foundedYear || 'N/A'}</p>
+                        <p className="font-medium text-cyan-600">{startup.foundedYear || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Stage</p>
-                        <p className="font-medium">{startup.fundingStage || 'N/A'}</p>
+                        <p className="font-medium text-cyan-600">{startup.fundingStage || 'N/A'}</p>
                       </div>
                     </div>
 
                     <div className="mt-6">
                       <p className="text-sm text-gray-500">Contact</p>
-                      <p className="font-medium">{startup.email || 'N/A'}</p>
+                      <p className="font-medium text-cyan-600">{startup.email || 'N/A'}</p>
                       {startup.website && (
                         <a
                           href={startup.website}

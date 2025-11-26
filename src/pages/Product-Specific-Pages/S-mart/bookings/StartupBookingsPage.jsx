@@ -66,7 +66,7 @@ const StartupBookingsPage = () => {
         <h1 className="text-2xl font-bold">Booking Requests</h1>
         <button
           onClick={fetchBookings}
-          className="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-md text-sm hover:bg-gray-200 transition-colors"
+          className="flex items-center gap-1 px-3 py-1 bg-gray-100  text-cyan-600 rounded-md text-sm hover:bg-gray-200 transition-colors"
         >
           <FiRefreshCw size={14} />
           Refresh
@@ -76,25 +76,25 @@ const StartupBookingsPage = () => {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setStatusFilter('all')}
-          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'all' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100'}`}
+          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'all' ? 'bg-indigo-100 text-cyan-600' : 'bg-gray-100 text-cyan-600'}`}
         >
           All
         </button>
         <button
           onClick={() => setStatusFilter('pending')}
-          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100'}`}
+          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-cyan-600'}`}
         >
           Pending
         </button>
         <button
           onClick={() => setStatusFilter('confirmed')}
-          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}
+          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-cyan-600'}`}
         >
           Confirmed
         </button>
         <button
           onClick={() => setStatusFilter('rejected')}
-          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}
+          className={`px-3 py-1 rounded-md text-sm ${statusFilter === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-cyan-600'}`}
         >
           Rejected
         </button>

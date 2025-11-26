@@ -36,8 +36,8 @@
     "note": "Projects"
   },
   {
-    "to": "/smart/hub",
-    "name": "Resource HUB",
+    "to": "/smart/jobposting",
+    "name": "Resource",
     "icon": "bell",
     "type": "solid"
   },
@@ -50,7 +50,7 @@
   },
   {
     "to": "/smart/startupcalender",
-    "name": "calender",
+    "name": "Calender",
     "icon": "briefcase",
     "type": "solid",
     "note": "calender"
@@ -64,11 +64,5 @@
       "video"
     ]
   },
-  {
-    "to": "/smart/blog",
-    "name": "Blog",
-    "icon": "file",
-    "type": "solid",
-    "note": "Additional"
-  }
+   { "to": "/smart/startup/events", "name": "Events", "icon": "calendar" }
 ]

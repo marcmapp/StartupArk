@@ -887,10 +887,11 @@ const ChatInterface = () => {
   }
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900">
+    <div className="w-screen h-screen flex bg-white dark:bg-black overflow-hidden">
+
       {/* Conversations sidebar */}
-      <div className="w-full md:w-96 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-800">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="w-full md:w-96 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-black">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-black">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Messages</h1>
             <button 
@@ -902,7 +903,7 @@ const ChatInterface = () => {
           </div>
         </div>
 
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-black">
           <div className="relative">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -1004,7 +1005,7 @@ const ChatInterface = () => {
       {selectedConversation ? (
         <div className="flex-1 flex flex-col">
           {/* Chat header */}
-          <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between bg-white dark:bg-gray-800">
+          <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between bg-white dark:bg-black">
             <div className="flex items-center">
               {(() => {
                 const displayInfo = conversationDisplayInfo[selectedConversation._id] || { name: 'Unknown', image: null, isStartup: false, userId: null };
@@ -1055,7 +1056,7 @@ const ChatInterface = () => {
           </div>
 
           {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-black">
             <div className="max-w-3xl mx-auto space-y-6">
               {Object.keys(groupedMessages).length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -1175,7 +1176,7 @@ const ChatInterface = () => {
           )}
 
           {/* Message input */}
-          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800">
+          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-black">
             <div className="max-w-3xl mx-auto">
               <div className="flex items-center mb-2">
                 <input
@@ -1213,7 +1214,7 @@ const ChatInterface = () => {
                     }
                   }}
                   placeholder="Type your message..."
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-black dark:text-white"
                 />
                 <button
                   onClick={handleSendMessage}

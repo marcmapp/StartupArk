@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Agreement from './S-mart/Agreement';
 import FormComponent from './S-mart/FormComponent';
+import StudentAgreement from './S-mart/students/StudentAgreement';
+import StudentForm from './S-mart/students/StudentForm';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -93,10 +95,14 @@ useEffect(() => {
         if (onComplete) {
           onComplete();
         } else {
-          navigate(role === 'startup' 
-            ? '/smart/startup-dashboard' 
-            : '/smart/user-dashboard');
-        }
+        // Add student dashboard route
+        const dashboardRoutes = {
+          user: '/smart/user-dashboard',
+          startup: '/smart/startup-dashboard',
+          student: '/smart/student-dashboard' // Add this
+        };
+        navigate(dashboardRoutes[role]);
+      }
       }, isFirstTimeSetup ? 2000 : 0); // No delay if not first time
       
       return () => clearTimeout(timer);
@@ -177,18 +183,31 @@ async function handleRoleSelect(selectedRole) {
           >
             Startup
           </button>
+          <button
+          onClick={() => handleRoleSelect('student')}
+          className="px-6 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition"
+        >
+          Student
+        </button>
         </div>
       </div>
     );
   }
 
-  if (!agreementDone) {
-    return <Agreement role={role} onAgree={handleAgree} />;
+if (!agreementDone) {
+  if (role === 'student') {
+    return <StudentAgreement role={role} onAgree={handleAgree} />;
   }
+  return <Agreement role={role} onAgree={handleAgree} />;
+}
 
-  if (!formDone) {
-    return <FormComponent role={role} onSubmit={handleFormSubmit} />;
+// Update the form section to use StudentForm
+if (!formDone) {
+  if (role === 'student') {
+    return <StudentForm role={role} onSubmit={handleFormSubmit} />;
   }
+  return <FormComponent role={role} onSubmit={handleFormSubmit} />;
+}
 
   return (
     <>

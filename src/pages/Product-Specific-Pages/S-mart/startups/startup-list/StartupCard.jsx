@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DefaultLogo from '../../../../../assets/MP-white-bg.png';
-import { FiClock, FiCheckCircle, FiHeart, FiArrowRight } from 'react-icons/fi';
+import { FiClock, FiHeart, FiArrowRight } from 'react-icons/fi';
 import { getImageUrl } from '../../../../../utils/imageUrls';
 
 const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser }) => {
@@ -61,14 +61,6 @@ const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser }) =
             strokeWidth={isFavorite ? 2 : 1.5}
           />
         </button>
-
-        {/* Current user badge */}
-        {isCurrentUser && (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full bg-indigo-100/90 backdrop-blur-sm text-indigo-800 text-xs font-medium flex items-center shadow-sm">
-            <FiCheckCircle className="mr-1.5" size={12} />
-            Your Startup
-          </div>
-        )}
 
         {/* Logo and basic info */}
         <div className="p-5 pb-4 flex items-start gap-4">

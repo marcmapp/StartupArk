@@ -1,5 +1,7 @@
 [
-
-  { "to": "/smart", "name": "S-mart", "icon": "briefcase", "type": "solid" }
-
+  { "to": "/dashboard", "name": "Hub", "icon": "chip", "type": "solid" },
+  { "to": "/smart", "name": "Startup Ark", "icon": "briefcase", "type": "solid" },
+  { "to": "/settings", "name": "Settings", "icon": "cog", "type": "solid" },
+  { "to": "/pricing", "name": "Subscription", "icon": "credit-card", "type": "solid" },
+  { "to": "/profile", "name": "Profile", "icon": "user", "type": "solid" }
 ]

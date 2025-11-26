@@ -149,25 +149,6 @@ export default function AppSidebar({ user, navigationData }) {
             </Link>
           </DropdownMenu.Item>
           
-          <DropdownMenu.Item asChild className="outline-none">
-            <Link
-              to="/pricing"
-              className="flex w-full p-2 items-center space-x-2 rounded-md hover:bg-gray-50 hover:text-black active:bg-gray-100 duration-150"
-            >
-              <box-icon name="credit-card" color="#9e9a9a"></box-icon>
-              <span>Subscription</span>
-            </Link>
-          </DropdownMenu.Item>
-          
-          <DropdownMenu.Item asChild className="outline-none">
-            <Link
-              to="/smart/profile"
-              className="flex w-full p-2 items-center space-x-2 rounded-md hover:bg-gray-50 hover:text-black active:bg-gray-100 duration-150"
-            >
-              <box-icon name="user" color="#9e9a9a"></box-icon>
-              <span>Profile</span>
-            </Link>
-          </DropdownMenu.Item>
           
           
           

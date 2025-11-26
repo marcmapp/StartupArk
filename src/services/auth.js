@@ -3,7 +3,7 @@ import api from './api';
 export const authService = {
   // Send OTP
   async sendOTP(email) {
-    const response = await api.post('/email/send-otp', { email });
+    const response = await api.post('/auth/send-otp', { email });
     return response.data;
   },
 
@@ -31,11 +31,6 @@ export const authService = {
     return response.data;
   },
 
-  // Check SES status
-  async checkSESStatus() {
-    const response = await api.get('/email/ses-status');
-    return response.data;
-  }
 };
 
 // Storage helper

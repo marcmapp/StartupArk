@@ -2,9 +2,9 @@
   { "to": "/smart/user-dashboard", "name": "Dashboard", "icon": "home", "type": "solid" },
   { "to": "/products", "name": "Products", "icon": "box", "type": "solid" },
   {"to": "/smart/chat",  "name": "Chat","icon": "chat","type": "solid","features": ["video"]  },
-  { "to": "/notifications", "name": "Notifications", "icon": "bell", "type": "solid" },
   { "to": "/smart/favorites", "name": "Favorite Startups", "icon": "star", "type": "solid", "note": "To Go Startups" },
   { "to": "/smart/usercalender", "name": "calendar", "icon": "star", "type": "solid", "note": "To Go Startups" },
   { "to": "/smart/my-bookings", "name": "Orders", "icon": "briefcase", "type": "solid", "note": "Projects" },
+  { "to": "/smart/launchpad", "name": "LaunchPad", "icon": "bell", "type": "solid" },
   { "to": "/smart/blog", "name": "Blog", "icon": "briefcase", "type": "solid", "note": "Additional" }
 ]

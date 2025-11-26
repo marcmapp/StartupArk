@@ -6,36 +6,43 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// Import both sidebars
+// Import all sidebars
 import UserDashboardSidebar from '../Jsons/SidebarOptions/UserDashboardSidebar.json';
 import StartupDashboardSidebar from '../Jsons/SidebarOptions/StartupDashboardSidebar.json';
+import StudentDashboardSidebar from '../Jsons/SidebarOptions/StudentDashboardSidebar.json';
 import MainDashboard from "../Jsons/SidebarOptions/MainDashboardSidebar.json";
 import Pricingpagesidebar from "../Jsons/SidebarOptions/PricingPageSidebar.json";
 
-const LayoutWrapper = ({ children, sidebarOptions }) => {
+const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => {
   const { darkMode, toggleTheme } = useTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  // Function to determine which sidebar to use based on user role
+  // Enhanced function to determine which sidebar to use
   const getSidebarOptions = () => {
-    // If specific sidebar options are provided, use them
+    // If specific sidebar options are provided, use them (highest priority)
     if (sidebarOptions) return sidebarOptions;
     
-    // If no specific options provided, determine based on user role
-    if (!user) return UserDashboardSidebar; // default fallback
-    
-    // Check user role and return appropriate sidebar
-    if (user.role === 'startup' || user.isStartup) {
-      return StartupDashboardSidebar;
-    } else if (user.role === 'user' || !user.role) {
-      return UserDashboardSidebar;
+    // If dynamicSidebar is true, determine sidebar based on user role
+    if (dynamicSidebar && user) {
+      // Enhanced role detection
+      const userRole = user.smartRole || user.role || (user.isStartup ? 'startup' : 'user');
+      
+      switch (userRole) {
+        case 'startup':
+          return StartupDashboardSidebar;
+        case 'student':
+          return StudentDashboardSidebar;
+        case 'user':
+        default:
+          return UserDashboardSidebar;
+      }
     }
     
-    // Default fallback
-    return UserDashboardSidebar;
+    // If no specific options and not dynamic, return null (no sidebar)
+    return null;
   };
 
   const finalSidebarOptions = getSidebarOptions();

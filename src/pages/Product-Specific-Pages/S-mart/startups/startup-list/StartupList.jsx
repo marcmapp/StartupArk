@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { FiArrowRight } from 'react-icons/fi';
 import axios from 'axios';
 import StartupCard from './StartupCard';
 import { useNavigate, Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import FilterDropdown from './FilterDropdown';
 import LoadingSkeleton from '../../../../../components/Loader';
+import { getImageUrl } from '../../../../../utils/imageUrls';
+import DefaultLogo from '../../../../../assets/MP-white-bg.png';
 
-const StartupList = ({ showOnlyFavorites = false }) => {
+const StartupList = ({ showOnlyFavorites = false }) => { // Removed startup prop
   const [startups, setStartups] = useState([]);
   const [filteredStartups, setFilteredStartups] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -15,6 +18,7 @@ const StartupList = ({ showOnlyFavorites = false }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('All');
   const [currentUserStartupId, setCurrentUserStartupId] = useState(null);
+  const [currentUserStartup, setCurrentUserStartup] = useState(null);
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const navigate = useNavigate();
 
@@ -56,13 +60,17 @@ const StartupList = ({ showOnlyFavorites = false }) => {
         
         setStartups(startupsWithAvailability);
         setFavorites(favoritesRes.data.map(fav => fav._id));
-        setFilteredStartups(startupsWithAvailability);
         
         const userStartup = userStartupRes.data.find(
           item => item.role === 'startup'
         );
         if (userStartup) {
           setCurrentUserStartupId(userStartup._id);
+          // Find the current user's startup data
+          const userStartupData = startupsWithAvailability.find(
+            startup => startup._id === userStartup._id
+          );
+          setCurrentUserStartup(userStartupData);
         }
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to fetch data');
@@ -97,6 +105,11 @@ const StartupList = ({ showOnlyFavorites = false }) => {
   useEffect(() => {
     let results = startups;
 
+    // Filter out current user's startup from main list
+    if (currentUserStartupId) {
+      results = results.filter(startup => startup._id !== currentUserStartupId);
+    }
+
     if (showOnlyFavorites) {
       results = results.filter(startup => favorites.includes(startup._id));
     }
@@ -115,7 +128,7 @@ const StartupList = ({ showOnlyFavorites = false }) => {
     }
 
     setFilteredStartups(results);
-  }, [searchTerm, selectedIndustry, startups, favorites, showOnlyFavorites]);
+  }, [searchTerm, selectedIndustry, startups, favorites, showOnlyFavorites, currentUserStartupId]);
 
   const industries = ['All', ...new Set(startups.map(startup => startup.industry))];
 
@@ -137,8 +150,81 @@ const StartupList = ({ showOnlyFavorites = false }) => {
   );
 
   return (
-    <div className="px-4 py-8 w-full overflow-hidden"> {/* Added overflow-hidden */}
-      <div className="max-w-7xl mx-auto w-full"> {/* Ensure full width with constraint */}
+    <div className="px-4 py-8 w-full overflow-hidden">
+      <div className="max-w-7xl mx-auto w-full">
+        {/* Current User Startup Header */}
+        {currentUserStartup && !showOnlyFavorites && (
+          <div className="mb-8">
+            <div className=" rounded-2xl p-6 border-2 border-cyan-600 shadow-lg">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="flex-shrink-0">
+                  <div className="h-20 w-20 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 overflow-hidden flex items-center justify-center">
+                    <img
+                      src={getImageUrl(currentUserStartup.logo, baseUrl)}
+                      alt={`${currentUserStartup.startupName} logo`}
+                      className={`h-16 w-16 ${currentUserStartup.logo ? 'object-cover' : 'object-contain p-2'}`}
+                      onError={(e) => {
+                        e.target.src = DefaultLogo;
+                        e.target.className = 'h-16 w-16 object-contain p-2';
+                      }}
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-2xl font-bold text-highlight">My Company</h2>
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
+                      Featured
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {currentUserStartup.startupName}
+                  </h3>
+                  <p className="mb-3">
+                    {currentUserStartup.tagline}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+                      {currentUserStartup.industry}
+                    </span>
+                    {currentUserStartup.fundingStage && (
+                      <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+                        {currentUserStartup.fundingStage}
+                      </span>
+                    )}
+                    {currentUserStartup.location && (
+                      <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+                        {currentUserStartup.location}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex-shrink-0">
+                  <Link 
+                    to={`/smart/startups/${currentUserStartup._id}`}
+                    className="inline-flex items-center gap-2 border-2 border-cyan-500 text-highlight px-6 py-3 rounded-lg font-semibold  transition-colors shadow-lg hover:shadow-xl"
+                  >
+                    Public View
+                    <FiArrowRight className="ml-1" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+            
+            {/* Separator */}
+            <div className="mt-6 text-center">
+              <div className="inline-flex items-center gap-4 text-gray-500">
+                <div className="h-px w-20 bg-gray-300"></div>
+                <span className="text-sm font-medium">Discover Other Startups</span>
+                <div className="h-px w-20 bg-gray-300"></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">
@@ -152,7 +238,7 @@ const StartupList = ({ showOnlyFavorites = false }) => {
           </div>
 
           {!showOnlyFavorites && (
-            <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+            <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3 text-black">
               <SearchBar
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
@@ -201,14 +287,14 @@ const StartupList = ({ showOnlyFavorites = false }) => {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full"> {/* Added w-full */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
                 {filteredStartups.map(startup => (
                   <StartupCard 
                     key={startup._id} 
                     startup={startup} 
                     isFavorite={favorites.includes(startup._id)}
                     onToggleFavorite={handleToggleFavorite}
-                    isCurrentUser={currentUserStartupId === startup._id}
+                    isCurrentUser={false} // Always false since we filtered out current user's startup
                   />
                 ))}
               </div>
