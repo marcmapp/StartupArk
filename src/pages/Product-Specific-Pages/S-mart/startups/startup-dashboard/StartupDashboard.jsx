@@ -98,7 +98,7 @@ const StartupDashboard = () => {
           <Icon className="h-6 w-6 text-cyan-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+          <h3 className="text-lg font-semibold  mb-2">{title}</h3>
           <p className=" text-sm mb-4">{description}</p>
           <button
             onClick={action}
@@ -116,7 +116,7 @@ const StartupDashboard = () => {
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <Icon className="h-5 w-5" />
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-lg font-semibold ">{title}</h2>
         </div>
       </div>
       <div className="p-6">
@@ -137,7 +137,7 @@ const StartupDashboard = () => {
     return (
       <div className="rounded-lg shadow p-6">
         <div className="text-center py-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Dashboard</h3>
+          <h3 className="text-lg font-medium  mb-2">Error Loading Dashboard</h3>
           <p className="">{error}</p>
           {error === 'Authentication required' && (
             <button
@@ -165,8 +165,8 @@ const StartupDashboard = () => {
             />
           )}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {startupData.startupName}!
+            <h1 className="text-3xl font-bold ">
+              Welcome back, <span className='text-highlight'>{startupData.startupName}</span>!
             </h1>
             <p className=" mt-1">
               Manage your startup and track your progress.
@@ -209,28 +209,28 @@ const StartupDashboard = () => {
                   <UserGroupIcon className="h-5 w-5 " />
                   <span className="">Team Members</span>
                 </div>
-                <span className="font-semibold text-gray-900">{startupData.team?.length || 0}</span>
+                <span className="font-semibold ">{startupData.team?.length || 0}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-100">
                 <div className="flex items-center space-x-3">
                   <PhotoIcon className="h-5 w-5 " />
                   <span className="">Gallery Items</span>
                 </div>
-                <span className="font-semibold text-gray-900">{startupData.gallery?.length || 0}</span>
+                <span className="font-semibold ">{startupData.gallery?.length || 0}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-100">
                 <div className="flex items-center space-x-3">
                   <DocumentTextIcon className="h-5 w-5 " />
                   <span className="">Industry</span>
                 </div>
-                <span className="font-semibold text-gray-900">{startupData.industry || 'Not set'}</span>
+                <span className="font-semibold ">{startupData.industry || 'Not set'}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center space-x-3">
                   <ChartBarIcon className="h-5 w-5 " />
                   <span className="">Stage</span>
                 </div>
-                <span className="font-semibold text-gray-900">{startupData.fundingStage || 'Not set'}</span>
+                <span className="font-semibold ">{startupData.fundingStage || 'Not set'}</span>
               </div>
             </div>
           </InfoCard>

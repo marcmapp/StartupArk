@@ -1,21 +1,214 @@
-[
-    {
-      "name": "Basic",
-      "price": "$10/month",
-      "amount": 1000,
-      "features": ["Feature 1", "Feature 2", "Feature 3"]
+{
+  "products": {
+    "startupArk": {
+      "name": "Startup Ark",
+      "description": "Connect startups with talent and investors",
+      "icon": "BuildingStorefrontIcon",
+      "userTypes": {
+        "users": {
+          "name": "Users",
+          "description": "For consumers and customers",
+          "icon": "UserGroupIcon",
+          "plans": [
+            {
+              "name": "User Basic",
+              "price": "Free",
+              "amount": 0,
+              "features": [
+                "Browse startups",
+                "Save favorites",
+                "Basic search filters",
+                "Community access",
+                "Email support"
+              ],
+              "cta": "Get Started",
+              "popular": false
+            },
+            {
+              "name": "User Pro",
+              "price": "$9.99",
+              "amount": 999,
+              "features": [
+                "All Basic features",
+                "Advanced search filters",
+                "Priority support",
+                "Early access to features",
+                "Analytics dashboard",
+                "Unlimited saves"
+              ],
+              "cta": "Upgrade Now",
+              "popular": true
+            }
+          ]
+        },
+        "students": {
+          "name": "Students",
+          "description": "For students and learners",
+          "icon": "AcademicCapIcon",
+          "plans": [
+            {
+              "name": "Student Basic",
+              "price": "Free",
+              "amount": 0,
+              "features": [
+                "Access to startup listings",
+                "Basic job search",
+                "Skill building resources",
+                "Student community",
+                "Career guidance"
+              ],
+              "cta": "Join Free",
+              "popular": false
+            },
+            {
+              "name": "Student Pro",
+              "price": "$4.99",
+              "amount": 499,
+              "features": [
+                "All Basic features",
+                "Premium job alerts",
+                "Resume builder",
+                "Interview preparation",
+                "Mentorship access",
+                "Certification programs"
+              ],
+              "cta": "Upgrade Now",
+              "popular": true
+            }
+          ]
+        },
+        "startups": {
+          "name": "Startups",
+          "description": "For startups and founders",
+          "icon": "BuildingStorefrontIcon",
+          "plans": [
+            {
+              "name": "Startup Explorer",
+              "price": "Free",
+              "amount": 0,
+              "features": [
+                "Basic company profile",
+                "Connect with 10 users monthly",
+                "Basic analytics",
+                "Community forum access",
+                "Standard listing"
+              ],
+              "cta": "Get Started",
+              "popular": false
+            },
+            {
+              "name": "Startup Builder",
+              "price": "$29.99",
+              "amount": 2999,
+              "features": [
+                "All Explorer features",
+                "Unlimited connections",
+                "Advanced analytics",
+                "Featured listing",
+                "Recruitment tools",
+                "Dedicated support"
+              ],
+              "cta": "Upgrade Now",
+              "popular": true
+            },
+            {
+              "name": "Startup Growth",
+              "price": "$99.99",
+              "amount": 9999,
+              "features": [
+                "All Builder features",
+                "Priority placement",
+                "Dedicated account manager",
+                "API access",
+                "Custom integrations",
+                "White-label solutions",
+                "Advanced analytics"
+              ],
+              "cta": "Get Growth",
+              "popular": false
+            }
+          ]
+        }
+      }
     },
-    {
-      "name": "Pro",
-      "price": "$30/month",
-      "amount": 3000,
-      "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4"]
-    },
-    {
-      "name": "Enterprise",
-      "price": "Custom Pricing",
-      "amount": 5000,
-      "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Dedicated Support"]
+    "mappBusiness": {
+      "name": "Mapp Business",
+      "description": "Business intelligence and analytics platform",
+      "icon": "ChartBarIcon",
+      "userTypes": {
+        "analysts": {
+          "name": "Analysts",
+          "description": "For data analysts and researchers",
+          "icon": "ChartBarIcon",
+          "plans": [
+            {
+              "name": "Analyst Basic",
+              "price": "Free",
+              "amount": 0,
+              "features": [
+                "Basic data visualization",
+                "Standard reports",
+                "Community templates",
+                "Email support",
+                "5 data sources"
+              ],
+              "cta": "Get Started",
+              "popular": false
+            },
+            {
+              "name": "Analyst Pro",
+              "price": "$19.99",
+              "amount": 1999,
+              "features": [
+                "All Basic features",
+                "Advanced analytics",
+                "Custom dashboards",
+                "Priority support",
+                "Unlimited data sources",
+                "API access"
+              ],
+              "cta": "Upgrade Now",
+              "popular": true
+            }
+          ]
+        },
+        "enterprises": {
+          "name": "Enterprises",
+          "description": "For large organizations",
+          "icon": "BuildingOfficeIcon",
+          "plans": [
+            {
+              "name": "Business",
+              "price": "$49.99",
+              "amount": 4999,
+              "features": [
+                "All Pro features",
+                "Team collaboration",
+                "Advanced security",
+                "Custom branding",
+                "SSO integration"
+              ],
+              "cta": "Get Started",
+              "popular": false
+            },
+            {
+              "name": "Enterprise",
+              "price": "$149.99",
+              "amount": 14999,
+              "features": [
+                "All Business features",
+                "Unlimited users",
+                "Dedicated instance",
+                "24/7 support",
+                "Custom development",
+                "SLA guarantee"
+              ],
+              "cta": "Contact Sales",
+              "popular": false
+            }
+          ]
+        }
+      }
     }
-  ]
-  
+  }
+}

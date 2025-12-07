@@ -14,7 +14,7 @@ const RoleSwitcher = ({ currentRole, onSwitch, loading }) => {
     <button
       onClick={() => onSwitch('startup')}
       disabled={loading}
-      className="mr-12 flex items-center gap-1 sm:gap-2 bg-indigo-600 hover:bg-indigo-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-medium transition whitespace-nowrap"
+      className="mr-12 flex items-center gap-1 sm:gap-2 bg-cyan-600 hover:bg-cyan-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-medium transition whitespace-nowrap"
     >
       {loading ? (
         <span className="text-xs sm:text-sm">Switching...</span>

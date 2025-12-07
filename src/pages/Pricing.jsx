@@ -1,15 +1,31 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import MarkPayment from "../components/Specific-Usecase-Components/MarkPayment";
-import Sidebar from "../components/Sidebar";
 import Loader from "../components/Loader";
-import Modal from "../components/Model"; // Ensure this path is correct
-import pricingData from "../Jsons/Data/PricingDetails.json";
+import Modal from "../components/Model";
+import pricingConfig from "../Jsons/Data/PricingDetails.json";
+import {
+  CheckIcon,
+  StarIcon,
+  BuildingStorefrontIcon,
+  UserGroupIcon,
+  AcademicCapIcon,
+  ChartBarIcon,
+  BuildingOfficeIcon,
+  UserCircleIcon,
+  ArrowRightIcon
+} from '@heroicons/react/24/outline';
 
+// Icon mapping
+const iconMap = {
+  BuildingStorefrontIcon,
+  UserGroupIcon,
+  AcademicCapIcon,
+  ChartBarIcon,
+  BuildingOfficeIcon
+};
 
 const Pricing = () => {
-  const [plans, setPlans] = useState([]);
   const [user, setUser] = useState(null);
   const [modalMessage, setModalMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -40,7 +56,6 @@ const Pricing = () => {
           planExpiry: subscriptionRes.data.expiryDate,
         };
 
-        // Check if subscription has expired
         if (subscriptionRes.data.expiryDate) {
           const expiryDate = new Date(subscriptionRes.data.expiryDate);
           const currentDate = new Date();
@@ -64,39 +79,10 @@ const Pricing = () => {
     };
 
     fetchUser();
-    setPlans(pricingData);
   }, [navigate]);
 
-
-
-  const handlePaymentSuccess = async (subscriptionPlan) => {
-    try {
-      const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 1);
-
-      await axios.post(`${baseUrl}/api/user/update-plan`, {
-        email: user.email,
-        plan: subscriptionPlan,
-        expiryDate: expiryDate.toISOString(),
-      });
-
-      setModalMessage("Payment Successful! Subscription updated.");
-      setShowModal(true);
-
-      // Redirect to dashboard after 2 seconds
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 2000);
-    } catch (error) {
-      console.error("Failed to update plan:", error);
-      setModalMessage("Payment successful, but failed to update plan. Contact support.");
-      setShowModal(true);
-    }
-  };
-
-  const handlePaymentError = (errorMessage) => {
-    setModalMessage(errorMessage);
-    setShowModal(true);
+  const handleViewPlans = (productKey) => {
+    navigate(`/pricing/${productKey}`);
   };
 
   if (!user) {
@@ -105,83 +91,138 @@ const Pricing = () => {
 
   const isActivePlan = user.subscriptionPlan && user.subscriptionPlan !== "No Subscription";
 
-  return (
-    <div className="min-h-screen bg-white text-black flex justify-center items-center p-6">
-    
-      <div className="w-full max-w-5xl">
-        <h1 className="text-4xl font-bold mb-6 text-center text-black">
-          Pricing Plans
-        </h1>
-        <div className="text-center mb-8">
-          <p className="text-lg">
-            <strong>Name:</strong> {user.username}
-          </p>
-          <p className="text-lg">
-            <strong>Email:</strong> {user.email}
-          </p>
-          <p className="text-lg">
-            <strong>Number:</strong> {user.whatsappNumber}
-          </p>
+  const ProductCard = ({ productKey, product }) => {
+    const ProductIcon = iconMap[product.icon];
+    const userTypesCount = Object.keys(product.userTypes).length;
+    const totalPlans = Object.values(product.userTypes).reduce(
+      (total, userType) => total + userType.plans.length, 0
+    );
+
+    return (
+      <div className="relative rounded-2xl p-8 transition-all duration-300 border border-gray-200/80 backdrop-blur-sm hover:border-cyan-300/50 hover:shadow-lg">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <ProductIcon className="h-8 w-8 text-cyan-600" />
+          </div>
+          <h3 className="text-2xl font-bold mb-2">{product.name}</h3>
+          <p className="text-gray-600 mb-4">{product.description}</p>
         </div>
 
-        {isActivePlan ? (
-          <div className="text-center bg-white p-8 rounded-lg shadow-2xl border-2 border-black">
-            <p className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-              You are currently on the{" "}
-              <span className="text-red-600 font-bold text-4xl">{user.subscriptionPlan}</span> plan.
-            </p>
-            <p className="text-xl">
-              Your plan ends on{" "}
-              <span className="text-sky-500 font-semibold">
-                {user.planExpiry ? new Date(user.planExpiry).toDateString() : "N/A"}
-              </span>.
-            </p>
+        <div className="space-y-3 mb-6">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Plan Types:</span>
+            <span className="font-semibold">{userTypesCount} user types</span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((plan, index) => {
-              const isDisabled =
-                user.subscriptionPlan === plan.name ||
-                (user.subscriptionPlan === "Pro" && plan.name !== "Pro") ||
-                user.subscriptionPlan === "Enterprise";
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Total Plans:</span>
+            <span className="font-semibold">{totalPlans} plans available</span>
+          </div>
+        </div>
 
-              return (
-                <div
-                  key={index}
-                  className="p-8 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 hover:border-blue-500 transition-all duration-300 relative"
-                >
-                  {user.subscriptionPlan === plan.name && (
-                    <div className="absolute top-0 right-0 bg-green-500 text-white px-4 py-2 rounded-bl-lg">
-                      Active
-                    </div>
-                  )}
-                  <h2 className="text-2xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-                    {plan.name}
-                  </h2>
-                  <p className="text-3xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-                    {plan.price}
-                  </p>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center text-gray-300">
-                        <span className="mr-2 text-green-500">✔</span> {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <MarkPayment
-                    amount={plan.amount}
-                    plan={plan.name}
-                    onSuccess={handlePaymentSuccess}
-                    onError={handlePaymentError}
-                    disabled={isDisabled}
-                    user={user}
-                  />
+        <button
+          onClick={() => handleViewPlans(productKey)}
+          className="w-full py-3 px-6 bg-cyan-600 text-white rounded-xl font-semibold transition-all duration-200 hover:bg-cyan-700 hover:shadow-lg flex items-center justify-center"
+        >
+          View Plans
+          <ArrowRightIcon className="h-4 w-4 ml-2" />
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Dashboard-style Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="h-16 w-16 rounded-xl bg-cyan-100 flex items-center justify-center border border-cyan-200">
+                <UserCircleIcon className="h-10 w-10 text-cyan-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">
+                  Welcome back, <span className="text-cyan-600">{user.username || user.email}</span>!
+                </h1>
+                <p className="mt-1 text-gray-600">
+                  Choose a product to explore subscription plans
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Current Subscription Status */}
+        {isActivePlan && (
+          <div className="rounded-2xl border border-cyan-200 p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <CheckIcon className="h-6 w-6 text-green-600" />
                 </div>
-              );
-            })}
+                <div>
+                  <h2 className="text-xl font-semibold">Active Subscription</h2>
+                  <p className="text-gray-600">
+                    You're subscribed to <span className="font-semibold text-cyan-600">Startup Ark</span> as{" "}
+                    <span className="font-semibold text-blue-600">{user.smartRole || 'User'}</span> with the{" "}
+                    <span className="font-semibold text-green-600">{user.subscriptionPlan}</span> plan
+                  </p>
+                </div>
+              </div>
+              {user.planExpiry && (
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Renews on</p>
+                  <p className="font-semibold">
+                    {new Date(user.planExpiry).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
+
+        {/* Products Grid */}
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-4">Choose Your Product</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Select a product to view detailed pricing plans tailored for different user types and needs
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {Object.entries(pricingConfig.products).map(([key, product]) => (
+              <ProductCard key={key} productKey={key} product={product} />
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="rounded-2xl border border-gray-200 p-8">
+          <h2 className="text-2xl font-bold text-center mb-8">
+            Frequently Asked Questions
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Can I change plans anytime?</h3>
+              <p className="text-gray-600 text-sm">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Is there a free trial?</h3>
+              <p className="text-gray-600 text-sm">All paid plans come with a 14-day free trial. No credit card required to start.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">What payment methods do you accept?</h3>
+              <p className="text-gray-600 text-sm">We accept all major credit cards, PayPal, and bank transfers for annual plans.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Can I get a refund?</h3>
+              <p className="text-gray-600 text-sm">We offer a 30-day money-back guarantee for all annual subscriptions.</p>
+            </div>
+          </div>
+        </div>
       </div>
+
       {showModal && (
         <Modal
           message={modalMessage}

@@ -1,353 +1,171 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import LoadingSkeleton from './components/LoadingSkeleton';
-import StartupDetailHeader from './StartupDetailHeader';
-import ContactCard from './components/ContactCard';
-import TeamMembers from './components/TeamMembers';
-import Gallery from './components/Gallery';
-import QRCode from 'react-qr-code';
+
+// Shared Components
+import StartupProfileHeader from '../../startups-ui-components/StartupProfileHeader/index';
+import StartupTabs from '../../startups-ui-components/StartupTabs/index';
+import StartupOverview from '../../startups-ui-components/StartupOverview/index';
+import StartupTeam from '../../startups-ui-components/StartupTeam/index';
+import StartupGallery from '../../startups-ui-components/StartupGallery/index';
+import StartupProducts from '../../startups-ui-components/products/index';
+import StartupVirtualCard from '../../startups-ui-components/StartupVirtualCard/index';
+
+// Shared Hooks
+import { useStartupData } from '../../shared/hooks/useStartupData';
+import { useStartupProducts } from '../../shared/hooks/useStartupProducts';
+
 const StartupDetail = () => {
   const { id } = useParams();
-  const [startup, setStartup] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('about');
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  const { startupData, loading, error } = useStartupData(id);
+  const { products, loading: productsLoading } = useStartupProducts(id);
+  
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  const navigate = useNavigate();
-const [currentUserStartupId, setCurrentUserStartupId] = useState(null);
 
-console.log("Current user startup ID:", currentUserStartupId);
-console.log("Viewed startup ID:", startup?._id);
-console.log("Is current user:", currentUserStartupId === startup?._id);
-  // Update the fetch function to properly include products
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
-        // Fetch both startup details and user profile in parallel
-        const [startupRes, userProfileRes] = await Promise.all([
-          axios.get(`${baseUrl}/smart/api/smart/startups-by-id/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${baseUrl}/smart/api/smart/dashboard`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        ]);
-
-        setStartup(startupRes.data);
-        
-        // Get the user's startup ID from their profile
-        const userStartup = userProfileRes.data.find(
-          item => item.role === 'startup'
-        );
-        if (userStartup) {
-          setCurrentUserStartupId(userStartup._id);
-        }
-      } catch (err) {
-        setError(err.response?.data?.error || 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id, baseUrl, navigate]);
+  // Merge products into startupData for the tabs component
+  const startupDataWithProducts = startupData ? {
+    ...startupData,
+    products: products || []
+  } : null;
 
   if (loading) return <LoadingStartupDetail />;
   if (error) return <ErrorState error={error} />;
-  if (!startup) return <EmptyState />;
+  if (!startupDataWithProducts) return <EmptyState />;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      
-
       {/* Header Section */}
- <StartupDetailHeader 
-      startup={startup} 
-      isCurrentUser={currentUserStartupId === startup?._id}
-    />
+      <StartupProfileHeader
+        startupData={startupDataWithProducts}
+        isPublicView={true}
+      />
 
       {/* Main Content */}
       <div className="mt-8 flex flex-col lg:flex-row gap-8">
         {/* Left Column - Main Content */}
         <div className="flex-1">
           {/* Tabs */}
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('about')}
-                className={`${activeTab === 'about' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                About
-              </button>
-              <button
-                onClick={() => setActiveTab('solution')}
-                className={`${activeTab === 'solution' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Our Solution
-              </button>
-              {startup.team && startup.team.length > 0 && (
-                <button
-                  onClick={() => setActiveTab('team')}
-                  className={`${activeTab === 'team' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                >
-                  Team ({startup.team.length})
-                </button>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <StartupTabs 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              startupData={startupDataWithProducts} // Use data with products
+              isPublicView={true}
+            />
+
+            {/* Tab Content */}
+            <div className="p-4 sm:p-6">
+              {activeTab === 'overview' && (
+                <StartupOverview startupData={startupDataWithProducts} />
               )}
-              {startup.gallery && startup.gallery.length > 0 && (
-                <button
-                  onClick={() => setActiveTab('gallery')}
-                  className={`${activeTab === 'gallery' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                >
-                  Gallery ({startup.gallery.length})
-                </button>
+
+              {activeTab === 'team' && (
+                <StartupTeam team={startupDataWithProducts.team} />
               )}
-              {/* In the tab navigation section */}
-              {/* Products tab - always show but check length */}
-              <button
-                onClick={() => setActiveTab('products')}
-                className={`${activeTab === 'products' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Products {startup.products?.length > 0 && `(${startup.products.length})`}
-              </button>
 
-              {/* Virtual Card tab - only show if exists */}
-              {startup.virtualCard && (
-                <button
-                  onClick={() => setActiveTab('vc')}
-                  className={`${activeTab === 'vc' ? 'border-indigo-500 text-indigo-600' : 'border-transparent hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                >
-                  Virtual Card
-                </button>
+              {activeTab === 'gallery' && (
+                <StartupGallery gallery={startupDataWithProducts.gallery} />
               )}
-            </nav>
-          </div>
 
-          {/* Tab Content */}
-          <div className="py-6">
-            {activeTab === 'about' && (
-              <div className="prose max-w-none">
-                <h3 className="text-xl font-semibold mb-4">Our Story</h3>
-                <p className="whitespace-pre-line">{startup.bio}</p>
-
-                {startup.mission && (
-                  <>
-                    <h3 className="text-xl font-semibold mt-8 mb-4">Our Mission</h3>
-                    <p className="whitespace-pre-line">{startup.mission}</p>
-                  </>
-                )}
-
-                {startup.vision && (
-                  <>
-                    <h3 className="text-xl font-semibold mt-8 mb-4">Our Vision</h3>
-                    <p className="whitespace-pre-line">{startup.vision}</p>
-                  </>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'solution' && (
-              <div className="prose max-w-none">
-                <h3 className="text-xl font-semibold mb-4">What We Do</h3>
-                <p className="whitespace-pre-line">{startup.description}</p>
-
-                {startup.problemStatement && (
-                  <>
-                    <h3 className="text-xl font-semibold mt-8 mb-4">The Problem We Solve</h3>
-                    <p className="whitespace-pre-line">{startup.problemStatement}</p>
-                  </>
-                )}
-
-                {startup.uniqueProposition && (
-                  <>
-                    <h3 className="text-xl font-semibold mt-8 mb-4">Our Unique Proposition</h3>
-                    <p className="whitespace-pre-line">{startup.uniqueProposition}</p>
-                  </>
-                )}
-
-                {startup.technologyStack && startup.technologyStack.length > 0 && (
-                  <>
-                    <h3 className="text-xl font-semibold mt-8 mb-4">Technology Stack</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {startup.technologyStack.map((tech, index) => (
-                        <span key={index} className="bg-gray-100 text-gray-800 text-xs px-3 py-1 rounded-full">
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'team' && <TeamMembers team={startup.formData?.team || startup.team || []} />}
-            {activeTab === 'gallery' && <Gallery images={startup.gallery} />}
-            {/* In the tab content section */}
-            {activeTab === 'products' && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold">Products</h3>
-
-                {startup.products && startup.products.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {startup.products.map((product, index) => (
-                      <div key={product._id || index} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                        {product.featuredImage && (
-                          <div className="h-48 bg-gray-100 overflow-hidden">
-                            <img
-                              src={product.featuredImage}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="p-4">
-                          <h3 className="text-lg font-semibold">{product.name}</h3>
-                          <p className="text-gray-600 mt-1 text-sm">{product.shortDescription || product.description}</p>
-
-                          {product.tags?.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {product.tags.map((tag, tagIndex) => (
-                                <span key={tagIndex} className="bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {product.website && (
-                            <div className="mt-3">
-                              <a
-                                href={product.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center"
-                              >
-                                Visit website
-                                <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                              </a>
-                            </div>
-                          )}
+              {activeTab === 'pitch' && (
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Pitch Deck</h2>
+                  {startupDataWithProducts.pitchDeck ? (
+                    <div className="bg-gray-50 rounded-lg p-6 flex flex-col items-center">
+                      {startupDataWithProducts.pitchDeck.endsWith('.pdf') ? (
+                        <div className="mb-4 p-4 bg-white rounded-lg shadow-inner">
+                          <svg className="h-16 w-16 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                            <path d="M14 2v6h6" />
+                            <path d="M14 12h4" />
+                            <path d="M14 16h4" />
+                            <path d="M14 20h4" />
+                          </svg>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No products listed</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      This startup hasn't added any products yet.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'vc' && startup.virtualCard && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold">Virtual Business Card</h3>
-
-                <div className="max-w-md mx-auto bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl shadow-lg overflow-hidden border border-gray-200">
-                  <div className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="max-w-[70%]">
-                        <h3 className="text-xl font-bold text-gray-900 truncate">{startup.startupName}</h3>
-                        <p className="text-gray-600 text-base truncate">{startup.tagline}</p>
-                      </div>
-                      {startup.logo && (
-                        <img
-                          src={startup.logo}
-                          alt="Logo"
-                          className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-sm"
-                        />
+                      ) : (
+                        <div className="mb-4 p-4 bg-white rounded-lg shadow-inner">
+                          <svg className="h-16 w-16 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                            <path d="M14 2v6h6" />
+                            <path d="M8 12h8" />
+                            <path d="M8 16h8" />
+                            <path d="M8 20h5" />
+                          </svg>
+                        </div>
                       )}
-                    </div>
 
-                    <div className="mt-6 grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Industry</p>
-                        <p className="font-medium text-cyan-600">{startup.industry || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Location</p>
-                        <p className="font-medium text-cyan-600">{startup.location || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Founded</p>
-                        <p className="font-medium text-cyan-600">{startup.foundedYear || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Stage</p>
-                        <p className="font-medium text-cyan-600">{startup.fundingStage || 'N/A'}</p>
-                      </div>
-                    </div>
+                      <p className="text-gray-600 mb-4 text-center">
+                        {startupDataWithProducts.pitchDeck.split('/').pop()}
+                      </p>
 
-                    <div className="mt-6">
-                      <p className="text-sm text-gray-500">Contact</p>
-                      <p className="font-medium text-cyan-600">{startup.email || 'N/A'}</p>
-                      {startup.website && (
+                      <div className="flex gap-4 flex-wrap justify-center">
                         <a
-                          href={startup.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo-600 hover:underline text-sm truncate block"
+                          href={startupDataWithProducts.pitchDeck}
+                          download
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center"
                         >
-                          {startup.website.replace(/^https?:\/\//, '')}
+                          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Download
                         </a>
-                      )}
-                    </div>
 
-                    <div className="mt-6 flex justify-center">
-                      <QRCode
-                        value={`${window.location.origin}/vc/${startup.virtualCard.shareId}`}
-                        size={96}
-                        level="H"
-                      />
+                        {startupDataWithProducts.pitchDeck.endsWith('.pdf') && (
+                          <a
+                            href={startupDataWithProducts.pitchDeck}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+                          >
+                            <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            Preview
+                          </a>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="mt-4 text-center text-xs text-gray-500">
-                      Scan to view digital profile
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No pitch deck available</h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        This startup hasn't uploaded a pitch deck yet.
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
+              )}
 
-                <div className="flex justify-center gap-4 mt-6">
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/vc/${startup.virtualCard.shareId}`);
-                      // Show a temporary "Copied!" message
-                    }}
-                    className="flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                    </svg>
-                    Copy Link
-                  </button>
-                </div>
-              </div>
-            )}
+              {activeTab === 'products' && (
+                <StartupProducts 
+                  startupId={startupDataWithProducts._id}
+                  isEditable={false}
+                  baseUrl={baseUrl}
+                />
+              )}
+
+              {activeTab === 'vc' && startupDataWithProducts.virtualCard && (
+                <StartupVirtualCard 
+                  startupData={startupDataWithProducts}
+                  baseUrl={baseUrl}
+                  isPublicView={true}
+                />
+              )}
+            </div>
           </div>
         </div>
 
@@ -359,65 +177,71 @@ console.log("Is current user:", currentUserStartupId === startup?._id);
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500">Industry</p>
-                <p className="text-gray-900 font-medium">{startup.industry}</p>
+                <p className="text-gray-900 font-medium">{startupDataWithProducts.industry || 'Not specified'}</p>
               </div>
 
-              {startup.foundedYear && (
+              {startupDataWithProducts.foundedYear && (
                 <div>
                   <p className="text-sm text-gray-500">Founded</p>
-                  <p className="text-gray-900 font-medium">{startup.foundedYear}</p>
+                  <p className="text-gray-900 font-medium">{startupDataWithProducts.foundedYear}</p>
                 </div>
               )}
 
-              {startup.teamSize && (
+              {startupDataWithProducts.teamSize && (
                 <div>
                   <p className="text-sm text-gray-500">Team Size</p>
-                  <p className="text-gray-900 font-medium">{startup.teamSize}</p>
+                  <p className="text-gray-900 font-medium">{startupDataWithProducts.teamSize}</p>
                 </div>
               )}
 
-              {startup.fundingStage && (
+              {startupDataWithProducts.fundingStage && (
                 <div>
                   <p className="text-sm text-gray-500">Funding Stage</p>
-                  <p className="text-gray-900 font-medium">{startup.fundingStage}</p>
+                  <p className="text-gray-900 font-medium">{startupDataWithProducts.fundingStage}</p>
                 </div>
               )}
 
-              {startup.businessModel && (
+              {startupDataWithProducts.businessModel && (
                 <div>
                   <p className="text-sm text-gray-500">Business Model</p>
-                  <p className="text-gray-900 font-medium">{startup.businessModel}</p>
+                  <p className="text-gray-900 font-medium">{startupDataWithProducts.businessModel}</p>
                 </div>
               )}
 
-              {startup.location && (
+              {startupDataWithProducts.location && (
                 <div>
                   <p className="text-sm text-gray-500">Location</p>
-                  <p className="text-gray-900 font-medium">{startup.location}</p>
+                  <p className="text-gray-900 font-medium">{startupDataWithProducts.location}</p>
                 </div>
               )}
+
+              {/* Products Count */}
+              <div>
+                <p className="text-sm text-gray-500">Products</p>
+                <p className="text-gray-900 font-medium">{products?.length || 0}</p>
+              </div>
             </div>
           </div>
 
           {/* Contact Card */}
           <ContactCard
-            email={startup.email}
-            phone={startup.phone}
-            website={startup.website}
-            contactName={startup.name}
+            email={startupDataWithProducts.email}
+            phone={startupDataWithProducts.phone}
+            website={startupDataWithProducts.website}
+            contactName={startupDataWithProducts.contactName || startupDataWithProducts.startupName}
           />
 
           {/* Social Media */}
-          {(startup.linkedin || startup.twitter || startup.facebook) && (
+          {(startupDataWithProducts.linkedin || startupDataWithProducts.twitter || startupDataWithProducts.facebook) && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Connect With Us</h3>
               <div className="flex space-x-4">
-                {startup.linkedin && (
+                {startupDataWithProducts.linkedin && (
                   <a
-                    href={startup.linkedin.includes('http') ? startup.linkedin : `https://${startup.linkedin}`}
+                    href={startupDataWithProducts.linkedin.includes('http') ? startupDataWithProducts.linkedin : `https://${startupDataWithProducts.linkedin}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-indigo-600"
+                    className="text-gray-400 hover:text-indigo-600 transition-colors"
                   >
                     <span className="sr-only">LinkedIn</span>
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -425,12 +249,12 @@ console.log("Is current user:", currentUserStartupId === startup?._id);
                     </svg>
                   </a>
                 )}
-                {startup.twitter && (
+                {startupDataWithProducts.twitter && (
                   <a
-                    href={startup.twitter.includes('http') ? startup.twitter : `https://twitter.com/${startup.twitter}`}
+                    href={startupDataWithProducts.twitter.includes('http') ? startupDataWithProducts.twitter : `https://twitter.com/${startupDataWithProducts.twitter}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-indigo-600"
+                    className="text-gray-400 hover:text-indigo-600 transition-colors"
                   >
                     <span className="sr-only">Twitter</span>
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -438,12 +262,12 @@ console.log("Is current user:", currentUserStartupId === startup?._id);
                     </svg>
                   </a>
                 )}
-                {startup.facebook && (
+                {startupDataWithProducts.facebook && (
                   <a
-                    href={startup.facebook.includes('http') ? startup.facebook : `https://facebook.com/${startup.facebook}`}
+                    href={startupDataWithProducts.facebook.includes('http') ? startupDataWithProducts.facebook : `https://facebook.com/${startupDataWithProducts.facebook}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-indigo-600"
+                    className="text-gray-400 hover:text-indigo-600 transition-colors"
                   >
                     <span className="sr-only">Facebook</span>
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -459,6 +283,53 @@ console.log("Is current user:", currentUserStartupId === startup?._id);
     </div>
   );
 };
+
+// Contact Card Component
+const ContactCard = ({ email, phone, website, contactName }) => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
+    <div className="space-y-3">
+      {email && (
+        <div>
+          <p className="text-sm text-gray-500">Email</p>
+          <a
+            href={`mailto:${email}`}
+            className="text-indigo-600 hover:text-indigo-800 text-sm"
+          >
+            {email}
+          </a>
+        </div>
+      )}
+      {phone && (
+        <div>
+          <p className="text-sm text-gray-500">Phone</p>
+          <a
+            href={`tel:${phone}`}
+            className="text-gray-900 text-sm"
+          >
+            {phone}
+          </a>
+        </div>
+      )}
+      {website && (
+        <div>
+          <p className="text-sm text-gray-500">Website</p>
+          <a
+            href={website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center"
+          >
+            {website.replace(/^https?:\/\//, '')}
+            <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 // Loading State Component
 const LoadingStartupDetail = () => (

@@ -62,6 +62,10 @@ import StartupEventsPage from "../pages/Product-Specific-Pages/S-mart/VirtualEve
 import UserEventsPage from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/UserEventsPage";
 import EventDetailPage from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/EventDetailPage";
 import VideoConferencePage from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/VideoConference";
+import ProductPlans from "../pages/ProductPlans";
+import ProductManagement from "../pages/Product-Specific-Pages/S-mart/products/ProductManagement";
+import CalendarWrapper from "../pages/Product-Specific-Pages/S-mart/calendars/CalendarWrapper";
+import Loader from "../components/Loader";
 
 // ** Public Routes (No Auth Required) **
 export const publicRoutes = [
@@ -76,6 +80,7 @@ export const privateRoutes = [
   { path: "/profile", element: (<PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Profile /></LayoutWrapper></PrivateRoute>) },
   { path: "/dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Dashboard /></LayoutWrapper></PrivateRoute>) },
   { path: "/pricing", element: (<PrivateRoute><LayoutWrapper sidebarOptions={Pricingpagesidebar}><Pricing /></LayoutWrapper></PrivateRoute>) },
+{ path: "/pricing/:productId", element: (<PrivateRoute><LayoutWrapper sidebarOptions={Pricingpagesidebar}><ProductPlans /></LayoutWrapper></PrivateRoute>) },
   { path: "/settings", element: (<PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Settings /></LayoutWrapper></PrivateRoute>) },
 
   // pages
@@ -102,10 +107,12 @@ export const privateRoutes = [
   //products with dynamic sidebar
   { path: "/products", element: (<PrivateRoute><LayoutWrapper dynamicSidebar><ProductShowcasePage /></LayoutWrapper ></PrivateRoute>) },
   { path: "/products/:id", element: (<PrivateRoute><LayoutWrapper dynamicSidebar><ProductDetail /></LayoutWrapper ></PrivateRoute>) },
+  { path: "/manage-products", element: (<PrivateRoute><LayoutWrapper dynamicSidebar><ProductManagement /></LayoutWrapper ></PrivateRoute>) },
 
   //bookings with fixed sidebars
   { path: "/smart/my-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><UserBookingsPage /></LayoutWrapper ></PrivateRoute> },
   { path: "/smart/manage-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupBookingsPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/smart/bookings/calendar/:type", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><CalendarWrapper /></LayoutWrapper ></PrivateRoute> },
 
   //chat with dynamic sidebar
   { path: "/smart/chat", element: <PrivateRoute><LayoutWrapper dynamicSidebar><ChatInterface /></LayoutWrapper></PrivateRoute> },
@@ -150,4 +157,6 @@ export const privateRoutes = [
     path: "/virtual-event/:id", 
     element: <PrivateRoute><VideoConferencePage /></PrivateRoute> 
   },
+
+  //{ path: "/loader", element: <PrivateRoute><LayoutWrapper dynamicSidebar><Loader /></LayoutWrapper></PrivateRoute> },
 ];
