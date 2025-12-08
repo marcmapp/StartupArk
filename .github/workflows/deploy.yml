@@ -15,7 +15,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22.19.0'  # Matching your EC2 version
+        node-version: '22.19.0'
         cache: 'npm'
 
     - name: Install dependencies
@@ -24,8 +24,18 @@ jobs:
     - name: Build frontend
       run: npm run build
 
-    - name: List build contents (debug)
-      run: ls -la ./dist/
+    - name: Verify build structure
+      run: |
+        echo "=== Build Structure ==="
+        find ./dist -type f -name "*.js" | head -10
+        echo ""
+        echo "=== Checking for assets folder ==="
+        if [ -d "./dist/assets" ]; then
+          ls -la ./dist/assets/
+        else
+          echo "No assets folder found in dist"
+          find ./dist -type d | head -20
+        fi
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -34,15 +44,53 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Deploy to S3 bucket
+    - name: Deploy to S3 with correct MIME types
       run: |
-        aws s3 sync ./dist/ s3://${{ secrets.AWS_S3_BUCKET }}/dist/ \
+        # First, sync all files without special handling
+        echo "Syncing all files to S3..."
+        aws s3 sync ./dist/ s3://${{ secrets.AWS_S3_BUCKET }}/ \
           --delete \
-          --cache-control max-age=31536000,public \
-          --size-only
+          --cache-control "max-age=31536000,public"
+        
+        # Then, update specific file types with correct Content-Type headers
+        echo "Updating JavaScript files with correct MIME type..."
+        for js_file in $(find ./dist -name "*.js" -type f); do
+          s3_key="${js_file#./dist/}"
+          aws s3 cp "$js_file" "s3://${{ secrets.AWS_S3_BUCKET }}/$s3_key" \
+            --metadata-directive REPLACE \
+            --content-type "application/javascript" \
+            --cache-control "max-age=31536000,public" \
+            --quiet
+        done
+        
+        echo "Updating CSS files with correct MIME type..."
+        for css_file in $(find ./dist -name "*.css" -type f); do
+          s3_key="${css_file#./dist/}"
+          aws s3 cp "$css_file" "s3://${{ secrets.AWS_S3_BUCKET }}/$s3_key" \
+            --metadata-directive REPLACE \
+            --content-type "text/css" \
+            --cache-control "max-age=31536000,public" \
+            --quiet
+        done
+        
+        echo "Updating HTML files with correct MIME type..."
+        for html_file in $(find ./dist -name "*.html" -type f); do
+          s3_key="${html_file#./dist/}"
+          aws s3 cp "$html_file" "s3://${{ secrets.AWS_S3_BUCKET }}/$s3_key" \
+            --metadata-directive REPLACE \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "max-age=31536000,public" \
+            --quiet
+        done
+        
+        echo "Deployment complete!"
 
     - name: Invalidate CloudFront cache
       run: |
+        echo "Creating CloudFront invalidation..."
         aws cloudfront create-invalidation \
           --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
           --paths "/*"
+      env:
+        AWS_MAX_ATTEMPTS: 10
+        AWS_RETRY_MODE: adaptive
