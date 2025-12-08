@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { authService, storageService } from '../services/auth';
 import axios from 'axios';
 
 const LoginPage = () => {
@@ -9,7 +10,6 @@ const LoginPage = () => {
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const ssoid = import.meta.env.VITE_GOOGLE_SSO_API_KEY;
 
   useEffect(() => {
@@ -28,13 +28,6 @@ const LoginPage = () => {
     }
   }, []);
 
-  // Auth storage helper (can be moved to authHelpers.js)
-  const storeAuthData = (token, user) => {
-    console.log('Storing user data:', user);
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('userId', user.id || user._id); // Handle both cases
-  };
 
   const getErrorMessage = (error) => {
     // Network errors (no response from server)
@@ -99,7 +92,6 @@ const LoginPage = () => {
     setIsError(false);
     setIsLoading(true);
 
-    // Basic client-side validation
     if (!username.trim() || !password.trim()) {
       setMessage('Please enter both username and password.');
       setIsError(true);
@@ -108,13 +100,13 @@ const LoginPage = () => {
     }
 
     try {
-      const res = await axios.post(`${baseUrl}/api/auth/login`, {
+      const result = await authService.login({
         username: username.trim(),
         password,
       });
 
-      // Use centralized storage method
-      storeAuthData(res.data.token, res.data.user);
+      // Use storageService from auth services
+      storageService.setAuthData(result.token, result.user);
 
       setMessage('Login successful! Redirecting...');
       setIsError(false);
@@ -122,7 +114,6 @@ const LoginPage = () => {
       setTimeout(() => navigate('/dashboard'), 500);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
-      
       setMessage(errorMessage);
       setIsError(true);
       console.error('Login error:', error);
@@ -130,7 +121,6 @@ const LoginPage = () => {
       setIsLoading(false);
     }
   };
-
   const handleGoogleSignIn = async (response) => {
     if (response.error) {
       const errorMessage = response.error === 'popup_closed_by_user'
