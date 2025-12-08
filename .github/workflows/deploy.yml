@@ -48,9 +48,10 @@ jobs:
       run: |
         # First, sync all files without special handling
         echo "Syncing all files to S3..."
-        aws s3 sync ./dist/ s3://${{ secrets.AWS_S3_BUCKET }}/ \
+        aws s3 sync ./dist/ s3://${{ secrets.AWS_S3_BUCKET }}/dist/ \
           --delete \
-          --cache-control "max-age=31536000,public"
+          --cache-control "max-age=31536000,public" \
+          --size-only
         
         # Then, update specific file types with correct Content-Type headers
         echo "Updating JavaScript files with correct MIME type..."
