@@ -6,7 +6,7 @@ import UserDetailsForm from '../users/user/UserDetailsForm';
 import StudentDetailsForm from '../users/students/StudentForm';
 
 const isBlobUrl = (url) => {
-  return url && typeof url === 'string' && url.startsWith('blob:');
+  return url && typeof url === 'string' && (url.startsWith('blob:') || url.startsWith('http'));
 };
 
 function FormComponent({ role, onSubmit }) {
@@ -157,46 +157,31 @@ function FormComponent({ role, onSubmit }) {
   };
 
   // File upload handler
-  const handleFileUpload = async (file, type) => {
+const handleFileUpload = async (file, type) => {
   setIsUploading(true);
   setUploadProgress(0);
   
   try {
-    // Debug: Log the URL being called
-    const uploadUrl = `${baseUrl}/startupark/api/s3/upload-url`;
-    console.log('Requesting upload URL from:', uploadUrl);
-    console.log('File info:', {
+    console.log('Uploading file:', {
       filename: file.name,
       filetype: file.type,
       filecategory: type,
       size: file.size
     });
 
-    const response = await axios.get(uploadUrl, {
-      params: {
-        filename: file.name,
-        filetype: file.type,
-        filecategory: type
-      },
-      headers: { 
-        Authorization: `Bearer ${token}`
-      },
-      paramsSerializer: (params) => {
-        // Custom params serializer to handle special characters
-        return Object.keys(params)
-          .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-          .join('&');
-      }
-    });
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('filecategory', type);
 
-    console.log('Upload URL response:', response.data);
-
-      const { url, key } = response.data;
-
-      // Upload file to S3
-      await axios.put(url, file, {
-        headers: {
-          'Content-Type': file.type
+    // ⚠️ CHANGED: Upload to YOUR backend instead of S3 directly
+    const response = await axios.post(
+      `${baseUrl}/startupark/api/s3/upload`,  // Your new backend endpoint
+      formData,
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
         },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
@@ -204,11 +189,14 @@ function FormComponent({ role, onSubmit }) {
           );
           setUploadProgress(percentCompleted);
         }
-      });
+      }
+    );
 
-      return key;
-   } catch (error) {
-    // Enhanced error logging
+    console.log('Upload response:', response.data);
+
+    // Return the S3 key from backend response
+    return response.data.key;
+  } catch (error) {
     console.error('Upload failed with details:', {
       message: error.message,
       status: error.response?.status,
@@ -216,7 +204,7 @@ function FormComponent({ role, onSubmit }) {
       data: error.response?.data,
       config: {
         url: error.config?.url,
-        params: error.config?.params
+        method: error.config?.method
       }
     });
     throw new Error(error.response?.data?.error || 'File upload failed');

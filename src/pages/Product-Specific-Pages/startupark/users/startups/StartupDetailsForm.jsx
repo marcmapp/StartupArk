@@ -22,8 +22,8 @@ const StartupDetailsForm = ({
   baseUrl
 }) => {
   const isBlobUrl = (url) => {
-    return url && typeof url === 'string' && url.startsWith('blob:');
-  };
+  return url && typeof url === 'string' && (url.startsWith('blob:') || url.startsWith('http'));
+};
 
   return (
     <>
