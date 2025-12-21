@@ -25,7 +25,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
   // Helper function to get image URL
   const getImageUrl = (key) => {
     if (!key) return '/default-product.png';
-    if (key.startsWith('http')) return key;
+    if (key.startsWith('http') || key.startsWith('blob:')) return key;
     return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
   };
 
@@ -46,75 +46,85 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
   };
 
   // Image upload handler
-  const handleImageUpload = async (files) => {
-    setIsUploading(true);
-    setUploadProgress(0);
-    const token = localStorage.getItem('token');
+ // Image upload handler - UPDATED to use backend proxy
+const handleImageUpload = async (files) => {
+  setIsUploading(true);
+  setUploadProgress(0);
+  const token = localStorage.getItem('token');
+  
+  try {
+    const uploadedImages = [];
     
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        try {
-          validateImageFile(file);
-        } catch (validationError) {
-          setError(validationError.message);
-          continue;
-        }
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      try {
+        validateImageFile(file);
+      } catch (validationError) {
+        setError(validationError.message);
+        continue;
+      }
 
-        // Generate upload URL
-        const uploadResponse = await axios.get(`${baseUrl}/startupark/api/s3/upload-url`, {
-          params: {
-            filename: file.name,
-            filetype: file.type,
-            filecategory: 'product'
-          },
-          headers: { Authorization: `Bearer ${token}` }
-        });
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('filecategory', 'product');
 
-        const { url, key } = uploadResponse.data;
-
-        // Upload to S3
-        await axios.put(url, file, {
-          headers: {
-            'Content-Type': file.type,
+      // Upload through backend (no CORS issues)
+      const response = await axios.post(
+        `${baseUrl}/startupark/api/s3/upload`,
+        formData,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            // Don't set Content-Type manually for FormData
           },
           onUploadProgress: (progressEvent) => {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadProgress(progress);
           }
-        });
+        }
+      );
 
-        // Add to form data
-        const newImage = {
-          url: key,
-          type: 'image',
-          caption: '',
-          isFeatured: formData.images.length === 0 && i === 0, // First image is featured
-          order: formData.images.length + i
-        };
+      // Add to form data
+      const newImage = {
+        url: response.data.key, // Use the key from backend response
+        type: 'image',
+        caption: '',
+        isFeatured: formData.images.length === 0 && uploadedImages.length === 0, // First image is featured
+        order: formData.images.length + uploadedImages.length
+      };
 
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, newImage]
-        }));
-      }
+      uploadedImages.push(newImage);
+    }
+
+    // Update form data with all uploaded images
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...uploadedImages]
+    }));
+
+  } catch (error) {
+    console.error('Image upload error:', error);
+    setError(`Failed to upload images: ${error.response?.data?.error || error.message}`);
+  } finally {
+    setIsUploading(false);
+    setUploadProgress(0);
+  }
+};
+
+  const handleFileSelect = async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length > 0) {
+    try {
+      await handleImageUpload(files);
     } catch (error) {
-      console.error('Image upload error:', error);
-      setError(`Failed to upload images: ${error.response?.data?.error || error.message}`);
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      console.error('File upload error:', error);
+      setError(error.message || 'Failed to upload files');
     }
-  };
-
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      handleImageUpload(files);
-    }
-    e.target.value = ''; // Reset input
-  };
+  }
+  e.target.value = ''; // Reset input
+};
 
   const removeImage = (index) => {
     setFormData(prev => ({
