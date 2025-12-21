@@ -139,7 +139,7 @@ const LoginPage = () => {
     setMessage('');
 
     try {
-      const res = await axios.post(`${baseUrl}/api/auth/google-login`, {
+      const res = await axios.post(`${baseUrl}/api/mappauth/google-login`, {
         token: response.credential,
       });
 

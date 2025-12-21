@@ -21,7 +21,7 @@ const Dashboard = () => {
       }
 
       try {
-        const res = await axios.get(`${baseUrl}/api/user/me`, {
+        const res = await axios.get(`${baseUrl}/api/mappuser/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data);
@@ -123,7 +123,7 @@ const Dashboard = () => {
               <p className="mb-4 text-secondary">Browse through startup's and connect with them</p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button 
-                  onClick={() => navigate("/smart")}
+                  onClick={() => navigate("/startupark")}
                   className="px-6 py-3 text-highlight border dark:border-white border-black font-semibold rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors"
                 >
                 Join!

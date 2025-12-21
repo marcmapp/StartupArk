@@ -1,9 +1,9 @@
 [
-  { "to": "/smart/student-dashboard", "name": "Home", "icon": "home" },
-  { "to": "/smart/startupsList", "name": "Startups", "icon": "rocket" },
+  { "to": "/startupark/student-dashboard", "name": "Home", "icon": "home" },
+  { "to": "/startupark/startupsList", "name": "Startups", "icon": "rocket" },
   { "to": "/products", "name": "Explore Products", "icon": "folder" },
-  { "to": "/smart/chat", "name": "Chat", "icon": "chat" },
-  { "to": "/smart/launchpad", "name": "Career LaunchPad", "icon": "briefcase" },
+  { "to": "/startupark/chat", "name": "Chat", "icon": "chat" },
+  { "to": "/startupark/launchpad", "name": "Career LaunchPad", "icon": "briefcase" },
   
-  { "to": "/smart/events", "name": "Events", "icon": "calendar" }
+  { "to": "/startupark/events", "name": "Events", "icon": "calendar" }
 ]

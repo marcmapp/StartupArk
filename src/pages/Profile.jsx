@@ -30,10 +30,10 @@ const Profile = () => {
       try {
         setIsLoading(true);
         const [userRes, subscriptionRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/user/me`, {
+          axios.get(`${baseUrl}/api/mappuser/me`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get(`${baseUrl}/api/user/subscription`, {
+          axios.get(`${baseUrl}/api/mappuser/subscription`, {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
@@ -63,7 +63,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `${baseUrl}/api/user/profile`,
+        `${baseUrl}/api/mappuser/profile`,
         editForm,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -205,8 +205,8 @@ const Profile = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getRoleBadgeColor(user.smartRole)}`}>
-                      {user.smartRole || 'User'}
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getRoleBadgeColor(user.startuparkRole)}`}>
+                      {user.startuparkRole || 'User'}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getSubscriptionBadgeColor(user.subscriptionPlan)}`}>
                       {user.subscriptionPlan || 'Basic'}
@@ -259,40 +259,33 @@ const Profile = () => {
             <div className="border-2 border-white rounded-xl p-6">
               <h2 className="text-2xl font-bold text-green-500 mb-6">Agreement Status</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
                 <div className="flex items-center">
                   <box-icon 
-                    name={user.hasAgreedToMapTerms ? 'check-circle' : 'x-circle'} 
-                    color={user.hasAgreedToMapTerms ? '#10B981' : '#EF4444'}
+                    name={user.hasAgreedTostartuparkUser ? 'check-circle' : 'x-circle'} 
+                    color={user.hasAgreedTostartuparkUser ? '#10B981' : '#EF4444'}
                     className="mr-3"
                   ></box-icon>
-                  <span>Map Terms: {user.hasAgreedToMapTerms ? 'Agreed' : 'Not Agreed'}</span>
+                  <span>startupark User: {user.hasAgreedTostartuparkUser ? 'Agreed' : 'Not Agreed'}</span>
                 </div>
-                <div className="flex items-center">
-                  <box-icon 
-                    name={user.hasAgreedToSmartUser ? 'check-circle' : 'x-circle'} 
-                    color={user.hasAgreedToSmartUser ? '#10B981' : '#EF4444'}
-                    className="mr-3"
-                  ></box-icon>
-                  <span>Smart User: {user.hasAgreedToSmartUser ? 'Agreed' : 'Not Agreed'}</span>
-                </div>
-                {user.smartRole === 'startup' && (
+                {user.startuparkRole === 'startup' && (
                   <div className="flex items-center">
                     <box-icon 
-                      name={user.hasAgreedToSmartStartup ? 'check-circle' : 'x-circle'} 
-                      color={user.hasAgreedToSmartStartup ? '#10B981' : '#EF4444'}
+                      name={user.hasAgreedTostartuparkStartup ? 'check-circle' : 'x-circle'} 
+                      color={user.hasAgreedTostartuparkStartup ? '#10B981' : '#EF4444'}
                       className="mr-3"
                     ></box-icon>
-                    <span>Smart Startup: {user.hasAgreedToSmartStartup ? 'Agreed' : 'Not Agreed'}</span>
+                    <span>startupark Startup: {user.hasAgreedTostartuparkStartup ? 'Agreed' : 'Not Agreed'}</span>
                   </div>
                 )}
-                {user.smartRole === 'student' && (
+                {user.startuparkRole === 'student' && (
                   <div className="flex items-center">
                     <box-icon 
-                      name={user.hasAgreedToSmartStudent ? 'check-circle' : 'x-circle'} 
-                      color={user.hasAgreedToSmartStudent ? '#10B981' : '#EF4444'}
+                      name={user.hasAgreedTostartuparkStudent ? 'check-circle' : 'x-circle'} 
+                      color={user.hasAgreedTostartuparkStudent ? '#10B981' : '#EF4444'}
                       className="mr-3"
                     ></box-icon>
-                    <span>Smart Student: {user.hasAgreedToSmartStudent ? 'Agreed' : 'Not Agreed'}</span>
+                    <span>startupark Student: {user.hasAgreedTostartuparkStudent ? 'Agreed' : 'Not Agreed'}</span>
                   </div>
                 )}
               </div>
@@ -353,10 +346,10 @@ const Profile = () => {
                 </button>
                 
                 <button
-                  onClick={() => navigate('/smart')}
+                  onClick={() => navigate('/startupark')}
                   className="w-full py-3 dark:bg-black hover:text-white hover:bg-black border-2 dark:border-white border-black font-semibold rounded-lg dark:hover:bg-white dark:hover:text-red-600 transition duration-300"
                 >
-                  Explore Smart Features
+                  Explore startupark Features
                 </button>
 
                 <button

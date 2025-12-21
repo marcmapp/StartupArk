@@ -17,54 +17,54 @@ import UserDashboardSidebar from '../Jsons/SidebarOptions/UserDashboardSidebar.j
 import StartupDashboardSidebar from '../Jsons/SidebarOptions/StartupDashboardSidebar.json';
 import StudentDashboardSidebar from '../Jsons/SidebarOptions/StudentDashboardSidebar.json';
 // Startup pages
-import Smart from '../pages/Product-Specific-Pages/SmartSetup'
-import SmartUserDashboard from '../pages/Product-Specific-Pages/S-mart/UserDashboard'
+import Startupark from '../pages/Product-Specific-Pages/startupark/startupark-setup/StartuparkSetup';
+import StartuparkUserDashboard from '../pages/Product-Specific-Pages/startupark/users/user/UserDashboard';
 
 // startup pages sidebar
-import SmartStartupProfile from '../pages/Product-Specific-Pages/S-mart/startups/startup-profile/StartupProfile';
+import StartuparkStartupProfile from '../pages/Product-Specific-Pages/startupark/users/startups/startup-profile/StartupProfile';
 
 // startup components
-import StartupDetail from '../pages/Product-Specific-Pages/S-mart/startups/startup-list/startup-description-page/StartupDetail'
-import StartupList from '../pages/Product-Specific-Pages/S-mart/startups/startup-list/StartupList'
-import EditStartupProfile from "../pages/Product-Specific-Pages/S-mart/startups/startup-profile/EditStartupProfile";
-import StartupDashboard from "../pages/Product-Specific-Pages/S-mart/startups/startup-dashboard/StartupDashboard";
+import StartupDetail from '../pages/Product-Specific-Pages/startupark/users/startups/startup-list/startup-description-page/StartupDetail'
+import StartupList from '../pages/Product-Specific-Pages/startupark/users/startups/startup-list/StartupList'
+import EditStartupProfile from "../pages/Product-Specific-Pages/startupark/users/startups/startup-profile/EditStartupProfile";
+import StartupDashboard from "../pages/Product-Specific-Pages/startupark/users/startups/startup-dashboard/StartupDashboard";
 
 
 //students
-import StudentDashboard from '../pages/Product-Specific-Pages/S-mart/students/StudentDashboard';
+import StudentDashboard from '../pages/Product-Specific-Pages/startupark/users/students/StudentDashboard';
 
-import ProductShowcasePage from "../pages/Product-Specific-Pages/S-mart/products/ProductShowcasePage"
-import Startups from "../pages/Product-Specific-Pages/S-mart/startups/startup-list/Startups";
-import ProductDetail from "../pages/Product-Specific-Pages/S-mart/products/ProductDetail";
-import FavoritesPage from "../pages/Product-Specific-Pages/S-mart/startups/startup-list/FavoritesPage";
+import ProductShowcasePage from "../pages/Product-Specific-Pages/startupark/products/ProductShowcasePage"
+import Startups from "../pages/Product-Specific-Pages/startupark/users/startups/startup-list/Startups";
+import ProductDetail from "../pages/Product-Specific-Pages/startupark/products/ProductDetail";
+import FavoritesPage from "../pages/Product-Specific-Pages/startupark/favourite-module/FavoritesPage";
 
-import BlogPage from "../pages/Product-Specific-Pages/S-mart/blog/BlogPage"
-import VirtualCardPublicView from "../pages/Product-Specific-Pages/S-mart/startups/VirtualCardPublicView";
+import BlogPage from "../pages/Product-Specific-Pages/startupark/blog/BlogPage"
+import VirtualCardPublicView from "../pages/Product-Specific-Pages/startupark/virtualcard-module/VirtualCardPublicView";
 
 
 //bookings
-import UserBookingsPage from "../pages/Product-Specific-Pages/S-mart/bookings/UserBookingsPage";
-import StartupBookingsPage from "../pages/Product-Specific-Pages/S-mart/bookings/StartupBookingsPage";
-import UserCalendarPage from "../pages/Product-Specific-Pages/S-mart/calendars/UserCalendarPage";
-import StartupCalendarPage from "../pages/Product-Specific-Pages/S-mart/calendars/StartupCalendarPage";
+import UserBookingsPage from "../pages/Product-Specific-Pages/startupark/bookings/UserBookingsPage";
+import StartupBookingsPage from "../pages/Product-Specific-Pages/startupark/bookings/StartupBookingsPage";
+import UserCalendarPage from "../pages/Product-Specific-Pages/startupark/calendars/UserCalendarPage";
+import StartupCalendarPage from "../pages/Product-Specific-Pages/startupark/calendars/StartupCalendarPage";
 
-import ChatInterface from "../pages/Product-Specific-Pages/S-mart/chat/ChatInterface";
+import ChatInterface from "../pages/Product-Specific-Pages/startupark/chat/ChatInterface";
 
 //career
-import CareerLaunchPad from "../pages/Product-Specific-Pages/S-mart/students/careerlaunchpad/CareerLaunchPad";
-import StartupJobPosting from "../pages/Product-Specific-Pages/S-mart/students/careerlaunchpad/StartupJobPosting";
-import StartupApplications from "../pages/Product-Specific-Pages/S-mart/students/application/StartupApplications";
+import CareerLaunchPad from "../pages/Product-Specific-Pages/startupark/resource-module/careerlaunchpad/CareerLaunchPad";
+import StartupJobPosting from "../pages/Product-Specific-Pages/startupark/resource-module/careerlaunchpad/StartupJobPosting";
+import StartupApplications from "../pages/Product-Specific-Pages/startupark/resource-module/application/StartupApplications";
 //V-events
-import StartupVEvents from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/StartupVEvents";
-import VEvents from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/VEvents";
+import StartupVEvents from "../pages/Product-Specific-Pages/startupark/VirtualEvent/StartupVEvents";
+import VEvents from "../pages/Product-Specific-Pages/startupark/VirtualEvent/VEvents";
 // V-events - UPDATED IMPORTS
-import StartupEventsPage from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/StartupEventsPage";
-import UserEventsPage from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/UserEventsPage";
-import EventDetailPage from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/EventDetailPage";
-import VideoConferencePage from "../pages/Product-Specific-Pages/S-mart/VirtualEvent/VideoConference";
+import StartupEventsPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/StartupEventsPage";
+import UserEventsPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/UserEventsPage";
+import EventDetailPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/EventDetailPage";
+import VideoConferencePage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/VideoConference";
 import ProductPlans from "../pages/ProductPlans";
-import ProductManagement from "../pages/Product-Specific-Pages/S-mart/products/ProductManagement";
-import CalendarWrapper from "../pages/Product-Specific-Pages/S-mart/calendars/CalendarWrapper";
+import ProductManagement from "../pages/Product-Specific-Pages/startupark/products/ProductManagement";
+import CalendarWrapper from "../pages/Product-Specific-Pages/startupark/calendars/CalendarWrapper";
 import Loader from "../components/Loader";
 
 // ** Public Routes (No Auth Required) **
@@ -84,25 +84,25 @@ export const privateRoutes = [
   { path: "/settings", element: (<PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Settings /></LayoutWrapper></PrivateRoute>) },
 
   // pages
-  { path: "/smart", element: <PrivateRoute><Smart /></PrivateRoute> },
+  { path: "/startupark", element: <PrivateRoute><Startupark /></PrivateRoute> },
 
   // Role-specific dashboards with fixed sidebars
-  { path: "/smart/user-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><SmartUserDashboard /></LayoutWrapper></PrivateRoute>) },
-  { path: "/smart/startup-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupDashboard /></LayoutWrapper ></PrivateRoute>) },
-  { path: "/smart/student-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StudentDashboardSidebar}><StudentDashboard /></LayoutWrapper></PrivateRoute>) },
+  { path: "/startupark/user-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><StartuparkUserDashboard /></LayoutWrapper></PrivateRoute>) },
+  { path: "/startupark/startup-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupDashboard /></LayoutWrapper ></PrivateRoute>) },
+  { path: "/startupark/student-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StudentDashboardSidebar}><StudentDashboard /></LayoutWrapper></PrivateRoute>) },
   
   //startup-profile with fixed sidebar
-  { path: "/smart/startup-profile", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><SmartStartupProfile /></LayoutWrapper ></PrivateRoute>) },
-  { path: "/smart/startup-edit-profile", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><EditStartupProfile /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/startup-profile", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartuparkStartupProfile /></LayoutWrapper ></PrivateRoute>) },
+  { path: "/startupark/startup-edit-profile", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><EditStartupProfile /></LayoutWrapper></PrivateRoute> },
 
   // Pages with dynamic sidebars
-  { path: "/smart/startupsList", element: <PrivateRoute><LayoutWrapper dynamicSidebar><Startups /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/startups", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupList /></LayoutWrapper></PrivateRoute> },
-  { path: "/smart/startups/:id", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupDetail /></LayoutWrapper></PrivateRoute> },
-  { path: "/smart/startups-by-id/:id", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupDetail /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/startupsList", element: <PrivateRoute><LayoutWrapper dynamicSidebar><Startups /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/startups", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupList /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/startups/:id", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupDetail /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/startups-by-id/:id", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupDetail /></LayoutWrapper></PrivateRoute> },
   
   //favorites with dynamic sidebar
-  { path: "/smart/favorites", element: <PrivateRoute><LayoutWrapper dynamicSidebar><FavoritesPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/favorites", element: <PrivateRoute><LayoutWrapper dynamicSidebar><FavoritesPage /></LayoutWrapper ></PrivateRoute> },
 
   //products with dynamic sidebar
   { path: "/products", element: (<PrivateRoute><LayoutWrapper dynamicSidebar><ProductShowcasePage /></LayoutWrapper ></PrivateRoute>) },
@@ -110,39 +110,39 @@ export const privateRoutes = [
   { path: "/manage-products", element: (<PrivateRoute><LayoutWrapper dynamicSidebar><ProductManagement /></LayoutWrapper ></PrivateRoute>) },
 
   //bookings with fixed sidebars
-  { path: "/smart/my-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><UserBookingsPage /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/manage-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupBookingsPage /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/bookings/calendar/:type", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><CalendarWrapper /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/my-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><UserBookingsPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/manage-bookings", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupBookingsPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/bookings/calendar/:type", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><CalendarWrapper /></LayoutWrapper ></PrivateRoute> },
 
   //chat with dynamic sidebar
-  { path: "/smart/chat", element: <PrivateRoute><LayoutWrapper dynamicSidebar><ChatInterface /></LayoutWrapper></PrivateRoute> },
-  { path: "/smart/chat/:startupId", element: <PrivateRoute><LayoutWrapper dynamicSidebar><ChatInterface /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/chat", element: <PrivateRoute><LayoutWrapper dynamicSidebar><ChatInterface /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/chat/:startupId", element: <PrivateRoute><LayoutWrapper dynamicSidebar><ChatInterface /></LayoutWrapper></PrivateRoute> },
   
   //blog with fixed sidebar
-  { path: "/smart/blog", element: <PrivateRoute><LayoutWrapper dynamicSidebar><BlogPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/blog", element: <PrivateRoute><LayoutWrapper dynamicSidebar><BlogPage /></LayoutWrapper ></PrivateRoute> },
   
   //calendar with fixed sidebars
-  { path: "/smart/usercalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><UserCalendarPage /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/startupcalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupCalendarPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/usercalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><UserCalendarPage /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/startupcalender", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupCalendarPage /></LayoutWrapper ></PrivateRoute> },
   
   //startup-virtual-cards with dynamic sidebar
   { path: "/vc/:id", element: <PrivateRoute><LayoutWrapper dynamicSidebar><VirtualCardPublicView /></LayoutWrapper ></PrivateRoute> },
   
   //career pages with fixed sidebars
-  { path: "/smart/launchpad", element: <PrivateRoute><LayoutWrapper dynamicSidebar><CareerLaunchPad /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/jobposting", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupJobPosting /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/startup/applications", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupApplications /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/launchpad", element: <PrivateRoute><LayoutWrapper dynamicSidebar><CareerLaunchPad /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/jobposting", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupJobPosting /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/startup/applications", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupApplications /></LayoutWrapper ></PrivateRoute> },
 
   // ========== VIRTUAL EVENTS ROUTES ==========
   // Events with fixed sidebars
-  { path: "/smart/sv-event", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupVEvents /></LayoutWrapper ></PrivateRoute> },
-  { path: "/smart/v-event", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><VEvents /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/sv-event", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupVEvents /></LayoutWrapper ></PrivateRoute> },
+  { path: "/startupark/v-event", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><VEvents /></LayoutWrapper ></PrivateRoute> },
   { 
-    path: "/smart/startup/events", 
+    path: "/startupark/startup/events", 
     element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupEventsPage /></LayoutWrapper ></PrivateRoute> 
   },
   { 
-    path: "/smart/events", 
+    path: "/startupark/events", 
     element: <PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><UserEventsPage /></LayoutWrapper ></PrivateRoute> 
   },
   

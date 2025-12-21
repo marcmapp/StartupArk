@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/events';
+const API_URL = 'http://localhost:3000/startupark/api/events';
 
 // Get token function (same as your working model)
 const getAuthToken = () => {

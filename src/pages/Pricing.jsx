@@ -42,10 +42,10 @@ const Pricing = () => {
 
       try {
         const [userRes, subscriptionRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/user/me`, {
+          axios.get(`${baseUrl}/api/mappuser/me`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`${baseUrl}/api/user/subscription`, {
+          axios.get(`${baseUrl}/api/mappuser/subscription`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -61,7 +61,7 @@ const Pricing = () => {
           const currentDate = new Date();
 
           if (currentDate > expiryDate) {
-            await axios.post(`${baseUrl}/api/user/update-plan`, {
+            await axios.post(`${baseUrl}/api/mappuser/update-plan`, {
               email: userRes.data.email,
               plan: "No Subscription",
             });
@@ -164,7 +164,7 @@ const Pricing = () => {
                   <h2 className="text-xl font-semibold">Active Subscription</h2>
                   <p className="text-gray-600">
                     You're subscribed to <span className="font-semibold text-cyan-600">Startup Ark</span> as{" "}
-                    <span className="font-semibold text-blue-600">{user.smartRole || 'User'}</span> with the{" "}
+                    <span className="font-semibold text-blue-600">{user.startuparkRole || 'User'}</span> with the{" "}
                     <span className="font-semibold text-green-600">{user.subscriptionPlan}</span> plan
                   </p>
                 </div>

@@ -3,31 +3,31 @@ import api from './api';
 export const authService = {
   // Send OTP
   async sendOTP(email) {
-    const response = await api.post('/auth/send-otp', { email });
+    const response = await api.post('/mappauth/send-otp', { email });
     return response.data;
   },
 
   // Verify OTP
   async verifyOTP(email, otp) {
-    const response = await api.post('/auth/verify-otp', { email, otp });
+    const response = await api.post('/mappauth/verify-otp', { email, otp });
     return response.data;
   },
 
   // Register user
   async register(userData) {
-    const response = await api.post('/auth/register', userData);
+    const response = await api.post('/mappauth/register', userData);
     return response.data;
   },
 
   // Google login
   async googleLogin(token) {
-    const response = await api.post('/auth/google-login', { token });
+    const response = await api.post('/mappauth/google-login', { token });
     return response.data;
   },
 
   // Regular login
   async login(credentials) {
-    const response = await api.post('/auth/login', credentials);
+    const response = await api.post('/mappauth/login', credentials);
     return response.data;
   },
 

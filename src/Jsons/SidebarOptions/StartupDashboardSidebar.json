@@ -1,12 +1,12 @@
 [
   {
-    "to": "/smart/startup-dashboard",
+    "to": "/startupark/startup-dashboard",
     "name": "Dashboard",
     "icon": "home",
     "type": "solid"
   },
   {
-    "to": "/smart/startupsList",
+    "to": "/startupark/startupsList",
     "name": "Startup List",
     "icon": "calendar",
     "type": "solid",
@@ -29,34 +29,34 @@
     ]
   },
   {
-    "to": "/smart/manage-bookings",
+    "to": "/startupark/manage-bookings",
     "name": "Bookings",
     "icon": "briefcase",
     "type": "solid",
     "note": "Projects"
   },
   {
-    "to": "/smart/jobposting",
+    "to": "/startupark/jobposting",
     "name": "Resource",
     "icon": "bell",
     "type": "solid"
   },
   {
-    "to": "/smart/favorites",
+    "to": "/startupark/favorites",
     "name": "Favorite Startups",
     "icon": "star",
     "type": "solid",
     "note": "To Go Startups"
   },
   {
-    "to": "/smart/startupcalender",
+    "to": "/startupark/startupcalender",
     "name": "Calender",
     "icon": "briefcase",
     "type": "solid",
     "note": "calender"
   },
   {
-    "to": "/smart/chat",
+    "to": "/startupark/chat",
     "name": "Chat",
     "icon": "chat",
     "type": "solid",
@@ -64,5 +64,5 @@
       "video"
     ]
   },
-   { "to": "/smart/startup/events", "name": "Events", "icon": "calendar" }
+   { "to": "/startupark/startup/events", "name": "Events", "icon": "calendar" }
 ]

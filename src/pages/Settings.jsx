@@ -19,7 +19,7 @@ const Settings = () => {
       }
 
       try {
-        const res = await axios.get(`${baseUrl}/api/user/me`, {
+        const res = await axios.get(`${baseUrl}/api/mappuser/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data);

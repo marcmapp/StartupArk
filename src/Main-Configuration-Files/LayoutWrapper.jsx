@@ -5,6 +5,8 @@ import Loader from "../components/Loader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { cn } from "../lib/utils";
+import RoleBasedFloatingDock from "../components/FloatingDock"; // Updated import
 
 // Import all sidebars
 import UserDashboardSidebar from '../Jsons/SidebarOptions/UserDashboardSidebar.json';
@@ -28,7 +30,7 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
     // If dynamicSidebar is true, determine sidebar based on user role
     if (dynamicSidebar && user) {
       // Enhanced role detection
-      const userRole = user.smartRole || user.role || (user.isStartup ? 'startup' : 'user');
+      const userRole = user.startuparkRole || user.role || (user.isStartup ? 'startup' : 'user');
       
       switch (userRole) {
         case 'startup':
@@ -47,7 +49,7 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
 
   const finalSidebarOptions = getSidebarOptions();
 
-  // Convert sidebar options to include JSX icons
+  // Convert sidebar options to include JSX icons for AppSidebar
   const transformedSidebarOptions = finalSidebarOptions?.map((item) => ({
     ...item,
     icon: (
@@ -68,7 +70,7 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
       }
 
       try {
-        const res = await axios.get(`${baseUrl}/api/user/me`, {
+        const res = await axios.get(`${baseUrl}/api/mappuser/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data);
@@ -97,7 +99,7 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
         />
       )}
 
-      <main className={`flex-1 p-6 ${transformedSidebarOptions ? 'ml-0 md:ml-12' : ''}`}>
+      <main className={`flex-1 p-6 ${transformedSidebarOptions ? 'ml-0 md:ml-12' : ''} pb-24`}>
         {/* Theme toggle button */}
         <button
           onClick={toggleTheme}
@@ -141,7 +143,11 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
           )}
         </button>
 
+        {/* Main Content */}
         {children}
+
+        {/* Use RoleBasedFloatingDock component */}
+        <RoleBasedFloatingDock user={user} />
       </main>
     </div>
   );

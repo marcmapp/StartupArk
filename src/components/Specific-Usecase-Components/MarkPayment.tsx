@@ -82,7 +82,7 @@ const MarkPayment: React.FC<MarkPaymentProps> = ({ amount, plan, onSuccess, onEr
         razorpay_payment_id: paymentData.razorpay_payment_id,
       });
   
-      const res = await fetch(`${baseUrl}/api/user/update-plan`, {
+      const res = await fetch(`${baseUrl}/api/mappuser/update-plan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

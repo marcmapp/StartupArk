@@ -36,7 +36,7 @@ export default function AppSidebar({ user, navigationData }) {
 
   return (
     <Sidebar open={open} setOpen={setOpen} className="fixed h-screen z-50">
-      <SidebarBody className="flex flex-col justify-between border-r-4 dark:border-cyan-300 border-gray-400 h-full">
+      <SidebarBody className="flex flex-col justify-between border-r-2 dark:border-gray-400 border-gray-400 dark:bg-neutral-900 h-full">
         {/* Top Section */}
         <div className="flex flex-col h-full">
           {/* Logo Section */}
@@ -87,7 +87,7 @@ export default function AppSidebar({ user, navigationData }) {
         </div>
 
         {/* User Dropdown */}
-        <div className="relative -mx-4 px-4 py-4 border-t-4 dark:border-cyan-300 border-gray-400">
+        <div className="relative -mx-4 px-4 py-4 border-t-2 dark:border-gray-400 border-gray-400">
           {user && (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger className="outline-none">
