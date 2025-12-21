@@ -1,18 +1,31 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { FiX, FiPlus, FiEdit2, FiUpload, FiImage, FiStar } from 'react-icons/fi';
 
 const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
-  const [formData, setFormData] = useState(initialData || {
-    name: '',
-    description: '',
-    shortDescription: '',
-    category: '',
-    tags: [],
-    pricing: 'Free',
-    website: '',
-    demoUrl: '',
-    images: []
+  // Initialize formData with safe defaults
+  const [formData, setFormData] = useState(() => {
+    const defaultData = {
+      name: '',
+      description: '',
+      shortDescription: '',
+      category: '',
+      tags: [],
+      pricing: 'Free',
+      website: '',
+      demoUrl: '',
+      images: []
+    };
+    
+    if (initialData) {
+      return {
+        ...defaultData,
+        ...initialData,
+        images: initialData.images || [] // Ensure images is always an array
+      };
+    }
+    
+    return defaultData;
   });
 
   const [error, setError] = useState(null);
@@ -21,6 +34,21 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
+
+  // Ensure images is always an array
+  useEffect(() => {
+    if (formData.images === undefined) {
+      setFormData(prev => ({
+        ...prev,
+        images: []
+      }));
+    }
+  }, []);
+
+  // Helper function to get safe images array
+  const getSafeImages = () => {
+    return formData.images || [];
+  };
 
   // Helper function to get image URL
   const getImageUrl = (key) => {
@@ -45,98 +73,112 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
     return true;
   };
 
-  // Image upload handler
- // Image upload handler - UPDATED to use backend proxy
-const handleImageUpload = async (files) => {
-  setIsUploading(true);
-  setUploadProgress(0);
-  const token = localStorage.getItem('token');
-  
-  try {
-    const uploadedImages = [];
+  // Image upload handler - UPDATED to use backend proxy
+  const handleImageUpload = async (files) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    setError(null);
+    const token = localStorage.getItem('token');
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    try {
+      console.log('Starting upload of', files.length, 'files');
+      const uploadedImages = [];
+      const currentImages = getSafeImages();
       
-      try {
-        validateImageFile(file);
-      } catch (validationError) {
-        setError(validationError.message);
-        continue;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        try {
+          validateImageFile(file);
+        } catch (validationError) {
+          setError(validationError.message);
+          continue;
+        }
+
+        // Create FormData
+        const formDataObj = new FormData();
+        formDataObj.append('file', file);
+        formDataObj.append('filecategory', 'product');
+
+        console.log('Uploading file:', file.name, file.size, file.type);
+
+        try {
+          // Upload through backend
+          const response = await axios.post(
+            `${baseUrl}/startupark/api/s3/upload`,
+            formDataObj,
+            {
+              headers: { 
+                Authorization: `Bearer ${token}`,
+                // Don't set Content-Type - let browser handle it for FormData
+              },
+              onUploadProgress: (progressEvent) => {
+                const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setUploadProgress(progress);
+              }
+            }
+          );
+
+          console.log('Upload successful:', response.data);
+
+          // Add to form data
+          const newImage = {
+            url: response.data.key,
+            type: 'image',
+            caption: '',
+            isFeatured: currentImages.length === 0 && uploadedImages.length === 0,
+            order: currentImages.length + uploadedImages.length
+          };
+
+          uploadedImages.push(newImage);
+          
+        } catch (uploadError) {
+          console.error('Upload failed:', uploadError);
+          setError(`Failed to upload ${file.name}: ${uploadError.response?.data?.error || uploadError.message}`);
+        }
       }
 
-      // Create FormData
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('filecategory', 'product');
+      // Update form data with all uploaded images
+      if (uploadedImages.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...(prev.images || []), ...uploadedImages]
+        }));
+      }
 
-      // Upload through backend (no CORS issues)
-      const response = await axios.post(
-        `${baseUrl}/startupark/api/s3/upload`,
-        formData,
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            // Don't set Content-Type manually for FormData
-          },
-          onUploadProgress: (progressEvent) => {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(progress);
-          }
-        }
-      );
-
-      // Add to form data
-      const newImage = {
-        url: response.data.key, // Use the key from backend response
-        type: 'image',
-        caption: '',
-        isFeatured: formData.images.length === 0 && uploadedImages.length === 0, // First image is featured
-        order: formData.images.length + uploadedImages.length
-      };
-
-      uploadedImages.push(newImage);
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setError(`Failed to upload images: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
     }
-
-    // Update form data with all uploaded images
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...uploadedImages]
-    }));
-
-  } catch (error) {
-    console.error('Image upload error:', error);
-    setError(`Failed to upload images: ${error.response?.data?.error || error.message}`);
-  } finally {
-    setIsUploading(false);
-    setUploadProgress(0);
-  }
-};
+  };
 
   const handleFileSelect = async (e) => {
-  const files = Array.from(e.target.files);
-  if (files.length > 0) {
-    try {
-      await handleImageUpload(files);
-    } catch (error) {
-      console.error('File upload error:', error);
-      setError(error.message || 'Failed to upload files');
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      try {
+        await handleImageUpload(files);
+      } catch (error) {
+        console.error('File upload error:', error);
+        setError(error.message || 'Failed to upload files');
+      }
     }
-  }
-  e.target.value = ''; // Reset input
-};
+    e.target.value = ''; // Reset input
+  };
 
   const removeImage = (index) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: (prev.images || []).filter((_, i) => i !== index)
     }));
   };
 
   const setFeaturedImage = (index) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.map((img, i) => ({
+      images: (prev.images || []).map((img, i) => ({
         ...img,
         isFeatured: i === index
       }))
@@ -146,7 +188,7 @@ const handleImageUpload = async (files) => {
   const updateImageCaption = (index, caption) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.map((img, i) => 
+      images: (prev.images || []).map((img, i) => 
         i === index ? { ...img, caption } : img
       )
     }));
@@ -158,14 +200,20 @@ const handleImageUpload = async (files) => {
   };
 
   const handleTagAdd = () => {
-    if (newTag && !formData.tags.includes(newTag)) {
-      setFormData(prev => ({ ...prev, tags: [...prev.tags, newTag] }));
+    if (newTag.trim() && !(formData.tags || []).includes(newTag.trim())) {
+      setFormData(prev => ({ 
+        ...prev, 
+        tags: [...(prev.tags || []), newTag.trim()] 
+      }));
       setNewTag('');
     }
   };
 
   const handleTagRemove = (tag) => {
-    setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
+    setFormData(prev => ({ 
+      ...prev, 
+      tags: (prev.tags || []).filter(t => t !== tag) 
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -193,7 +241,8 @@ const handleImageUpload = async (files) => {
       return;
     }
     
-    if (formData.images.length === 0) {
+    const images = getSafeImages();
+    if (images.length === 0) {
       setError('At least one product image is required');
       return;
     }
@@ -205,13 +254,20 @@ const handleImageUpload = async (files) => {
         ? `${baseUrl}/startupark/api/products/${initialData._id}`
         : `${baseUrl}/startupark/api/products`;
 
+      // Clean data for submission
       const cleanedData = {
         ...formData,
-        website: formData.website || undefined,
-        demoUrl: formData.demoUrl || undefined,
-        tags: formData.tags.filter(tag => tag.trim() !== ''),
-        featuredImage: formData.images.find(img => img.isFeatured)?.url || formData.images[0]?.url
+        website: formData.website?.trim() || undefined,
+        demoUrl: formData.demoUrl?.trim() || undefined,
+        tags: (formData.tags || []).filter(tag => tag.trim() !== ''),
+        images: images.map(img => ({
+          ...img,
+          isFeatured: img.isFeatured || false
+        })),
+        featuredImage: images.find(img => img.isFeatured)?.url || images[0]?.url
       };
+
+      console.log('Submitting product data:', cleanedData);
 
       const response = await axios({
         method,
@@ -223,12 +279,16 @@ const handleImageUpload = async (files) => {
         }
       });
 
+      console.log('Product submission successful:', response.data);
       onSuccess(response.data);
     } catch (error) {
       console.error('Product submission error:', error);
       setError(error.response?.data?.error || error.message || 'Failed to save product');
     }
   };
+
+  // Get safe images array
+  const safeImages = getSafeImages();
 
   return (
     <div className="border-2 border-cyan-600 bg-gray-50 rounded-lg shadow p-6">
@@ -256,7 +316,7 @@ const handleImageUpload = async (files) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-black  mb-1">Product Name*</label>
+            <label className="block text-sm font-medium text-black mb-1">Product Name*</label>
             <input
               type="text"
               name="name"
@@ -269,7 +329,7 @@ const handleImageUpload = async (files) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-black  mb-1">Category*</label>
+            <label className="block text-sm font-medium text-black mb-1">Category*</label>
             <input
               type="text"
               name="category"
@@ -283,7 +343,7 @@ const handleImageUpload = async (files) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black  mb-1">Short Description*</label>
+          <label className="block text-sm font-medium text-black mb-1">Short Description*</label>
           <input
             type="text"
             name="shortDescription"
@@ -300,7 +360,7 @@ const handleImageUpload = async (files) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black  mb-1">Full Description*</label>
+          <label className="block text-sm font-medium text-black mb-1">Full Description*</label>
           <textarea
             name="description"
             required
@@ -314,7 +374,7 @@ const handleImageUpload = async (files) => {
 
         {/* Image Upload Section */}
         <div>
-          <label className="block text-sm font-medium  mb-3">
+          <label className="block text-sm font-medium mb-3">
             Product Images *
           </label>
           
@@ -365,13 +425,13 @@ const handleImageUpload = async (files) => {
           )}
 
           {/* Image Gallery Preview */}
-          {formData.images.length > 0 && (
+          {safeImages.length > 0 && (
             <div className="space-y-4">
-              <h4 className="text-sm font-medium ">
-                Uploaded Images ({formData.images.length})
+              <h4 className="text-sm font-medium">
+                Uploaded Images ({safeImages.length})
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {formData.images.map((image, index) => (
+                {safeImages.map((image, index) => (
                   <div key={index} className="relative group border rounded-lg overflow-hidden bg-gray-50">
                     <img
                       src={getImageUrl(image.url)}
@@ -397,7 +457,7 @@ const handleImageUpload = async (files) => {
                         type="button"
                         onClick={() => setFeaturedImage(index)}
                         disabled={image.isFeatured}
-                        className="bg-white  p-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="bg-white p-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title={image.isFeatured ? 'Currently featured' : 'Set as featured'}
                       >
                         <FiStar className={`w-4 h-4 ${image.isFeatured ? 'text-yellow-500 fill-yellow-500' : ''}`} />
@@ -430,7 +490,7 @@ const handleImageUpload = async (files) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black  mb-1">Pricing Model*</label>
+          <label className="block text-sm font-medium text-black mb-1">Pricing Model*</label>
           <select
             name="pricing"
             value={formData.pricing}
@@ -447,7 +507,7 @@ const handleImageUpload = async (files) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-black  mb-1">Website</label>
+            <label className="block text-sm font-medium text-black mb-1">Website</label>
             <div className="mt-1 flex rounded-md shadow-sm">
               <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
                 https://
@@ -468,7 +528,7 @@ const handleImageUpload = async (files) => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-black  mb-1">Demo URL</label>
+            <label className="block text-sm font-medium text-black mb-1">Demo URL</label>
             <div className="mt-1 flex rounded-md shadow-sm">
               <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
                 https://
@@ -491,7 +551,7 @@ const handleImageUpload = async (files) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black  mb-1">Tags</label>
+          <label className="block text-sm font-medium text-black mb-1">Tags</label>
           <div className="flex items-center space-x-2 mb-2">
             <input
               type="text"
@@ -510,7 +570,7 @@ const handleImageUpload = async (files) => {
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {formData.tags.map(tag => (
+            {(formData.tags || []).map(tag => (
               <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                 {tag}
                 <button
@@ -529,13 +589,13 @@ const handleImageUpload = async (files) => {
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 text-black rounded-md shadow-sm text-sm font-medium  bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="px-4 py-2 border border-gray-300 text-black rounded-md shadow-sm text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={isUploading || formData.images.length === 0}
+            disabled={isUploading || safeImages.length === 0}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading ? 'Uploading...' : (isEdit ? 'Update Product' : 'Add Product')}
