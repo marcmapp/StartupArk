@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/startupark/api/events';
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+const API_URL = `${baseURL}/startupark/api/events`;
 
 // Get token function (same as your working model)
 const getAuthToken = () => {
