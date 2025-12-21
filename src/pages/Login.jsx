@@ -92,6 +92,10 @@ const LoginPage = () => {
     setIsError(false);
     setIsLoading(true);
 
+    // Clear any existing token before login attempt
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+
     if (!username.trim() || !password.trim()) {
       setMessage('Please enter both username and password.');
       setIsError(true);

@@ -2,15 +2,27 @@ import axios from 'axios';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
-const api = axios.create({
+// Special axios instance for auth endpoints (NO Authorization header)
+export const authApi = axios.create({
   baseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
-// Request interceptor to add auth token
+// Regular axios instance for authenticated endpoints
+export const api = axios.create({
+  baseURL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
+// Only add Authorization header to the regular api instance
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -19,12 +31,10 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Response interceptor for regular api
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -36,5 +46,3 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export default api;

@@ -1,39 +1,38 @@
-import api from './api';
+import { authApi, api } from './authApi'; // Use the new file
 
 export const authService = {
   // Send OTP
   async sendOTP(email) {
-    const response = await api.post('/api/mappauth/send-otp', { email });
+    const response = await authApi.post('/api/mappauth/send-otp', { email });
     return response.data;
   },
 
   // Verify OTP
   async verifyOTP(email, otp) {
-    const response = await api.post('/api/mappauth/verify-otp', { email, otp });
+    const response = await authApi.post('/api/mappauth/verify-otp', { email, otp });
     return response.data;
   },
 
   // Register user
   async register(userData) {
-    const response = await api.post('/api/mappauth/register', userData);
+    const response = await authApi.post('/api/mappauth/register', userData);
     return response.data;
   },
 
   // Google login
   async googleLogin(token) {
-    const response = await api.post('/api/mappauth/google-login', { token });
+    const response = await authApi.post('/api/mappauth/google-login', { token });
     return response.data;
   },
 
-  // Regular login
+  // Regular login - Use authApi (no Authorization header)
   async login(credentials) {
-    const response = await api.post('/api/mappauth/login', credentials);
+    const response = await authApi.post('/api/mappauth/login', credentials);
     return response.data;
   },
-
 };
 
-// Storage helper
+// Storage helper remains the same
 export const storageService = {
   setAuthData(token, user) {
     localStorage.setItem('token', token);
