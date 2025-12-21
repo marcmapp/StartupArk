@@ -145,123 +145,119 @@ const EditStartupProfile = () => {
     }));
   };
 
-  // Get signed URL from backend
-  const getSignedUrl = async (file, category) => {
-    const token = localStorage.getItem('token');
-    const filename = file.name;
-    const filetype = file.type;
-
+  // Upload file through backend proxy (FIXED)
+  const uploadFileToBackend = async (file, category) => {
     try {
-      const response = await axios.get(`${baseUrl}/startupark/api/s3/upload-url`, {
-        params: { filename, filetype, filecategory: category },
-        headers: { Authorization: `Bearer ${token}` }
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('filecategory', category);
+
+      console.log(`Uploading ${category}:`, {
+        name: file.name,
+        size: file.size,
+        type: file.type
       });
-      return response.data;
-    } catch (error) {
-      console.error('Error getting signed URL:', error);
-      throw error;
-    }
-  };
 
-  // Upload file to S3
-  const uploadFileToS3 = async (file, signedUrl) => {
-    try {
-      const options = {
-        headers: {
-          'Content-Type': file.type
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setUploadProgress(percentCompleted);
+      const response = await axios.post(
+        `${baseUrl}/startupark/api/s3/upload`,
+        formData,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          }
         }
-      };
+      );
 
-      await axios.put(signedUrl, file, options);
-      return signedUrl.split('?')[0]; // Return the S3 key without query params
+      console.log('Backend upload successful:', response.data);
+      return response.data.key; // Return the S3 key
     } catch (error) {
-      console.error('Error uploading file to S3:', error);
+      console.error('Backend upload error:', error);
       throw error;
     }
   };
 
-// Enhanced deleteFileFromS3 function
-const deleteFileFromS3 = async (key) => {
-  if (!key || key.startsWith('http') || key.startsWith('blob:')) return false;
+  // Enhanced deleteFileFromS3 function
+  const deleteFileFromS3 = async (key) => {
+    if (!key || key.startsWith('http') || key.startsWith('blob:')) return false;
 
-  try {
-    const token = localStorage.getItem('token');
-    console.log('Attempting to delete file:', key);
-    const response = await axios.post(
-      `${baseUrl}/startupark/api/s3/delete-file`,
-      { key },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    console.log('Delete response:', response.data);
-    if (response.data.success) {
-      return true;
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Attempting to delete file:', key);
+      const response = await axios.post(
+        `${baseUrl}/startupark/api/s3/delete-file`,
+        { key },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log('Delete response:', response.data);
+      if (response.data.success) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting file:', {
+        key,
+        error: error.response?.data || error.message
+      });
+      return false;
     }
-    return false;
-  } catch (error) {
-    console.error('Error deleting file:', {
-      key,
-      error: error.response?.data || error.message
-    });
-    return false;
-  }
-};
+  };
 
   const isBlobUrl = (url) => {
     return url && typeof url === 'string' && url.startsWith('blob:');
   };
 
-  // Logo upload handler
-const handleLogoUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  // Logo upload handler (FIXED)
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  try {
-    validateFile(file, {
-      maxSize: 5 * 1024 * 1024,
-      allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
-    });
+    try {
+      validateFile(file, {
+        maxSize: 5 * 1024 * 1024,
+        allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
+      });
 
-    setIsSubmitting(true);
-    setUploadProgress(0);
-    setUploadError(null);
+      setIsSubmitting(true);
+      setUploadProgress(0);
+      setUploadError(null);
 
-    // Store the old logo key before uploading new one
-    const oldLogoKey = formData.logo && !isBlobUrl(formData.logo) ? formData.logo : null;
+      // Store the old logo key before uploading new one
+      const oldLogoKey = formData.logo && !isBlobUrl(formData.logo) ? formData.logo : null;
 
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
 
-    // Get signed URL and upload
-    const { url, key } = await getSignedUrl(file, 'logo');
-    await uploadFileToS3(file, url);
+      // Upload through backend proxy
+      const s3Key = await uploadFileToBackend(file, 'logo');
 
-    // Update form data with new key
-    setFormData(prev => ({ ...prev, logo: key }));
+      // Update form data with new key
+      setFormData(prev => ({ ...prev, logo: s3Key }));
 
-    // Delete old file after successful upload
-    if (oldLogoKey) {
-      try {
-        await deleteFileFromS3(oldLogoKey);
-        console.log('Old logo deleted successfully:', oldLogoKey);
-      } catch (deleteError) {
-        console.error('Error deleting old logo:', deleteError);
+      // Delete old file after successful upload
+      if (oldLogoKey) {
+        try {
+          await deleteFileFromS3(oldLogoKey);
+          console.log('Old logo deleted successfully:', oldLogoKey);
+        } catch (deleteError) {
+          console.error('Error deleting old logo:', deleteError);
+        }
       }
+    } catch (error) {
+      console.error('Logo upload failed:', error);
+      setUploadError(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (error) {
-    console.error('Logo upload failed:', error);
-    setUploadError(error.message);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
-  // Pitch deck upload handler
+  // Pitch deck upload handler (FIXED)
   const handlePitchDeckUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -276,9 +272,8 @@ const handleLogoUpload = async (e) => {
       setUploadProgress(0);
       setUploadError(null);
 
-      // Get signed URL and upload
-      const { url, key } = await getSignedUrl(file, 'pitchdeck');
-      await uploadFileToS3(file, url);
+      // Upload through backend proxy
+      const s3Key = await uploadFileToBackend(file, 'pitchdeck');
 
       // Clean up old file if it exists
       const oldPitchDeck = formData.pitchDeck;
@@ -286,7 +281,7 @@ const handleLogoUpload = async (e) => {
         await deleteFileFromS3(oldPitchDeck);
       }
 
-      setFormData(prev => ({ ...prev, pitchDeck: key }));
+      setFormData(prev => ({ ...prev, pitchDeck: s3Key }));
     } catch (error) {
       console.error('Pitch deck upload failed:', error);
       setUploadError(error.message);
@@ -295,7 +290,7 @@ const handleLogoUpload = async (e) => {
     }
   };
 
-  // Gallery upload handler
+  // Gallery upload handler (FIXED)
   const handleGalleryUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -313,13 +308,14 @@ const handleLogoUpload = async (e) => {
           });
 
           setUploadProgress(0);
-          const { url, key } = await getSignedUrl(file, 'gallery');
-          await uploadFileToS3(file, url);
+          
+          // Upload through backend proxy
+          const s3Key = await uploadFileToBackend(file, 'gallery');
 
           // Create preview URL
           const previewUrl = URL.createObjectURL(file);
           newGalleryItems.push({
-            url: key,
+            url: s3Key,
             caption: '',
             previewUrl
           });
@@ -341,79 +337,79 @@ const handleLogoUpload = async (e) => {
     }
   };
 
-  // Team avatar upload handler
- // Team avatar upload handler - Update the try-catch block
-const handleTeamAvatarUpload = async (e, index) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  // Team avatar upload handler (FIXED)
+  const handleTeamAvatarUpload = async (e, index) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  try {
-    // Clear previous errors
-    setUploadError(null);
-    
-    // Validate file size before anything else
-    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-    if (file.size > MAX_SIZE) {
-      throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds 2MB limit. Please choose a smaller image.`);
-    }
-
-    validateFile(file, {
-      maxSize: 2 * 1024 * 1024, // 2MB
-      allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
-    });
-
-    setIsSubmitting(true);
-    setUploadProgress(0);
-
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
-
-    // Get signed URL and upload
-    const { url, key } = await getSignedUrl(file, 'team');
-    await uploadFileToS3(file, url);
-
-    // Clean up old file if it exists
-    const oldAvatar = formData.team[index]?.avatar;
-    if (oldAvatar && !isBlobUrl(oldAvatar)) {
-      try {
-        await deleteFileFromS3(oldAvatar);
-      } catch (deleteError) {
-        console.warn('Failed to delete old avatar:', deleteError);
+    try {
+      // Clear previous errors
+      setUploadError(null);
+      
+      // Validate file size before anything else
+      const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+      if (file.size > MAX_SIZE) {
+        throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds 2MB limit. Please choose a smaller image.`);
       }
-    }
 
-    // Update team member avatar
-    setFormData(prev => {
-      const updatedTeam = [...prev.team];
-      updatedTeam[index] = {
-        ...updatedTeam[index],
-        avatar: key,
-        previewUrl
-      };
-      return { ...prev, team: updatedTeam };
-    });
-    
-    // Clear success state
-    setUploadError(null);
-    
-  } catch (error) {
-    console.error('Team avatar upload failed:', error);
-    setUploadError(error.message || 'Failed to upload team avatar');
-    
-    // Clear the file input so user can try again
-    e.target.value = null;
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-// Helper function to format file size
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
+      validateFile(file, {
+        maxSize: 2 * 1024 * 1024, // 2MB
+        allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
+      });
+
+      setIsSubmitting(true);
+      setUploadProgress(0);
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+
+      // Upload through backend proxy
+      const s3Key = await uploadFileToBackend(file, 'team');
+
+      // Clean up old file if it exists
+      const oldAvatar = formData.team[index]?.avatar;
+      if (oldAvatar && !isBlobUrl(oldAvatar)) {
+        try {
+          await deleteFileFromS3(oldAvatar);
+        } catch (deleteError) {
+          console.warn('Failed to delete old avatar:', deleteError);
+        }
+      }
+
+      // Update team member avatar
+      setFormData(prev => {
+        const updatedTeam = [...prev.team];
+        updatedTeam[index] = {
+          ...updatedTeam[index],
+          avatar: s3Key,
+          previewUrl
+        };
+        return { ...prev, team: updatedTeam };
+      });
+      
+      // Clear success state
+      setUploadError(null);
+      
+    } catch (error) {
+      console.error('Team avatar upload failed:', error);
+      setUploadError(error.message || 'Failed to upload team avatar');
+      
+      // Clear the file input so user can try again
+      e.target.value = null;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   // Gallery management functions
   const updateGalleryCaption = (index, caption) => {
     setFormData(prev => {
@@ -493,71 +489,71 @@ const formatFileSize = (bytes) => {
     }
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  try {
-    const token = localStorage.getItem('token');
-    
-    // Get current files from form data
-    const currentFiles = {
-      logo: formData.logo,
-      pitchDeck: formData.pitchDeck,
-      gallery: formData.gallery.map(item => item.url),
-      team: formData.team.map(member => member.avatar)
-    };
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Get current files from form data
+      const currentFiles = {
+        logo: formData.logo,
+        pitchDeck: formData.pitchDeck,
+        gallery: formData.gallery.map(item => item.url),
+        team: formData.team.map(member => member.avatar)
+      };
 
-    // Prepare the form data for submission
-    const submissionData = {
-      ...formData,
-      gallery: formData.gallery.map(item => ({
-        url: isBlobUrl(item.url) ? null : item.url,
-        caption: item.caption
-      })),
-      team: formData.team.map(member => ({
-        ...member,
-        avatar: isBlobUrl(member.avatar) ? null : member.avatar
-      }))
-    };
+      // Prepare the form data for submission
+      const submissionData = {
+        ...formData,
+        gallery: formData.gallery.map(item => ({
+          url: isBlobUrl(item.url) ? null : item.url,
+          caption: item.caption
+        })),
+        team: formData.team.map(member => ({
+          ...member,
+          avatar: isBlobUrl(member.avatar) ? null : member.avatar
+        }))
+      };
 
-    // Submit the form data
-    const response = await axios.post(
-      `${baseUrl}/startupark/api/startupark/form/startup`,
-      { formData: submissionData },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      // Submit the form data
+      const response = await axios.post(
+        `${baseUrl}/startupark/api/startupark/form/startup`,
+        { formData: submissionData },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    // If successful, clean up any blob URLs (temporary files)
-    if (response.data.success) {
-      // Clean up logo if it was a blob URL
-      if (formData.logo && isBlobUrl(formData.logo)) {
-        URL.revokeObjectURL(formData.logo);
+      // If successful, clean up any blob URLs (temporary files)
+      if (response.data.success) {
+        // Clean up logo if it was a blob URL
+        if (formData.logo && isBlobUrl(formData.logo)) {
+          URL.revokeObjectURL(formData.logo);
+        }
+
+        // Clean up gallery images
+        formData.gallery.forEach(item => {
+          if (item.url && isBlobUrl(item.url)) {
+            URL.revokeObjectURL(item.url);
+          }
+        });
+
+        // Clean up team avatars
+        formData.team.forEach(member => {
+          if (member.avatar && isBlobUrl(member.avatar)) {
+            URL.revokeObjectURL(member.avatar);
+          }
+        });
       }
 
-      // Clean up gallery images
-      formData.gallery.forEach(item => {
-        if (item.url && isBlobUrl(item.url)) {
-          URL.revokeObjectURL(item.url);
-        }
-      });
-
-      // Clean up team avatars
-      formData.team.forEach(member => {
-        if (member.avatar && isBlobUrl(member.avatar)) {
-          URL.revokeObjectURL(member.avatar);
-        }
-      });
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setUploadError('Failed to save profile. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    navigate('/dashboard');
-  } catch (error) {
-    console.error('Error saving profile:', error);
-    setUploadError('Failed to save profile. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   // Image component with fallback
   const ImageWithFallback = ({ src, alt, className, fallbackSrc }) => {
@@ -676,7 +672,7 @@ const handleSubmit = async (e) => {
               required
               value={formData.startupName}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-transparent"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -687,7 +683,7 @@ const handleSubmit = async (e) => {
               required
               value={formData.tagline}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>
@@ -1068,56 +1064,55 @@ const handleSubmit = async (e) => {
               {formData.team.map((member, index) => (
                 <div key={index} className="border border-gray-200 rounded-lg p-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Team Members Section - Update the file upload part */}
-<div className="flex items-center space-x-3 md:col-span-1">
-  {member.avatar ? (
-    <img 
-      src={isBlobUrl(member.avatar) ? member.avatar : getImageUrl(member.avatar)}
-      alt={`${member.name}'s avatar`}
-      className="h-12 w-12 rounded-full object-cover"
-      onError={(e) => {
-        e.target.src = '/default-avatar.png';
-        e.target.onerror = null;
-      }}
-    />
-  ) : (
-    <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-      <span className="text-lg font-medium text-gray-400">
-        {member.name ? member.name.charAt(0).toUpperCase() : '?'}
-      </span>
-    </div>
-  )}
-  <div className="flex flex-col">
-    <input
-      type="file"
-      id={`team-avatar-${index}`}
-      onChange={(e) => handleTeamAvatarUpload(e, index)}
-      accept="image/jpeg,image/png,image/webp"
-      className="hidden bg-transparent"
-    />
-  <button
-  type="button"
-  onClick={() => {
-    // Show a confirmation dialog for large files
-    const acceptLarge = window.confirm(
-      'Team avatar image requirements:\n' +
-      '• Max file size: 2MB\n' +
-      '• Allowed formats: JPEG, PNG, WebP\n' +
-      '• Recommended size: 200x200px\n\n' +
-      'Click OK to select a file.'
-    );
-    if (acceptLarge) {
-      document.getElementById(`team-avatar-${index}`).click();
-    }
-  }}
-  className="text-xs text-indigo-600 hover:text-indigo-800"
-  disabled={isSubmitting}
->
-  {member.avatar ? 'Change' : 'Add Photo'}
-</button>
-    <span className="text-xs text-gray-500 mt-1">Max 2MB</span>
-  </div>
-</div>
+                    <div className="flex items-center space-x-3 md:col-span-1">
+                      {member.avatar ? (
+                        <img 
+                          src={isBlobUrl(member.avatar) ? member.avatar : getImageUrl(member.avatar)}
+                          alt={`${member.name}'s avatar`}
+                          className="h-12 w-12 rounded-full object-cover"
+                          onError={(e) => {
+                            e.target.src = '/default-avatar.png';
+                            e.target.onerror = null;
+                          }}
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                          <span className="text-lg font-medium text-gray-400">
+                            {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <input
+                          type="file"
+                          id={`team-avatar-${index}`}
+                          onChange={(e) => handleTeamAvatarUpload(e, index)}
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden bg-transparent"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Show a confirmation dialog for large files
+                            const acceptLarge = window.confirm(
+                              'Team avatar image requirements:\n' +
+                              '• Max file size: 2MB\n' +
+                              '• Allowed formats: JPEG, PNG, WebP\n' +
+                              '• Recommended size: 200x200px\n\n' +
+                              'Click OK to select a file.'
+                            );
+                            if (acceptLarge) {
+                              document.getElementById(`team-avatar-${index}`).click();
+                            }
+                          }}
+                          className="text-xs text-indigo-600 hover:text-indigo-800"
+                          disabled={isSubmitting}
+                        >
+                          {member.avatar ? 'Change' : 'Add Photo'}
+                        </button>
+                        <span className="text-xs text-gray-500 mt-1">Max 2MB</span>
+                      </div>
+                    </div>
                     <div className="md:col-span-3 space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
