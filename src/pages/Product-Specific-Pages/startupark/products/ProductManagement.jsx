@@ -32,6 +32,18 @@ const ProductManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
 
+  // UPDATED: Helper function to get image URL
+  const getImageUrl = (key) => {
+    if (!key) return '/default-product.png';
+    if (key.startsWith('http') || key.startsWith('blob:')) return key;
+    
+    // Check if it's already a full URL
+    if (key.includes(baseUrl)) return key;
+    
+    // Assume it's an S3 key
+    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
+  };
+
   const getAuthToken = () => {
     return localStorage.getItem('token');
   };
@@ -128,11 +140,14 @@ const ProductManagement = () => {
   // Helper function to get display images
   const getDisplayImages = (product) => {
     if (product.images && product.images.length > 0) {
-      return product.images;
+      return product.images.map(img => ({
+        ...img,
+        url: getImageUrl(img.url)
+      }));
     }
     
     if (product.featuredImage) {
-      return [{ url: product.featuredImage, type: 'image', isFeatured: true }];
+      return [{ url: getImageUrl(product.featuredImage), type: 'image', isFeatured: true }];
     }
     
     return [];
@@ -321,6 +336,7 @@ const ProductManagement = () => {
                 key={product._id} 
                 product={product} 
                 getDisplayImages={getDisplayImages}
+                getImageUrl={getImageUrl}
                 onEdit={() => {
                   setEditingProduct(product);
                   setShowProductForm(true);
@@ -336,7 +352,7 @@ const ProductManagement = () => {
 };
 
 // Modern Product Card Component for Management
-const ModernProductCard = ({ product, getDisplayImages, onEdit, onDelete }) => {
+const ModernProductCard = ({ product, getDisplayImages, getImageUrl, onEdit, onDelete }) => {
   const displayImages = getDisplayImages(product);
 
   return (

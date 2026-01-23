@@ -35,11 +35,24 @@ const EditStartupProfile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState(null);
+  
+  // NEW: State for files to upload
+  const [filesToUpload, setFilesToUpload] = useState({
+    logo: null,
+    gallery: [],
+    pitchDeck: null,
+    teamAvatars: {}
+  });
 
   const logoInputRef = useRef();
   const galleryInputRef = useRef();
   const pitchDeckInputRef = useRef();
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  // Helper function to check if URL is a blob URL
+  const isBlobUrl = (url) => {
+    return url && typeof url === 'string' && url.startsWith('blob:');
+  };
 
   // Image URL helper with error handling
   const getImageUrl = (key) => {
@@ -145,200 +158,108 @@ const EditStartupProfile = () => {
     }));
   };
 
-  // Upload file through backend proxy (FIXED)
-  const uploadFileToBackend = async (file, category) => {
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('filecategory', category);
-
-      console.log(`Uploading ${category}:`, {
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
-
-      const response = await axios.post(
-        `${baseUrl}/startupark/api/s3/upload`,
-        formData,
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadProgress(percentCompleted);
-          }
-        }
-      );
-
-      console.log('Backend upload successful:', response.data);
-      return response.data.key; // Return the S3 key
-    } catch (error) {
-      console.error('Backend upload error:', error);
-      throw error;
-    }
-  };
-
-  // Enhanced deleteFileFromS3 function
-  const deleteFileFromS3 = async (key) => {
-    if (!key || key.startsWith('http') || key.startsWith('blob:')) return false;
-
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Attempting to delete file:', key);
-      const response = await axios.post(
-        `${baseUrl}/startupark/api/s3/delete-file`,
-        { key },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('Delete response:', response.data);
-      if (response.data.success) {
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error deleting file:', {
-        key,
-        error: error.response?.data || error.message
-      });
-      return false;
-    }
-  };
-
-  const isBlobUrl = (url) => {
-    return url && typeof url === 'string' && url.startsWith('blob:');
-  };
-
-  // Logo upload handler (FIXED)
-  const handleLogoUpload = async (e) => {
+  // UPDATED: Logo upload handler - simplified for single request
+  const handleLogoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      validateFile(file, {
-        maxSize: 5 * 1024 * 1024,
-        allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
-      });
+      // Client-side validation
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File size should be less than 5MB');
+      }
 
-      setIsSubmitting(true);
-      setUploadProgress(0);
-      setUploadError(null);
-
-      // Store the old logo key before uploading new one
-      const oldLogoKey = formData.logo && !isBlobUrl(formData.logo) ? formData.logo : null;
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Please upload a valid image file (JPEG, PNG, or WebP)');
+      }
 
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
-
-      // Upload through backend proxy
-      const s3Key = await uploadFileToBackend(file, 'logo');
-
-      // Update form data with new key
-      setFormData(prev => ({ ...prev, logo: s3Key }));
-
-      // Delete old file after successful upload
-      if (oldLogoKey) {
-        try {
-          await deleteFileFromS3(oldLogoKey);
-          console.log('Old logo deleted successfully:', oldLogoKey);
-        } catch (deleteError) {
-          console.error('Error deleting old logo:', deleteError);
-        }
-      }
+      
+      // Store file for later upload
+      setFilesToUpload(prev => ({ ...prev, logo: file }));
+      
+      // Update preview
+      setFormData(prev => ({ ...prev, logo: previewUrl }));
+      
     } catch (error) {
-      console.error('Logo upload failed:', error);
       setUploadError(error.message);
-    } finally {
-      setIsSubmitting(false);
+      e.target.value = ''; // Reset file input
     }
   };
 
-  // Pitch deck upload handler (FIXED)
-  const handlePitchDeckUpload = async (e) => {
+  // UPDATED: Pitch deck upload handler - simplified for single request
+  const handlePitchDeckUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      validateFile(file, {
-        maxSize: 10 * 1024 * 1024, // 10MB
-        allowedTypes: ['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation']
-      });
-
-      setIsSubmitting(true);
-      setUploadProgress(0);
-      setUploadError(null);
-
-      // Upload through backend proxy
-      const s3Key = await uploadFileToBackend(file, 'pitchdeck');
-
-      // Clean up old file if it exists
-      const oldPitchDeck = formData.pitchDeck;
-      if (oldPitchDeck && !isBlobUrl(oldPitchDeck)) {
-        await deleteFileFromS3(oldPitchDeck);
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('File size should be less than 10MB');
       }
 
-      setFormData(prev => ({ ...prev, pitchDeck: s3Key }));
+      const validTypes = ['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Please upload a PDF or PowerPoint file');
+      }
+
+      // Store file for upload
+      setFilesToUpload(prev => ({ ...prev, pitchDeck: file }));
+      setFormData(prev => ({ ...prev, pitchDeck: 'pending' }));
+      
     } catch (error) {
-      console.error('Pitch deck upload failed:', error);
       setUploadError(error.message);
-    } finally {
-      setIsSubmitting(false);
+      e.target.value = '';
     }
   };
 
-  // Gallery upload handler (FIXED)
-  const handleGalleryUpload = async (e) => {
+  // UPDATED: Gallery upload handler - simplified for single request
+  const handleGalleryUpload = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
     try {
-      setIsSubmitting(true);
-      setUploadError(null);
       const newGalleryItems = [];
-
+      
       for (const file of files) {
-        try {
-          validateFile(file, {
-            maxSize: 5 * 1024 * 1024, // 5MB
-            allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
-          });
-
-          setUploadProgress(0);
-          
-          // Upload through backend proxy
-          const s3Key = await uploadFileToBackend(file, 'gallery');
-
-          // Create preview URL
-          const previewUrl = URL.createObjectURL(file);
-          newGalleryItems.push({
-            url: s3Key,
-            caption: '',
-            previewUrl
-          });
-        } catch (error) {
-          console.error(`Failed to upload gallery image ${file.name}:`, error);
-          continue; // Skip to next file if one fails
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(`File ${file.name} exceeds 5MB limit`);
         }
+
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          throw new Error(`File ${file.name} is not a supported image type`);
+        }
+
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file);
+        newGalleryItems.push({
+          url: previewUrl,
+          caption: '',
+          file: file // Store file reference
+        });
       }
+
+      // Store files for upload
+      setFilesToUpload(prev => ({
+        ...prev,
+        gallery: [...prev.gallery, ...newGalleryItems.map(item => item.file)]
+      }));
 
       setFormData(prev => ({
         ...prev,
         gallery: [...prev.gallery, ...newGalleryItems]
       }));
+      
     } catch (error) {
-      console.error('Gallery upload failed:', error);
       setUploadError(error.message);
-    } finally {
-      setIsSubmitting(false);
+      e.target.value = '';
     }
   };
 
-  // Team avatar upload handler (FIXED)
-  const handleTeamAvatarUpload = async (e, index) => {
+  // UPDATED: Team avatar upload handler - simplified for single request
+  const handleTeamAvatarUpload = (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -352,40 +273,22 @@ const EditStartupProfile = () => {
         throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds 2MB limit. Please choose a smaller image.`);
       }
 
-      validateFile(file, {
-        maxSize: 2 * 1024 * 1024, // 2MB
-        allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
-      });
-
-      setIsSubmitting(true);
-      setUploadProgress(0);
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        throw new Error(`File ${file.name} is not a supported image type`);
+      }
 
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
 
-      // Upload through backend proxy
-      const s3Key = await uploadFileToBackend(file, 'team');
+      // Store file for upload
+      setFilesToUpload(prev => ({
+        ...prev,
+        teamAvatars: { ...prev.teamAvatars, [index]: file }
+      }));
 
-      // Clean up old file if it exists
-      const oldAvatar = formData.team[index]?.avatar;
-      if (oldAvatar && !isBlobUrl(oldAvatar)) {
-        try {
-          await deleteFileFromS3(oldAvatar);
-        } catch (deleteError) {
-          console.warn('Failed to delete old avatar:', deleteError);
-        }
-      }
-
-      // Update team member avatar
-      setFormData(prev => {
-        const updatedTeam = [...prev.team];
-        updatedTeam[index] = {
-          ...updatedTeam[index],
-          avatar: s3Key,
-          previewUrl
-        };
-        return { ...prev, team: updatedTeam };
-      });
+      // Update team member avatar preview
+      updateTeamMember(index, 'avatar', previewUrl);
       
       // Clear success state
       setUploadError(null);
@@ -396,8 +299,6 @@ const EditStartupProfile = () => {
       
       // Clear the file input so user can try again
       e.target.value = null;
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -422,28 +323,26 @@ const EditStartupProfile = () => {
     });
   };
 
-  const removeGalleryImage = async (index) => {
-    const imageToRemove = formData.gallery[index];
-    
-    try {
-      setIsSubmitting(true);
+  // UPDATED: Remove gallery image function
+  const removeGalleryImage = (index) => {
+    setFormData(prev => {
+      const updatedGallery = [...prev.gallery];
       
-      // Delete from S3 if not a blob URL
-      if (imageToRemove.url && !isBlobUrl(imageToRemove.url)) {
-        await deleteFileFromS3(imageToRemove.url);
+      // Revoke blob URL if it exists
+      if (updatedGallery[index].url && isBlobUrl(updatedGallery[index].url)) {
+        URL.revokeObjectURL(updatedGallery[index].url);
       }
       
-      // Remove from state
-      setFormData(prev => {
-        const updatedGallery = [...prev.gallery];
-        updatedGallery.splice(index, 1);
-        return { ...prev, gallery: updatedGallery };
-      });
-    } catch (error) {
-      console.error('Error removing gallery image:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+      updatedGallery.splice(index, 1);
+      return { ...prev, gallery: updatedGallery };
+    });
+    
+    // Also remove from filesToUpload
+    setFilesToUpload(prev => {
+      const updatedGallery = [...prev.gallery];
+      updatedGallery.splice(index, 1);
+      return { ...prev, gallery: updatedGallery };
+    });
   };
 
   // Team management functions
@@ -465,91 +364,152 @@ const EditStartupProfile = () => {
     });
   };
 
-  const removeTeamMember = async (index) => {
+  // UPDATED: Remove team member function
+  const removeTeamMember = (index) => {
     const memberToRemove = formData.team[index];
     
-    try {
-      setIsSubmitting(true);
-      
-      // Delete avatar from S3 if it exists
-      if (memberToRemove.avatar && !isBlobUrl(memberToRemove.avatar)) {
-        await deleteFileFromS3(memberToRemove.avatar);
-      }
-      
-      // Remove from state
-      setFormData(prev => {
-        const updatedTeam = [...prev.team];
-        updatedTeam.splice(index, 1);
-        return { ...prev, team: updatedTeam };
-      });
-    } catch (error) {
-      console.error('Error removing team member:', error);
-    } finally {
-      setIsSubmitting(false);
+    // Revoke blob URL if it exists
+    if (memberToRemove.avatar && isBlobUrl(memberToRemove.avatar)) {
+      URL.revokeObjectURL(memberToRemove.avatar);
     }
+    
+    // Remove from filesToUpload if exists
+    setFilesToUpload(prev => {
+      const updatedTeamAvatars = { ...prev.teamAvatars };
+      delete updatedTeamAvatars[index];
+      return { ...prev, teamAvatars: updatedTeamAvatars };
+    });
+    
+    // Remove from state
+    setFormData(prev => {
+      const updatedTeam = [...prev.team];
+      updatedTeam.splice(index, 1);
+      return { ...prev, team: updatedTeam };
+    });
   };
 
+  // UPDATED: handleSubmit to use single request approach
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setUploadProgress(0);
+    setUploadError(null);
 
     try {
-      const token = localStorage.getItem('token');
+      // Create FormData object
+      const submitFormData = new FormData();
       
-      // Get current files from form data
-      const currentFiles = {
-        logo: formData.logo,
-        pitchDeck: formData.pitchDeck,
-        gallery: formData.gallery.map(item => item.url),
-        team: formData.team.map(member => member.avatar)
-      };
-
-      // Prepare the form data for submission
+      // Prepare form data for submission
       const submissionData = {
         ...formData,
+        // Don't send blob URLs in the JSON - they'll be replaced with S3 keys
+        logo: formData.logo && !isBlobUrl(formData.logo) ? formData.logo : null,
+        pitchDeck: formData.pitchDeck && !isBlobUrl(formData.pitchDeck) ? formData.pitchDeck : null,
         gallery: formData.gallery.map(item => ({
-          url: isBlobUrl(item.url) ? null : item.url,
-          caption: item.caption
+          caption: item.caption,
+          url: item.url && !isBlobUrl(item.url) ? item.url : null
         })),
         team: formData.team.map(member => ({
-          ...member,
-          avatar: isBlobUrl(member.avatar) ? null : member.avatar
+          name: member.name,
+          position: member.position,
+          bio: member.bio,
+          avatar: member.avatar && !isBlobUrl(member.avatar) ? member.avatar : null
         }))
       };
 
-      // Submit the form data
+      // Add JSON data
+      submitFormData.append('formData', JSON.stringify(submissionData));
+      
+      // Add new files that need to be uploaded
+      // Logo
+      if (filesToUpload.logo) {
+        submitFormData.append('logo', filesToUpload.logo);
+      }
+      
+      // Pitch deck
+      if (filesToUpload.pitchDeck) {
+        submitFormData.append('pitchDeck', filesToUpload.pitchDeck);
+      }
+      
+      // Gallery images
+      filesToUpload.gallery.forEach((file, index) => {
+        submitFormData.append(`gallery[${index}]`, file);
+      });
+      
+      // Team avatars
+      Object.entries(filesToUpload.teamAvatars).forEach(([index, file]) => {
+        submitFormData.append(`team[${index}][avatar]`, file);
+      });
+
+      const token = localStorage.getItem('token');
+      
+      // Single request to update profile
       const response = await axios.post(
         `${baseUrl}/startupark/api/startupark/form/startup`,
-        { formData: submissionData },
-        { headers: { Authorization: `Bearer ${token}` } }
+        submitFormData,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress(percentCompleted);
+            }
+          }
+        }
       );
 
-      // If successful, clean up any blob URLs (temporary files)
       if (response.data.success) {
-        // Clean up logo if it was a blob URL
+        // Clean up blob URLs
         if (formData.logo && isBlobUrl(formData.logo)) {
           URL.revokeObjectURL(formData.logo);
         }
-
-        // Clean up gallery images
+        
+        if (formData.pitchDeck && isBlobUrl(formData.pitchDeck)) {
+          URL.revokeObjectURL(formData.pitchDeck);
+        }
+        
         formData.gallery.forEach(item => {
           if (item.url && isBlobUrl(item.url)) {
             URL.revokeObjectURL(item.url);
           }
         });
-
-        // Clean up team avatars
+        
         formData.team.forEach(member => {
           if (member.avatar && isBlobUrl(member.avatar)) {
             URL.revokeObjectURL(member.avatar);
           }
         });
+        
+        // Clear filesToUpload state
+        setFilesToUpload({
+          logo: null,
+          gallery: [],
+          pitchDeck: null,
+          teamAvatars: {}
+        });
+        
+        navigate('/dashboard');
+      } else {
+        throw new Error(response.data.error || 'Update failed');
       }
-
-      navigate('/dashboard');
+      
     } catch (error) {
-      console.error('Error saving profile:', error);
-      setUploadError('Failed to save profile. Please try again.');
+      console.error('Error updating profile:', error);
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        if (errorData.details && Array.isArray(errorData.details)) {
+          setUploadError(`Validation Errors:\n${errorData.details.join('\n')}`);
+        } else {
+          setUploadError(`Validation Error: ${errorData.error || errorData.message}`);
+        }
+      } else {
+        setUploadError(`Failed to update profile: ${error.response?.data?.error || error.message}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -610,16 +570,12 @@ const EditStartupProfile = () => {
                 />
                 <button
                   type="button"
-                  onClick={async () => {
-                    try {
-                      setIsSubmitting(true);
-                      await deleteFileFromS3(formData.logo);
-                      setFormData(prev => ({ ...prev, logo: null }));
-                    } catch (error) {
-                      console.error('Error removing logo:', error);
-                    } finally {
-                      setIsSubmitting(false);
+                  onClick={() => {
+                    if (isBlobUrl(formData.logo)) {
+                      URL.revokeObjectURL(formData.logo);
                     }
+                    setFormData(prev => ({ ...prev, logo: null }));
+                    setFilesToUpload(prev => ({ ...prev, logo: null }));
                   }}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                   disabled={isSubmitting}
@@ -650,16 +606,13 @@ const EditStartupProfile = () => {
                 {formData.logo ? 'Change Logo' : 'Upload Logo'}
               </button>
               <p className="text-xs text-gray-500 mt-1">Recommended size: 500x500px (max 5MB)</p>
+              {filesToUpload.logo && (
+                <p className="text-xs text-green-600 mt-1">
+                  ✓ Ready: {filesToUpload.logo.name}
+                </p>
+              )}
             </div>
           </div>
-          {isSubmitting && uploadProgress > 0 && (
-            <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-              <div 
-                className="bg-indigo-600 h-2.5 rounded-full" 
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          )}
         </div>
 
         {/* Basic Info */}
@@ -673,6 +626,7 @@ const EditStartupProfile = () => {
               value={formData.startupName}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -684,6 +638,7 @@ const EditStartupProfile = () => {
               value={formData.tagline}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -698,6 +653,7 @@ const EditStartupProfile = () => {
               value={formData.description}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             ></textarea>
           </div>
 
@@ -709,6 +665,7 @@ const EditStartupProfile = () => {
               value={formData.bio}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             ></textarea>
           </div>
 
@@ -719,6 +676,7 @@ const EditStartupProfile = () => {
               value={formData.mission}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             ></textarea>
           </div>
 
@@ -729,6 +687,7 @@ const EditStartupProfile = () => {
               value={formData.vision}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             ></textarea>
           </div>
         </div>
@@ -744,6 +703,7 @@ const EditStartupProfile = () => {
               value={formData.problemStatement}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             ></textarea>
           </div>
 
@@ -754,6 +714,7 @@ const EditStartupProfile = () => {
               value={formData.uniqueProposition}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             ></textarea>
           </div>
 
@@ -765,6 +726,7 @@ const EditStartupProfile = () => {
               value={formData.technologyStack.join(', ')}
               onChange={handleArrayChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
             <div className="flex flex-wrap gap-2 mt-2">
               {formData.technologyStack.map((tech, index) => (
@@ -787,6 +749,7 @@ const EditStartupProfile = () => {
               value={formData.industry}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -797,6 +760,7 @@ const EditStartupProfile = () => {
               value={formData.businessModel}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -807,6 +771,7 @@ const EditStartupProfile = () => {
               value={formData.location}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -822,6 +787,7 @@ const EditStartupProfile = () => {
               value={formData.foundedYear}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -831,6 +797,7 @@ const EditStartupProfile = () => {
               value={formData.teamSize}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             >
               <option value="">Select</option>
               <option value="1-10">1-10</option>
@@ -846,6 +813,7 @@ const EditStartupProfile = () => {
               value={formData.fundingStage}
               onChange={handleChange}
               className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             >
               <option value="">Select</option>
               <option value="Bootstrapped">Bootstrapped</option>
@@ -868,6 +836,7 @@ const EditStartupProfile = () => {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="https://"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -878,6 +847,7 @@ const EditStartupProfile = () => {
               value={formData.phone}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -893,6 +863,7 @@ const EditStartupProfile = () => {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="https://linkedin.com/company/your-startup"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -904,6 +875,7 @@ const EditStartupProfile = () => {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="https://twitter.com/your-startup"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -915,6 +887,7 @@ const EditStartupProfile = () => {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="https://facebook.com/your-startup"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -933,16 +906,12 @@ const EditStartupProfile = () => {
                 <span className="ml-2 text-sm">Pitch Deck Uploaded</span>
                 <button
                   type="button"
-                  onClick={async () => {
-                    try {
-                      setIsSubmitting(true);
-                      await deleteFileFromS3(formData.pitchDeck);
-                      setFormData(prev => ({ ...prev, pitchDeck: null }));
-                    } catch (error) {
-                      console.error('Error removing pitch deck:', error);
-                    } finally {
-                      setIsSubmitting(false);
+                  onClick={() => {
+                    if (isBlobUrl(formData.pitchDeck)) {
+                      URL.revokeObjectURL(formData.pitchDeck);
                     }
+                    setFormData(prev => ({ ...prev, pitchDeck: null }));
+                    setFilesToUpload(prev => ({ ...prev, pitchDeck: null }));
                   }}
                   className="ml-4 text-red-500 hover:text-red-700"
                   disabled={isSubmitting}
@@ -978,16 +947,13 @@ const EditStartupProfile = () => {
                 {formData.pitchDeck ? 'Change File' : 'Upload Pitch Deck'}
               </button>
               <p className="text-xs text-gray-500 mt-1">PDF or PowerPoint (max 10MB)</p>
+              {filesToUpload.pitchDeck && (
+                <p className="text-xs text-green-600 mt-1">
+                  ✓ Ready: {filesToUpload.pitchDeck.name}
+                </p>
+              )}
             </div>
           </div>
-          {isSubmitting && uploadProgress > 0 && (
-            <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-              <div 
-                className="bg-indigo-600 h-2.5 rounded-full" 
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          )}
         </div>
 
         {/* Gallery */}
@@ -1011,6 +977,11 @@ const EditStartupProfile = () => {
             Add Images
           </button>
           <p className="text-xs text-gray-500 mb-4">Upload product screenshots, team photos, etc. (max 5MB each)</p>
+          {filesToUpload.gallery.length > 0 && (
+            <p className="text-xs text-green-600 mb-2">
+              ✓ {filesToUpload.gallery.length} image(s) ready for upload
+            </p>
+          )}
 
           {formData.gallery.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -1028,6 +999,7 @@ const EditStartupProfile = () => {
                     onChange={(e) => updateGalleryCaption(index, e.target.value)}
                     placeholder="Add caption"
                     className="w-full mt-1 text-xs border border-gray-300 rounded px-2 py-1 bg-transparent"
+                    disabled={isSubmitting}
                   />
                   <button
                     type="button"
@@ -1093,7 +1065,6 @@ const EditStartupProfile = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            // Show a confirmation dialog for large files
                             const acceptLarge = window.confirm(
                               'Team avatar image requirements:\n' +
                               '• Max file size: 2MB\n' +
@@ -1111,6 +1082,11 @@ const EditStartupProfile = () => {
                           {member.avatar ? 'Change' : 'Add Photo'}
                         </button>
                         <span className="text-xs text-gray-500 mt-1">Max 2MB</span>
+                        {filesToUpload.teamAvatars[index] && (
+                          <span className="text-xs text-green-600 mt-1">
+                            ✓ Ready
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="md:col-span-3 space-y-3">
@@ -1123,6 +1099,7 @@ const EditStartupProfile = () => {
                             onChange={(e) => updateTeamMember(index, 'name', e.target.value)}
                             className="w-full border border-gray-300 rounded px-3 py-1 text-sm bg-transparent"
                             placeholder="Full name"
+                            disabled={isSubmitting}
                           />
                         </div>
                         <div>
@@ -1133,6 +1110,7 @@ const EditStartupProfile = () => {
                             onChange={(e) => updateTeamMember(index, 'position', e.target.value)}
                             className="w-full border border-gray-300 rounded px-3 py-1 text-sm bg-transparent"
                             placeholder="Role/Title"
+                            disabled={isSubmitting}
                           />
                         </div>
                       </div>
@@ -1143,6 +1121,7 @@ const EditStartupProfile = () => {
                           onChange={(e) => updateTeamMember(index, 'bio', e.target.value)}
                           className="w-full border border-gray-300 rounded px-3 py-1 text-sm h-16"
                           placeholder="Brief background"
+                          disabled={isSubmitting}
                         ></textarea>
                       </div>
                       <div className="flex justify-end">
@@ -1150,6 +1129,7 @@ const EditStartupProfile = () => {
                           type="button"
                           onClick={() => removeTeamMember(index)}
                           className="text-xs text-red-500 hover:text-red-700"
+                          disabled={isSubmitting}
                         >
                           <FiMinus className="inline mr-1" /> Remove
                         </button>
@@ -1162,12 +1142,28 @@ const EditStartupProfile = () => {
           )}
         </div>
 
+        {/* Upload Progress */}
+        {isSubmitting && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Uploading profile data...</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
         {/* Submit Button */}
         <div className="pt-6">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400"
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </button>

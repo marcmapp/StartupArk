@@ -10,12 +10,18 @@ const ProductImageCarousel = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  // Helper function to get image URL
+  // UPDATED: Helper function to get image URL
   const getImageUrl = (key) => {
     if (!key) return '/default-product.png';
-    if (key.startsWith('http')) return key;
-    return `${import.meta.env.VITE_API_BASE_URL}/startupark/api/s3/file/${encodeURIComponent(key)}`;
+    if (key.startsWith('http') || key.startsWith('blob:')) return key;
+    
+    // Check if it's already a full URL
+    if (key.includes(baseUrl)) return key;
+    
+    // Assume it's an S3 key
+    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
   };
 
   if (!images || images.length === 0) {
@@ -109,7 +115,7 @@ const ProductImageCarousel = ({
           <div className="flex space-x-2 mt-4 overflow-x-auto pb-2">
             {images.map((image, index) => (
               <button
-                key={index}
+                key={image.url || index}
                 onClick={() => goToImage(index)}
                 className={`flex-shrink-0 w-16 h-16 border-2 rounded-lg overflow-hidden transition-all ${
                   index === currentIndex 

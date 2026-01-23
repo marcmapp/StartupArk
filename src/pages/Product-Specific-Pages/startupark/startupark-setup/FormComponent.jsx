@@ -27,7 +27,8 @@ function FormComponent({ role, onSubmit }) {
     gallery: [],
     pitchDeck: null,
     teamAvatars: {},
-    profilePicture: null
+    profilePicture: null,
+    resume: null
   });
 
   // Fetch user data from signup and autofill
@@ -156,63 +157,6 @@ function FormComponent({ role, onSubmit }) {
     setFormData(prev => ({ ...prev, [name]: items }));
   };
 
-  // File upload handler
-const handleFileUpload = async (file, type) => {
-  setIsUploading(true);
-  setUploadProgress(0);
-  
-  try {
-    console.log('Uploading file:', {
-      filename: file.name,
-      filetype: file.type,
-      filecategory: type,
-      size: file.size
-    });
-
-    // Create FormData
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('filecategory', type);
-
-    // ⚠️ CHANGED: Upload to YOUR backend instead of S3 directly
-    const response = await axios.post(
-      `${baseUrl}/startupark/api/s3/upload`,  // Your new backend endpoint
-      formData,
-      {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setUploadProgress(percentCompleted);
-        }
-      }
-    );
-
-    console.log('Upload response:', response.data);
-
-    // Return the S3 key from backend response
-    return response.data.key;
-  } catch (error) {
-    console.error('Upload failed with details:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method
-      }
-    });
-    throw new Error(error.response?.data?.error || 'File upload failed');
-  } finally {
-    setIsUploading(false);
-  }
-};
-
   // Profile picture handler (for user/student)
   const handleProfilePictureUpload = (e) => {
     const file = e.target.files[0];
@@ -232,8 +176,16 @@ const handleFileUpload = async (file, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Client-side validation
     if (file.size > 5 * 1024 * 1024) {
       alert('File size should be less than 5MB');
+      return;
+    }
+
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
       return;
     }
 
@@ -246,11 +198,36 @@ const handleFileUpload = async (file, type) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    setFilesToUpload(prev => ({ ...prev, gallery: [...prev.gallery, ...files] }));
+    // Client-side validation for each file
+    const validFiles = [];
+    files.forEach(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} exceeds 5MB limit`);
+        return;
+      }
+      
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        alert(`File ${file.name} is not a valid image type`);
+        return;
+      }
+      
+      validFiles.push(file);
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Store files for upload
+    setFilesToUpload(prev => ({ 
+      ...prev, 
+      gallery: [...prev.gallery, ...validFiles] 
+    }));
     
-    const newGalleryItems = files.map(file => ({
+    // Create preview URLs
+    const newGalleryItems = validFiles.map(file => ({
       url: URL.createObjectURL(file),
-      caption: ''
+      caption: '',
+      file: file
     }));
     
     setFormData(prev => ({
@@ -270,6 +247,19 @@ const handleFileUpload = async (file, type) => {
   const removeGalleryImage = (index) => {
     setFormData(prev => {
       const updatedGallery = [...prev.gallery];
+      
+      // Revoke blob URL if it exists
+      if (updatedGallery[index].url && updatedGallery[index].url.startsWith('blob:')) {
+        URL.revokeObjectURL(updatedGallery[index].url);
+      }
+      
+      updatedGallery.splice(index, 1);
+      return { ...prev, gallery: updatedGallery };
+    });
+    
+    // Also remove from filesToUpload
+    setFilesToUpload(prev => {
+      const updatedGallery = [...prev.gallery];
       updatedGallery.splice(index, 1);
       return { ...prev, gallery: updatedGallery };
     });
@@ -279,6 +269,22 @@ const handleFileUpload = async (file, type) => {
   const handlePitchDeckUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Client-side validation
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size should be less than 10MB');
+      return;
+    }
+
+    const validTypes = [
+      'application/pdf',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a PDF or PowerPoint file');
+      return;
+    }
 
     setFilesToUpload(prev => ({ ...prev, pitchDeck: file }));
     setFormData(prev => ({ ...prev, pitchDeck: 'pending' }));
@@ -310,6 +316,18 @@ const handleFileUpload = async (file, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Client-side validation
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size should be less than 5MB');
+      return;
+    }
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
     setFilesToUpload(prev => ({
       ...prev,
       teamAvatars: { ...prev.teamAvatars, [index]: file }
@@ -334,25 +352,25 @@ const handleFileUpload = async (file, type) => {
     });
   };
 
-// Skills/Interests handlers (for student/user)
-const addSkill = (skill) => {
-  if (skill.trim()) {
-    const currentSkills = formData.skills || [];  // Add fallback for undefined
-    if (!currentSkills.includes(skill.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        skills: [...(prev.skills || []), skill.trim()]  // Add fallback here too
-      }));
+  // Skills/Interests handlers (for student/user)
+  const addSkill = (skill) => {
+    if (skill.trim()) {
+      const currentSkills = formData.skills || [];
+      if (!currentSkills.includes(skill.trim())) {
+        setFormData(prev => ({
+          ...prev,
+          skills: [...(prev.skills || []), skill.trim()]
+        }));
+      }
     }
-  }
-};
+  };
 
-const removeSkill = (index) => {
-  setFormData(prev => ({
-    ...prev,
-    skills: (prev.skills || []).filter((_, i) => i !== index)  // Add fallback
-  }));
-};
+  const removeSkill = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: (prev.skills || []).filter((_, i) => i !== index)
+    }));
+  };
 
   const addInterest = (interest) => {
     if (interest.trim() && !formData.interests.includes(interest.trim())) {
@@ -370,75 +388,160 @@ const removeSkill = (index) => {
     }));
   };
 
-  // Form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsUploading(true);
+  // Client-side validation function
+  const validateFormClientSide = () => {
+    const errors = [];
+    
+    // Common validations
+    if (!formData.name?.trim()) errors.push('Name is required');
+    if (!formData.email?.trim()) errors.push('Email is required');
+    if (!formData.bio?.trim()) errors.push('Bio is required');
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      errors.push('Please enter a valid email address');
+    }
+    
+    // File validations
+    if (role === 'startup') {
+      if (!formData.startupName?.trim()) errors.push('Startup name is required');
+      if (!formData.tagline?.trim()) errors.push('Tagline is required');
+      if (!formData.description?.trim()) errors.push('Description is required');
+      if (!formData.industry?.trim()) errors.push('Industry is required');
+      
+      // Logo validation - check both formData and filesToUpload
+      if (!filesToUpload.logo && !formData.logo) {
+        errors.push('Startup logo is required');
+      }
+    }
+    
+    if (role === 'student') {
+      if (!formData.institution?.trim()) errors.push('Institution is required');
+      if (!formData.course?.trim()) errors.push('Course is required');
+    }
+    
+    if (role === 'user') {
+      if (!formData.profession?.trim()) errors.push('Profession is required');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors: errors
+    };
+  };
 
-    try {
-      const finalFormData = { ...formData };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Client-side validation
+  const clientValidation = validateFormClientSide();
+  if (!clientValidation.isValid) {
+    alert(`Please fix the following errors:\n${clientValidation.errors.join('\n')}`);
+    return;
+  }
+  
+  setIsUploading(true);
+  setUploadProgress(0);
 
-      // Upload files based on role
-      if (role === 'startup') {
-        if (filesToUpload.logo) {
-          finalFormData.logo = await handleFileUpload(filesToUpload.logo, 'logo');
+  try {
+    // 1. Upload profile picture if exists
+    let profilePictureKey = null;
+    if (filesToUpload.profilePicture) {
+      console.log('Uploading profile picture...');
+      
+      const uploadUrlResponse = await axios.get(
+        `${baseUrl}/startupark/api/s3/upload-url`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            filename: filesToUpload.profilePicture.name,
+            filetype: filesToUpload.profilePicture.type,
+            filecategory: 'profile'
+          }
         }
+      );
+      
+      if (uploadUrlResponse.data.success) {
+        const { url, key } = uploadUrlResponse.data;
         
-        if (filesToUpload.gallery.length > 0) {
-          const uploadPromises = filesToUpload.gallery.map(file => 
-            handleFileUpload(file, 'gallery')
-          );
-          const s3Keys = await Promise.all(uploadPromises);
-          finalFormData.gallery = finalFormData.gallery.map((item, index) => 
-            isBlobUrl(item.url) ? 
-              { url: s3Keys[index], caption: item.caption } : 
-              item
-          );
-        }
-
-        if (filesToUpload.pitchDeck) {
-          finalFormData.pitchDeck = await handleFileUpload(filesToUpload.pitchDeck, 'pitchdeck');
-        }
-
-        for (const [index, file] of Object.entries(filesToUpload.teamAvatars)) {
-          const s3Key = await handleFileUpload(file, 'team');
-          finalFormData.team[index].avatar = s3Key;
-        }
+        await axios.put(url, filesToUpload.profilePicture, {
+          headers: { 'Content-Type': filesToUpload.profilePicture.type }
+        });
+        
+        profilePictureKey = key;
+        console.log('Profile picture uploaded:', key);
       }
-
-      if ((role === 'user' || role === 'student') && filesToUpload.profilePicture) {
-        finalFormData.profilePicture = await handleFileUpload(filesToUpload.profilePicture, 'profile');
+    }
+    
+    setUploadProgress(30);
+    
+    // 2. Prepare form data
+    const submissionData = { ...formData };
+    
+    // Update with uploaded file key
+    if (profilePictureKey) {
+      submissionData.profilePicture = profilePictureKey;
+    } else if (submissionData.profilePicture && submissionData.profilePicture.startsWith('blob:')) {
+      delete submissionData.profilePicture;
+    }
+    
+    // Remove other blob URLs
+    Object.keys(submissionData).forEach(key => {
+      if (typeof submissionData[key] === 'string' && submissionData[key].startsWith('blob:')) {
+        delete submissionData[key];
       }
-
-      if (role === 'student' && filesToUpload.resume) {
-        finalFormData.resume = await handleFileUpload(filesToUpload.resume, 'resume');
-      }
-
-     // Submit form with updated endpoint
+    });
+    
+    setUploadProgress(60);
+    
+    // 3. Submit form data
+    console.log('Submitting form data...');
+    
     const response = await axios.post(
-      `${baseUrl}/startupark/api/startupark/form/${role}`, 
-      { formData: finalFormData }, 
-      { headers: { Authorization: `Bearer ${token}` } }
+      `${baseUrl}/startupark/api/startupark/form/${role}`,
+      submissionData,
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
     );
     
+    setUploadProgress(100);
+    
+    console.log('Response:', response.data);
+    
     if (response.data.success) {
+      alert('Profile saved successfully!');
       onSubmit();
     } else {
-      alert(`Failed to submit form: ${response.data.error}`);
+      throw new Error(response.data.error || 'Submission failed');
     }
-  } catch (error) {
-    console.error('Submission failed:', error);
     
-    // Handle specific error codes
-    if (error.response?.data?.code === 'DUPLICATE_FORM') {
-      alert('You already have a profile for this role. Please update your existing profile.');
-    } else if (error.response?.data?.code === 'DUPLICATE_SHARE_ID') {
-      alert('There was an issue with your virtual card. Please try again.');
+  } catch (error) {
+    console.error('Submission error:', error);
+    
+    let errorMessage = 'Failed to submit form. ';
+    
+    if (error.response) {
+      const { status, data } = error.response;
+      errorMessage = data.error || `Server error (${status})`;
+      if (data.details) {
+        errorMessage += ': ' + (Array.isArray(data.details) ? data.details.join(', ') : data.details);
+      }
+    } else if (error.request) {
+      errorMessage = 'No response from server. Check your internet connection.';
     } else {
-      alert(`Failed to submit form: ${error.response?.data?.error || error.message}`);
+      errorMessage = error.message;
     }
+    
+    alert(errorMessage);
+    
   } finally {
     setIsUploading(false);
+    setUploadProgress(0);
   }
 };
 
@@ -543,7 +646,7 @@ const removeSkill = (index) => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Uploading Files...
+                Uploading...
               </span>
             ) : (
               'Complete Profile'

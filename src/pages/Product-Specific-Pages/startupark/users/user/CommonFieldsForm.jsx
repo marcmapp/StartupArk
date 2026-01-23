@@ -16,6 +16,39 @@ const CommonFieldsForm = ({
     return url && typeof url === 'string' && url.startsWith('blob:');
   };
 
+  // Enhanced profile picture handler
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Client-side validation
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert('File size should be less than 5MB');
+      return;
+    }
+
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Store file for upload
+    const fileKey = role === 'startup' ? 'logo' : 'profilePicture';
+    setFilesToUpload(prev => ({ ...prev, [fileKey]: file }));
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    
+    if (role === 'startup') {
+      setFormData(prev => ({ ...prev, logo: previewUrl }));
+    } else {
+      setFormData(prev => ({ ...prev, profilePicture: previewUrl }));
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Profile Picture/Logo Section */}
@@ -73,7 +106,7 @@ const CommonFieldsForm = ({
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={handleProfilePictureUpload}
+                  onChange={handleFileUpload}
                   accept="image/*"
                   className="hidden"
                 />
@@ -93,17 +126,22 @@ const CommonFieldsForm = ({
               <div className="text-sm text-gray-500">
                 <p>• Recommended size: 500x500px</p>
                 <p>• Max file size: 5MB</p>
-                <p>• Supported formats: JPG, PNG, GIF</p>
+                <p>• Supported formats: JPG, PNG, GIF, WebP</p>
+                {filesToUpload.logo || filesToUpload.profilePicture ? (
+                  <p className="text-green-600 font-medium">
+                    ✓ File ready for upload: {(filesToUpload.logo || filesToUpload.profilePicture)?.name}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
         
         {/* Upload Progress */}
-        {isUploading && (filesToUpload.logo || filesToUpload.profilePicture) && (
+        {isUploading && (
           <div className="mt-4">
             <div className="flex justify-between text-sm text-gray-600 mb-1">
-              <span>Uploading...</span>
+              <span>Uploading form data...</span>
               <span>{uploadProgress}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">

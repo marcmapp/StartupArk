@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handleArrayChange, isUploading }) => {
+const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handleArrayChange, isUploading, uploadProgress }) => {
   const [tempSkill, setTempSkill] = useState('');
 
   const handleAddSkill = () => {
@@ -25,14 +25,18 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Profession</label>
+            <label className="block text-sm font-semibold text-gray-700">
+              Profession<span className="text-red-500 ml-1">*</span>
+            </label>
             <input
               type="text"
               name="profession"
+              required
               value={formData.profession}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               placeholder="e.g., Software Engineer, Investor"
+              disabled={isUploading}
             />
           </div>
           
@@ -43,12 +47,13 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
               value={formData.experience}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              disabled={isUploading}
             >
               <option value="">Select experience level</option>
-              <option value="0-2">0-2 years</option>
-              <option value="3-5">3-5 years</option>
-              <option value="6-10">6-10 years</option>
-              <option value="10+">10+ years</option>
+              <option value="0-2 years">0-2 years</option>
+              <option value="3-5 years">3-5 years</option>
+              <option value="6-10 years">6-10 years</option>
+              <option value="10+ years">10+ years</option>
             </select>
           </div>
         </div>
@@ -62,6 +67,7 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
             onChange={handleChange}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             placeholder="e.g., MBA, Computer Science"
+            disabled={isUploading}
           />
         </div>
       </div>
@@ -103,6 +109,7 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
                     type="button"
                     onClick={() => removeSkill(index)}
                     className="text-green-600 hover:text-green-800"
+                    disabled={isUploading}
                   >
                     ×
                   </button>
@@ -131,6 +138,7 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
                 onChange={handleChange}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
                 placeholder="your-profile"
+                disabled={isUploading}
               />
             </div>
           </div>
@@ -148,6 +156,7 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
                 onChange={handleChange}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
                 placeholder="@yourhandle"
+                disabled={isUploading}
               />
             </div>
           </div>
@@ -167,6 +176,7 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
             onChange={handleArrayChange}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
             placeholder="FinTech, HealthTech, AI, Clean Energy, etc."
+            disabled={isUploading}
           />
           <div className="flex flex-wrap gap-2 mt-3">
             {formData.expertise.map((interest, index) => (
@@ -177,6 +187,22 @@ const UserDetailsForm = ({ formData, handleChange, addSkill, removeSkill, handle
           </div>
         </div>
       </div>
+
+      {/* Upload Progress */}
+      {isUploading && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <span>Uploading form data...</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -50,6 +50,7 @@ const StudentDetailsForm = ({
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-black"
               placeholder="University/College name"
+              disabled={isUploading}
             />
           </div>
           
@@ -66,6 +67,7 @@ const StudentDetailsForm = ({
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-black"
               placeholder="e.g., Computer Science, MBA"
+              disabled={isUploading}
             />
           </div>
         </div>
@@ -78,6 +80,7 @@ const StudentDetailsForm = ({
               value={formData.yearOfStudy}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-black"
+              disabled={isUploading}
             >
               <option value="">Select year</option>
               <option value="1st Year">1st Year</option>
@@ -101,6 +104,7 @@ const StudentDetailsForm = ({
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-black"
               placeholder="2024"
+              disabled={isUploading}
             />
           </div>
         </div>
@@ -115,6 +119,7 @@ const StudentDetailsForm = ({
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-black"
               placeholder="e.g., 3.8/4.0"
+              disabled={isUploading}
             />
           </div>
         </div>
@@ -133,11 +138,13 @@ const StudentDetailsForm = ({
               onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
               placeholder="Add a skill (e.g., Python, React, Data Analysis)"
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-black"
+              disabled={isUploading}
             />
             <button
               type="button"
               onClick={handleAddSkill}
               className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-sm"
+              disabled={isUploading}
             >
               Add Skill
             </button>
@@ -155,6 +162,7 @@ const StudentDetailsForm = ({
                     type="button"
                     onClick={() => removeSkill(index)}
                     className="text-green-600 hover:text-green-800"
+                    disabled={isUploading}
                   >
                     ×
                   </button>
@@ -178,11 +186,13 @@ const StudentDetailsForm = ({
               onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
               placeholder="Add an interest (e.g., AI Research, Product Management)"
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition text-black"
+              disabled={isUploading}
             />
             <button
               type="button"
               onClick={handleAddInterest}
               className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition shadow-sm"
+              disabled={isUploading}
             >
               Add Interest
             </button>
@@ -200,6 +210,7 @@ const StudentDetailsForm = ({
                     type="button"
                     onClick={() => removeInterest(index)}
                     className="text-purple-600 hover:text-purple-800"
+                    disabled={isUploading}
                   >
                     ×
                   </button>
@@ -228,6 +239,7 @@ const StudentDetailsForm = ({
                 onChange={handleChange}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition text-black"
                 placeholder="yourusername"
+                disabled={isUploading}
               />
             </div>
           </div>
@@ -241,6 +253,7 @@ const StudentDetailsForm = ({
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition text-black"
               placeholder="https://yourportfolio.com"
+              disabled={isUploading}
             />
           </div>
         </div>
@@ -257,7 +270,8 @@ const StudentDetailsForm = ({
               </div>
               <div>
                 <p className="font-medium text-gray-700">
-                  {filesToUpload.resume ? filesToUpload.resume.name : 'Upload your resume'}
+                  {filesToUpload.resume ? filesToUpload.resume.name : 
+                   formData.resume ? 'Resume uploaded' : 'Upload your resume'}
                 </p>
                 <p className="text-sm text-gray-500">PDF or DOCX (max 10MB)</p>
               </div>
@@ -268,6 +282,7 @@ const StudentDetailsForm = ({
               onChange={handleResumeUpload}
               accept=".pdf,.doc,.docx"
               className="hidden"
+              disabled={isUploading}
             />
             <button
               type="button"
@@ -275,14 +290,14 @@ const StudentDetailsForm = ({
               className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition"
               disabled={isUploading}
             >
-              {filesToUpload.resume ? 'Change' : 'Upload'}
+              {filesToUpload.resume || formData.resume ? 'Change' : 'Upload'}
             </button>
           </div>
           
           {isUploading && filesToUpload.resume && (
             <div className="mt-3">
               <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Uploading resume...</span>
+                <span>Uploading form...</span>
                 <span>{uploadProgress}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -309,6 +324,7 @@ const StudentDetailsForm = ({
             rows="4"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition resize-none text-black"
             placeholder="List any awards, projects, publications, or extracurricular activities..."
+            disabled={isUploading}
           ></textarea>
         </div>
       </div>

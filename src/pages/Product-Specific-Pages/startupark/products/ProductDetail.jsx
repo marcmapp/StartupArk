@@ -35,10 +35,16 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id, baseUrl, navigate]);
 
-  // Helper function to get image URL
+  // UPDATED: Helper function to get image URL
   const getImageUrl = (key) => {
     if (!key) return LOGO_LIGHT;
     if (key.startsWith('http')) return key;
+    if (key.startsWith('blob:')) return key;
+    
+    // Check if it's already a full URL
+    if (key.includes(baseUrl)) return key;
+    
+    // Assume it's an S3 key
     return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
   };
 
@@ -47,11 +53,14 @@ const ProductDetail = () => {
     if (!product) return [];
     
     if (product.images && product.images.length > 0) {
-      return product.images;
+      return product.images.map(img => ({
+        ...img,
+        url: getImageUrl(img.url)
+      }));
     }
     
     if (product.featuredImage) {
-      return [{ url: product.featuredImage, type: 'image', isFeatured: true }];
+      return [{ url: getImageUrl(product.featuredImage), type: 'image', isFeatured: true }];
     }
     
     return [];
@@ -110,6 +119,7 @@ const ProductDetail = () => {
   }
 
   const displayImages = getDisplayImages();
+  const startup = product.startupId || product.startup; // Handle both field names
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
@@ -224,7 +234,7 @@ const ProductDetail = () => {
               </div>
 
               {/* Startup Info */}
-              {product.startup && (
+              {startup && (
                 <div className="border-t pt-6 mt-6">
                   <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <MdVerified className="w-5 h-5 text-blue-500" />
@@ -232,58 +242,62 @@ const ProductDetail = () => {
                   </h3>
                   <div className="bg-gradient-to-br from-gray-50 to-slate-100 rounded-2xl p-6 border border-gray-200">
                     <div className="flex items-center space-x-4">
-                      {product.startup.logo ? (
+                      {startup.formData?.logo || startup.logo ? (
                         <img
-                          src={getImageUrl(product.startup.logo)}
-                          alt={`${product.startup.name} logo`}
+                          src={getImageUrl(startup.formData?.logo || startup.logo)}
+                          alt={`${startup.formData?.startupName || startup.name} logo`}
                           className="h-20 w-20 rounded-2xl object-cover border-2 border-white shadow-lg"
+                          onError={(e) => {
+                            console.error('Logo load error:', startup.logo);
+                            e.target.src = LOGO_LIGHT;
+                          }}
                         />
                       ) : (
                         <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
                           <span className="text-xl font-bold text-white">
-                            {product.startup.name?.charAt(0) || 'S'}
+                            {(startup.formData?.startupName || startup.name)?.charAt(0) || 'S'}
                           </span>
                         </div>
                       )}
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-lg">{product.startup.name}</h4>
-                        <p className="text-gray-600 mb-3">{product.startup.tagline}</p>
+                        <h4 className="font-bold text-gray-900 text-lg">{startup.formData?.startupName || startup.name}</h4>
+                        <p className="text-gray-600 mb-3">{startup.formData?.tagline || startup.tagline}</p>
                         <div className="flex space-x-4">
-                          {product.startup.linkedin && (
+                          {startup.formData?.linkedin || startup.linkedin ? (
                             <a
-                              href={product.startup.linkedin}
+                              href={startup.formData?.linkedin || startup.linkedin}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-gray-500 hover:text-blue-600 transition-colors p-2 bg-white rounded-lg shadow-sm"
                             >
                               <FiLinkedin className="h-5 w-5" />
                             </a>
-                          )}
-                          {product.startup.twitter && (
+                          ) : null}
+                          {startup.formData?.twitter || startup.twitter ? (
                             <a
-                              href={product.startup.twitter}
+                              href={startup.formData?.twitter || startup.twitter}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-gray-500 hover:text-blue-400 transition-colors p-2 bg-white rounded-lg shadow-sm"
                             >
                               <FiTwitter className="h-5 w-5" />
                             </a>
-                          )}
-                          {product.startup.facebook && (
+                          ) : null}
+                          {startup.formData?.facebook || startup.facebook ? (
                             <a
-                              href={product.startup.facebook}
+                              href={startup.formData?.facebook || startup.facebook}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-gray-500 hover:text-blue-500 transition-colors p-2 bg-white rounded-lg shadow-sm"
                             >
                               <FiFacebook className="h-5 w-5" />
                             </a>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     </div>
                     <Link
-                      to={`/startups/${product.startup._id}`}
+                      to={`/startups/${startup._id}`}
                       className="inline-flex items-center gap-2 mt-4 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
                     >
                       View full startup profile

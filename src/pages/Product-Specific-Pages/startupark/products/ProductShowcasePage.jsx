@@ -32,22 +32,22 @@ const ProductShowcase = () => {
       ?.split('=')[1];
   };
 
-  // Helper function to get proper image URL
+  // UPDATED: Helper function to get image URL
   const getImageUrl = (key) => {
     if (!key) return '/default-product.png';
-    if (key.startsWith('http')) return key;
-    if (key.startsWith('blob:')) return key;
+    if (key.startsWith('http') || key.startsWith('blob:')) return key;
+    
+    // Check if it's already a full URL
+    if (key.includes(baseUrl)) return key;
+    
+    // Assume it's an S3 key
     return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
   };
 
   // Helper function to get startup logo URL
   const getStartupLogoUrl = (logoKey) => {
     if (!logoKey) return null;
-    if (logoKey.startsWith('http')) return logoKey;
-    if (logoKey.startsWith('blob:')) return logoKey;
-    // Check if it's already a full URL from the backend
-    if (logoKey.includes(baseUrl)) return logoKey;
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(logoKey)}`;
+    return getImageUrl(logoKey);
   };
 
   useEffect(() => {
@@ -70,7 +70,8 @@ const ProductShowcase = () => {
             setCurrentUserStartupId(userStartup._id);
             
             const userProducts = allProducts.filter(product => 
-              product.startup && product.startup._id === userStartup._id
+              product.startupId?._id === userStartup._id || 
+              product.startup?._id === userStartup._id
             );
             setCurrentUserProducts(userProducts);
           }
@@ -106,7 +107,7 @@ const ProductShowcase = () => {
 
     if (currentUserStartupId) {
       results = results.filter(product => 
-        !product.startup || product.startup._id !== currentUserStartupId
+        !product.startupId || product.startupId._id !== currentUserStartupId
       );
     }
 
@@ -139,11 +140,14 @@ const ProductShowcase = () => {
   // Helper function to get display images
   const getDisplayImages = (product) => {
     if (product.images && product.images.length > 0) {
-      return product.images;
+      return product.images.map(img => ({
+        ...img,
+        url: getImageUrl(img.url)
+      }));
     }
     
     if (product.featuredImage) {
-      return [{ url: product.featuredImage, type: 'image', isFeatured: true }];
+      return [{ url: getImageUrl(product.featuredImage), type: 'image', isFeatured: true }];
     }
     
     return [];
@@ -217,21 +221,23 @@ const ProductShowcase = () => {
               <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 <div className="flex-shrink-0">
                   <div className="h-20 w-20 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 overflow-hidden flex items-center justify-center">
-                    {currentUserProducts[0]?.startup?.logo ? (
+                    {currentUserProducts[0]?.startupId?.formData?.logo || currentUserProducts[0]?.startup?.logo ? (
                       <img
-                        src={getStartupLogoUrl(currentUserProducts[0].startup.logo)}
-                        alt={`${currentUserProducts[0].startup.name} logo`}
+                        src={getStartupLogoUrl(
+                          currentUserProducts[0].startupId?.formData?.logo || 
+                          currentUserProducts[0].startup?.logo
+                        )}
+                        alt="Startup logo"
                         className="h-16 w-16 object-cover"
                         onError={(e) => {
-                          console.error('Logo load error:', currentUserProducts[0].startup.logo);
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
+                          e.target.src = '/default-product.png';
                         }}
                       />
-                    ) : null}
-                    <div className={`h-16 w-16 flex items-center justify-center ${currentUserProducts[0]?.startup?.logo ? 'hidden' : 'flex'}`}>
-                      <FiUser className="w-8 h-8 text-gray-400" />
-                    </div>
+                    ) : (
+                      <div className="h-16 w-16 flex items-center justify-center">
+                        <FiUser className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -431,6 +437,7 @@ const ProductShowcase = () => {
                 key={product._id} 
                 product={product} 
                 getDisplayImages={getDisplayImages}
+                getImageUrl={getImageUrl}
                 getStartupLogoUrl={getStartupLogoUrl}
               />
             ))}
@@ -442,8 +449,9 @@ const ProductShowcase = () => {
 };
 
 // Product Card Component
-const ProductCard = ({ product, getDisplayImages, getStartupLogoUrl }) => {
+const ProductCard = ({ product, getDisplayImages, getImageUrl, getStartupLogoUrl }) => {
   const displayImages = getDisplayImages(product);
+  const startup = product.startupId || product.startup;
 
   return (
     <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200">
@@ -472,21 +480,20 @@ const ProductCard = ({ product, getDisplayImages, getStartupLogoUrl }) => {
         )}
         
         {/* Startup Logo */}
-        {product.startup && (
+        {startup && (
           <div className="absolute bottom-3 left-3 flex items-center gap-2">
-            {product.startup.logo && (
+            {startup.formData?.logo || startup.logo ? (
               <img
-                src={getStartupLogoUrl(product.startup.logo)}
-                alt={`${product.startup.name} logo`}
+                src={getStartupLogoUrl(startup.formData?.logo || startup.logo)}
+                alt="Startup logo"
                 className="h-8 w-8 rounded-full border-2 border-white bg-white shadow-md"
                 onError={(e) => {
-                  console.error('Startup logo load error:', product.startup.logo);
-                  e.target.style.display = 'none';
+                  e.target.src = '/default-product.png';
                 }}
               />
-            )}
+            ) : null}
             <span className="px-2 py-1 bg-black/70 text-white text-xs rounded-lg backdrop-blur-sm">
-              {product.startup.name}
+              {startup.formData?.startupName || startup.name}
             </span>
           </div>
         )}
@@ -563,12 +570,12 @@ const ProductCard = ({ product, getDisplayImages, getStartupLogoUrl }) => {
             <FiExternalLink className="w-4 h-4" />
           </Link>
           
-          {product.startup && (
+          {startup && (
             <Link
-              to={`/startups/${product.startup._id}`}
+              to={`/startups/${startup._id}`}
               className="text-gray-500 hover:text-gray-700 text-xs flex items-center gap-1"
             >
-              <span>By {product.startup.name}</span>
+              <span>By {startup.formData?.startupName || startup.name}</span>
             </Link>
           )}
         </div>

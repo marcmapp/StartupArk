@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Agreement from './Agreement';
 import FormComponent from './FormComponent';
 
@@ -17,6 +17,18 @@ export default function StartuparkSetup({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Debug logging
+  console.log('StartuparkSetup state:', {
+    role,
+    currentStep,
+    agreementDone,
+    formDone,
+    locationState: location.state,
+    selectedRole,
+    loading
+  });
 
   // Steps configuration
   const steps = [
@@ -26,14 +38,76 @@ export default function StartuparkSetup({ onComplete }) {
     { id: 4, title: 'All Set!', description: 'Ready to get started' }
   ];
 
-  // Fetch user's selected role on mount
+  // 🔥 FIXED: Handle forced setup from RoleSwitcher
   useEffect(() => {
+    console.log('Location state:', location.state);
+    
+    if (location.state?.role === 'startup' && location.state?.forceSetup) {
+      console.log('🚀 Force setup detected for startup role');
+      
+      // Immediately set role and selected role
+      setRole('startup');
+      setSelectedRole('startup');
+      
+      // Check agreement and first-time status
+      const checkSetup = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          
+          // Check agreement for startup
+          const agreementRes = await axios.get(`${baseUrl}/startupark/api/startupark/agreement/startup`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          setAgreementDone(agreementRes.data.agreed);
+          
+          // Check first-time status
+          const setupRes = await axios.get(`${baseUrl}/startupark/api/startupark/first-time`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setIsFirstTimeSetup(setupRes.data.isFirstTime);
+          
+          // Check if form already exists
+          const formRes = await axios.get(`${baseUrl}/startupark/api/startupark/form/startup`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          if (formRes.data.hasFormData) {
+            setFormDone(true);
+            setCurrentStep(4);
+          } else if (agreementRes.data.agreed) {
+            setCurrentStep(3); // Go to form
+          } else {
+            setCurrentStep(2); // Go to agreement
+          }
+          
+        } catch (err) {
+          console.error('Force setup check error:', err);
+          setError('Failed to setup startup registration');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      checkSetup();
+      return; // Don't run normal fetch logic
+    }
+  }, [location.state]);
+
+  // Normal fetch logic (only runs if not forced setup)
+  useEffect(() => {
+    // Skip if we already handled forced setup
+    if (location.state?.forceSetup && location.state?.role === 'startup') {
+      return;
+    }
+    
     async function fetchRole() {
       try {
         const token = localStorage.getItem('token');
         const res = await axios.get(`${baseUrl}/startupark/api/startupark/role`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        
         setRole(res.data.role);
         
         const setupRes = await axios.get(`${baseUrl}/startupark/api/startupark/first-time`, {
@@ -47,12 +121,14 @@ export default function StartuparkSetup({ onComplete }) {
         setLoading(false);
       }
     }
+    
     fetchRole();
-  }, []);
+  }, [location.state]);
 
-  // Fetch agreement status whenever role changes
+  // Fetch agreement status whenever role changes (for normal flow)
   useEffect(() => {
-    if (!role) return;
+    if (!role || (location.state?.forceSetup && location.state?.role === 'startup')) return;
+    
     async function fetchAgreement() {
       try {
         setLoading(true);
@@ -61,6 +137,7 @@ export default function StartuparkSetup({ onComplete }) {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAgreementDone(res.data.agreed);
+        
         if (res.data.agreed) {
           setCurrentStep(3);
         } else {
@@ -73,12 +150,14 @@ export default function StartuparkSetup({ onComplete }) {
         setLoading(false);
       }
     }
+    
     fetchAgreement();
-  }, [role]);
+  }, [role, location.state]);
 
   // Fetch form status once agreement is done
   useEffect(() => {
     if (!role || !agreementDone) return;
+    
     async function fetchFormStatus() {
       try {
         setLoading(true);
@@ -97,51 +176,97 @@ export default function StartuparkSetup({ onComplete }) {
         setLoading(false);
       }
     }
+    
     fetchFormStatus();
   }, [role, agreementDone]);
 
-  // Auto-redirect to appropriate dashboard when form is done
+  // 🔥 FIXED: Auto-redirect when form is done
   useEffect(() => {
     if (formDone) {
+      console.log('✅ Form done, preparing redirect...');
+      
       if (isFirstTimeSetup) {
         setShowSuccess(true);
       }
       
-      const timer = setTimeout(() => {
-        if (onComplete) {
-          onComplete();
-        } else {
-          const dashboardRoutes = {
-            user: '/startupark/user-dashboard',
-            startup: '/startupark/startup-dashboard',
-            student: '/startupark/student-dashboard'
-          };
-          navigate(dashboardRoutes[role]);
+      const timer = setTimeout(async () => {
+        const token = localStorage.getItem('token');
+        
+        try {
+          // Get the latest user data
+          const userRes = await axios.get(`${baseUrl}/api/mappuser/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          const currentRole = userRes.data.startuparkRole;
+          console.log('Current user role:', currentRole, 'Form role:', role);
+          
+          // If we just completed startup setup, switch role
+          if (role === 'startup' && currentRole !== 'startup') {
+            console.log('🔄 Switching role to startup...');
+            await axios.post(
+              `${baseUrl}/startupark/api/startupark/switch-to-startup`,
+              { role: 'startup' },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            navigate('/startupark/startup-dashboard');
+          } 
+          // If already startup, go to startup dashboard
+          else if (currentRole === 'startup') {
+            navigate('/startupark/startup-dashboard');
+          }
+          // For other roles
+          else {
+            const dashboardRoutes = {
+              user: '/startupark/user-dashboard',
+              startup: '/startupark/startup-dashboard',
+              student: '/startupark/student-dashboard'
+            };
+            navigate(dashboardRoutes[currentRole] || '/startupark/user-dashboard');
+          }
+        } catch (error) {
+          console.error('Redirect error:', error);
+          // Fallback based on role
+          if (role === 'startup') {
+            navigate('/startupark/startup-dashboard');
+          } else {
+            navigate('/startupark/user-dashboard');
+          }
         }
       }, isFirstTimeSetup ? 2000 : 0);
       
       return () => clearTimeout(timer);
     }
-  }, [formDone, navigate, role, onComplete, isFirstTimeSetup]);
+  }, [formDone, navigate, role, isFirstTimeSetup, baseUrl]);
 
   // Select user role
   async function handleRoleSelect(selectedRoleType) {
+    console.log('Selecting role:', selectedRoleType);
     setSelectedRole(selectedRoleType);
     setLoading(true);
     setError(null);
+    
     try {
       const token = localStorage.getItem('token');
-      await axios.post(
-        `${baseUrl}/startupark/api/startupark/role`,
-        { role: selectedRoleType },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
       
-      const userRes = await axios.get(`${baseUrl}/api/mappuser/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setRole(userRes.data.startuparkRole);
-      setCurrentStep(2);
+      // If it's a forced startup setup, we already have the role
+      if (location.state?.forceSetup && selectedRoleType === 'startup') {
+        setRole('startup');
+        setCurrentStep(2);
+      } else {
+        // Normal role selection
+        await axios.post(
+          `${baseUrl}/startupark/api/startupark/role`,
+          { role: selectedRoleType },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        const userRes = await axios.get(`${baseUrl}/api/mappuser/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRole(userRes.data.startuparkRole);
+        setCurrentStep(2);
+      }
     } catch (err) {
       console.error('Failed to save role:', err);
       setError(err.response?.data?.error || 'Failed to save role');
@@ -152,14 +277,40 @@ export default function StartuparkSetup({ onComplete }) {
 
   // Callback for Agreement component
   function handleAgree() {
+    console.log('Agreement accepted');
     setAgreementDone(true);
     setCurrentStep(3);
+    
+    // If forced startup setup, ensure role is set
+    if (location.state?.forceSetup && !role) {
+      setRole('startup');
+    }
   }
 
   // Callback for FormComponent
   function handleFormSubmit() {
+    console.log('Form submitted, role:', role);
     setFormDone(true);
     setCurrentStep(4);
+    
+    // If this was a startup setup, switch role immediately
+    if (role === 'startup') {
+      const switchRole = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          console.log('Attempting to switch role to startup...');
+          await axios.post(
+            `${baseUrl}/startupark/api/startupark/switch-to-startup`,
+            { role: 'startup' },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          console.log('Role switch successful');
+        } catch (error) {
+          console.error('Failed to switch role after form:', error);
+        }
+      };
+      switchRole();
+    }
   }
 
   // Go back to previous step
@@ -171,8 +322,36 @@ export default function StartuparkSetup({ onComplete }) {
     }
   }
 
-  // Step renderer
+  // 🔥 FIXED: Step renderer with forced setup handling
   function renderStep() {
+    console.log('Rendering step:', currentStep, 'Role:', role, 'Force setup:', location.state?.forceSetup);
+    
+    // If forced startup setup and we're still on step 1, show loading
+    if (location.state?.forceSetup && location.state?.role === 'startup' && currentStep === 1 && loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Setting up startup registration...</p>
+        </div>
+      );
+    }
+    
+    // Auto-select startup if forced setup and showing role selection
+    if (location.state?.forceSetup && location.state?.role === 'startup' && currentStep === 1 && !loading && role !== 'startup') {
+      console.log('Auto-selecting startup role');
+      // Auto-select and proceed
+      setTimeout(() => {
+        handleRoleSelect('startup');
+      }, 100);
+      
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Setting up startup registration...</p>
+        </div>
+      );
+    }
+    
     switch (currentStep) {
       case 1:
         return renderRoleSelection();
@@ -291,9 +470,12 @@ export default function StartuparkSetup({ onComplete }) {
 
   // Step 2: Agreement
   function renderAgreement() {
+    // Determine which role agreement to show
+    const agreementRole = location.state?.forceSetup ? 'startup' : role;
+    
     return (
       <div>
-        <Agreement role={role} onAgree={handleAgree} />
+        <Agreement role={agreementRole} onAgree={handleAgree} />
         <div className="flex justify-between mt-8">
           <button
             onClick={handleBack}
@@ -308,9 +490,12 @@ export default function StartuparkSetup({ onComplete }) {
 
   // Step 3: Form
   function renderForm() {
+    // Determine which role form to show
+    const formRole = location.state?.forceSetup ? 'startup' : role;
+    
     return (
       <div>
-        <FormComponent role={role} onSubmit={handleFormSubmit} />
+        <FormComponent role={formRole} onSubmit={handleFormSubmit} />
         <div className="flex justify-between mt-8">
           <button
             onClick={handleBack}
@@ -325,6 +510,9 @@ export default function StartuparkSetup({ onComplete }) {
 
   // Step 4: Completion
   function renderCompletion() {
+    // Determine which role completed
+    const completedRole = location.state?.forceSetup ? 'startup' : role;
+    
     return (
       <div className="text-center py-12">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center">
@@ -334,13 +522,13 @@ export default function StartuparkSetup({ onComplete }) {
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-3">Setup Complete! 🎉</h2>
         <p className="text-gray-600 mb-8 max-w-md mx-auto">
-          Your {role} profile is ready. Redirecting you to your personalized dashboard...
+          Your {completedRole} profile is ready. Redirecting you to your personalized dashboard...
         </p>
         <div className="max-w-md mx-auto bg-gray-100 rounded-full h-2 mb-8">
           <div className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full animate-pulse"></div>
         </div>
         <p className="text-sm text-gray-500">
-          Taking you to your {role === 'startup' ? 'Startup Dashboard' : role === 'student' ? 'Student Dashboard' : 'User Dashboard'}
+          Taking you to your {completedRole === 'startup' ? 'Startup Dashboard' : completedRole === 'student' ? 'Student Dashboard' : 'User Dashboard'}
         </p>
       </div>
     );

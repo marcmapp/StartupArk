@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
 import { FiX, FiPlus, FiEdit2, FiUpload, FiImage, FiStar } from 'react-icons/fi';
+import axios from 'axios'; // ADDED: Import axios
 
 const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
   // Initialize formData with safe defaults
@@ -18,10 +18,19 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
     };
     
     if (initialData) {
+      // Process existing images
+      const processedImages = (initialData.images || []).map(img => ({
+        ...img,
+        // If URL exists and is not a blob, keep it as is (S3 key)
+        url: img.url && !img.url.startsWith('blob:') ? img.url : '',
+        file: undefined, // No file for existing images
+        isNew: false // Mark as existing
+      }));
+      
       return {
         ...defaultData,
         ...initialData,
-        images: initialData.images || [] // Ensure images is always an array
+        images: processedImages
       };
     }
     
@@ -35,25 +44,20 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
 
-  // Ensure images is always an array
-  useEffect(() => {
-    if (formData.images === undefined) {
-      setFormData(prev => ({
-        ...prev,
-        images: []
-      }));
-    }
-  }, []);
-
   // Helper function to get safe images array
   const getSafeImages = () => {
     return formData.images || [];
   };
 
-  // Helper function to get image URL
+  // UPDATED: Helper function to get image URL
   const getImageUrl = (key) => {
     if (!key) return '/default-product.png';
     if (key.startsWith('http') || key.startsWith('blob:')) return key;
+    
+    // Check if it's already a full URL
+    if (key.includes(baseUrl)) return key;
+    
+    // Assume it's an S3 key
     return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
   };
 
@@ -73,15 +77,14 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
     return true;
   };
 
-  // Image upload handler - UPDATED to use backend proxy
+  // Image upload handler - UPDATED
   const handleImageUpload = async (files) => {
     setIsUploading(true);
     setUploadProgress(0);
     setError(null);
-    const token = localStorage.getItem('token');
     
     try {
-      console.log('Starting upload of', files.length, 'files');
+      console.log('Processing', files.length, 'files for upload');
       const uploadedImages = [];
       const currentImages = getSafeImages();
       
@@ -89,56 +92,33 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
         const file = files[i];
         
         try {
+          // Client-side validation
           validateImageFile(file);
-        } catch (validationError) {
-          setError(validationError.message);
-          continue;
-        }
-
-        // Create FormData
-        const formDataObj = new FormData();
-        formDataObj.append('file', file);
-        formDataObj.append('filecategory', 'product');
-
-        console.log('Uploading file:', file.name, file.size, file.type);
-
-        try {
-          // Upload through backend
-          const response = await axios.post(
-            `${baseUrl}/startupark/api/s3/upload`,
-            formDataObj,
-            {
-              headers: { 
-                Authorization: `Bearer ${token}`,
-                // Don't set Content-Type - let browser handle it for FormData
-              },
-              onUploadProgress: (progressEvent) => {
-                const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                setUploadProgress(progress);
-              }
-            }
-          );
-
-          console.log('Upload successful:', response.data);
-
-          // Add to form data
+          
+          // Create preview URL
+          const previewUrl = URL.createObjectURL(file);
+          
+          // Add to form data as temporary object
           const newImage = {
-            url: response.data.key,
+            tempId: `temp-${Date.now()}-${i}`,
+            url: previewUrl, // Temporary blob URL
             type: 'image',
             caption: '',
             isFeatured: currentImages.length === 0 && uploadedImages.length === 0,
-            order: currentImages.length + uploadedImages.length
+            order: currentImages.length + uploadedImages.length,
+            file: file, // Store the actual file
+            isNew: true // Mark as new upload
           };
 
           uploadedImages.push(newImage);
           
-        } catch (uploadError) {
-          console.error('Upload failed:', uploadError);
-          setError(`Failed to upload ${file.name}: ${uploadError.response?.data?.error || uploadError.message}`);
+        } catch (validationError) {
+          setError(validationError.message);
+          continue; // Skip to next file
         }
       }
 
-      // Update form data with all uploaded images
+      // Update form data with preview URLs
       if (uploadedImages.length > 0) {
         setFormData(prev => ({
           ...prev,
@@ -147,8 +127,8 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
       }
 
     } catch (error) {
-      console.error('Image upload error:', error);
-      setError(`Failed to upload images: ${error.message}`);
+      console.error('Image processing error:', error);
+      setError(`Failed to process images: ${error.message}`);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -216,6 +196,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
     }));
   };
 
+  // UPDATED handleSubmit for proper backend integration
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -242,7 +223,14 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
     }
     
     const images = getSafeImages();
-    if (images.length === 0) {
+    
+    // Validate we have at least one valid image
+    const hasValidImage = images.some(img => {
+      // Valid if it has a file (new upload) OR has a non-blob URL (existing S3 key)
+      return img.file || (img.url && !img.url.startsWith('blob:'));
+    });
+    
+    if (!hasValidImage) {
       setError('At least one product image is required');
       return;
     }
@@ -254,36 +242,99 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
         ? `${baseUrl}/startupark/api/products/${initialData._id}`
         : `${baseUrl}/startupark/api/products`;
 
-      // Clean data for submission
-      const cleanedData = {
-        ...formData,
+      // Create FormData for single request
+      const formDataToSubmit = new FormData();
+      
+      // Prepare images for JSON
+      const imagesForJson = images.map((img, index) => {
+        if (img.file) {
+          // New image - will be uploaded as file
+          return {
+            caption: img.caption || '',
+            isFeatured: img.isFeatured || false,
+            order: index
+          };
+        } else if (img.url && !img.url.startsWith('blob:')) {
+          // Existing image with S3 key
+          return {
+            url: img.url,
+            caption: img.caption || '',
+            isFeatured: img.isFeatured || false,
+            order: index
+          };
+        } else if (img.url && img.url.startsWith('blob:')) {
+          // This shouldn't happen - blob URL without file
+          console.warn('Image has blob URL but no file, skipping:', img);
+          return null;
+        }
+        return null;
+      }).filter(img => img !== null);
+      
+      // Prepare JSON data
+      const jsonData = {
+        name: formData.name,
+        description: formData.description,
+        shortDescription: formData.shortDescription,
+        category: formData.category,
+        tags: (formData.tags || []).filter(tag => tag.trim() !== ''),
+        pricing: formData.pricing,
         website: formData.website?.trim() || undefined,
         demoUrl: formData.demoUrl?.trim() || undefined,
-        tags: (formData.tags || []).filter(tag => tag.trim() !== ''),
-        images: images.map(img => ({
-          ...img,
-          isFeatured: img.isFeatured || false
-        })),
-        featuredImage: images.find(img => img.isFeatured)?.url || images[0]?.url
+        images: imagesForJson
       };
 
-      console.log('Submitting product data:', cleanedData);
+      // Add JSON data
+      formDataToSubmit.append('productData', JSON.stringify(jsonData));
+      
+      // Add image files (only new files that need upload)
+      images.forEach((image) => {
+        if (image.file) {
+          formDataToSubmit.append('images', image.file); // Use 'images' as field name
+        }
+      });
+
+      setIsUploading(true);
+      setUploadProgress(0);
 
       const response = await axios({
         method,
         url,
-        data: cleanedData,
+        data: formDataToSubmit,
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          // Let browser set Content-Type to multipart/form-data
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          }
         }
       });
 
       console.log('Product submission successful:', response.data);
       onSuccess(response.data);
+      
     } catch (error) {
       console.error('Product submission error:', error);
-      setError(error.response?.data?.error || error.message || 'Failed to save product');
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        if (errorData.details && Array.isArray(errorData.details)) {
+          setError(`Validation Errors:\n${errorData.details.join('\n')}`);
+        } else {
+          setError(`Validation Error: ${errorData.error || errorData.message}`);
+        }
+      } else if (error.response?.status === 413) {
+        setError('Files are too large. Maximum size per file is 10MB.');
+      } else {
+        setError(error.response?.data?.error || error.message || 'Failed to save product');
+      }
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -308,7 +359,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
+                <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
               </div>
             </div>
           </div>
@@ -316,7 +367,9 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-black mb-1">Product Name*</label>
+            <label className="block text-sm font-medium text-black mb-1">
+              Product Name<span className="text-red-500 ml-1">*</span>
+            </label>
             <input
               type="text"
               name="name"
@@ -325,11 +378,14 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
               onChange={handleChange}
               className="w-full border border-gray-300 text-black rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="My Awesome Product"
+              disabled={isUploading}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-black mb-1">Category*</label>
+            <label className="block text-sm font-medium text-black mb-1">
+              Category<span className="text-red-500 ml-1">*</span>
+            </label>
             <input
               type="text"
               name="category"
@@ -338,12 +394,15 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="e.g., SaaS, Mobile App"
+              disabled={isUploading}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black mb-1">Short Description*</label>
+          <label className="block text-sm font-medium text-black mb-1">
+            Short Description<span className="text-red-500 ml-1">*</span>
+          </label>
           <input
             type="text"
             name="shortDescription"
@@ -353,6 +412,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
             onChange={handleChange}
             className="w-full border border-gray-300 text-black rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="Brief description (max 160 characters)"
+            disabled={isUploading}
           />
           <p className="mt-1 text-xs text-gray-500">
             {formData.shortDescription.length}/160 characters
@@ -360,7 +420,9 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black mb-1">Full Description*</label>
+          <label className="block text-sm font-medium text-black mb-1">
+            Full Description<span className="text-red-500 ml-1">*</span>
+          </label>
           <textarea
             name="description"
             required
@@ -369,13 +431,14 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
             onChange={handleChange}
             className="w-full border border-gray-300 text-black rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="Detailed description of your product"
+            disabled={isUploading}
           />
         </div>
 
         {/* Image Upload Section */}
         <div>
           <label className="block text-sm font-medium mb-3">
-            Product Images *
+            Product Images<span className="text-red-500 ml-1">*</span>
           </label>
           
           {/* Image Upload Area */}
@@ -387,6 +450,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
               accept="image/*"
               multiple
               className="hidden"
+              disabled={isUploading}
             />
             <FiImage className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <div className="space-y-2">
@@ -412,7 +476,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
           {isUploading && (
             <div className="mb-4">
               <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Uploading images...</span>
+                <span>Uploading product data...</span>
                 <span>{uploadProgress}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -432,7 +496,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {safeImages.map((image, index) => (
-                  <div key={index} className="relative group border rounded-lg overflow-hidden bg-gray-50">
+                  <div key={image.tempId || image.url || index} className="relative group border rounded-lg overflow-hidden bg-gray-50">
                     <img
                       src={getImageUrl(image.url)}
                       alt={`Product image ${index + 1}`}
@@ -443,20 +507,27 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
                       }}
                     />
                     
-                    {/* Featured Badge */}
-                    {image.isFeatured && (
-                      <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center">
-                        <FiStar className="w-3 h-3 mr-1" />
-                        Featured
-                      </div>
-                    )}
+                    {/* Status Badge */}
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      {image.isFeatured && (
+                        <div className="bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center">
+                          <FiStar className="w-3 h-3 mr-1" />
+                          Featured
+                        </div>
+                      )}
+                      {image.file && (
+                        <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                          New
+                        </div>
+                      )}
+                    </div>
                     
                     {/* Action Overlay */}
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100">
                       <button
                         type="button"
                         onClick={() => setFeaturedImage(index)}
-                        disabled={image.isFeatured}
+                        disabled={image.isFeatured || isUploading}
                         className="bg-white p-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title={image.isFeatured ? 'Currently featured' : 'Set as featured'}
                       >
@@ -467,6 +538,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
                         onClick={() => removeImage(index)}
                         className="bg-red-500 text-white p-2 rounded hover:bg-red-600 transition-colors"
                         title="Remove image"
+                        disabled={isUploading}
                       >
                         <FiX className="w-4 h-4" />
                       </button>
@@ -480,6 +552,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
                         onChange={(e) => updateImageCaption(index, e.target.value)}
                         placeholder="Add caption..."
                         className="w-full text-xs p-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        disabled={isUploading}
                       />
                     </div>
                   </div>
@@ -490,13 +563,16 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black mb-1">Pricing Model*</label>
+          <label className="block text-sm font-medium text-black mb-1">
+            Pricing Model<span className="text-red-500 ml-1">*</span>
+          </label>
           <select
             name="pricing"
             value={formData.pricing}
             onChange={handleChange}
             className="w-full border border-gray-300 text-black rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
+            disabled={isUploading}
           >
             <option value="Free">Free</option>
             <option value="Freemium">Freemium</option>
@@ -524,6 +600,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
                 })}
                 className="flex-1 min-w-0 block w-full px-3 py-2 text-black rounded-none rounded-r-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="yourproduct.com"
+                disabled={isUploading}
               />
             </div>
           </div>
@@ -545,6 +622,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
                 })}
                 className="flex-1 min-w-0 block w-full px-3 py-2 text-black rounded-none rounded-r-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="demo.yourproduct.com"
+                disabled={isUploading}
               />
             </div>
           </div>
@@ -560,11 +638,13 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleTagAdd())}
               className="flex-1 border border-gray-300 text-black rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Add tag and press Enter"
+              disabled={isUploading}
             />
             <button
               type="button"
               onClick={handleTagAdd}
               className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isUploading}
             >
               <FiPlus className="h-4 w-4" />
             </button>
@@ -577,6 +657,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
                   type="button"
                   onClick={() => handleTagRemove(tag)}
                   className="ml-1.5 inline-flex text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                  disabled={isUploading}
                 >
                   <FiX className="h-3 w-3" />
                 </button>
@@ -590,6 +671,7 @@ const AddProductForm = ({ onSuccess, isEdit, initialData, onCancel }) => {
             type="button"
             onClick={onCancel}
             className="px-4 py-2 border border-gray-300 text-black rounded-md shadow-sm text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            disabled={isUploading}
           >
             Cancel
           </button>

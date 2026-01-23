@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Loader from "../../../../../components/Loader";
 import StartupList from '../startups/startup-list/StartupList';
 import RoleSwitcher from '../../RoleSwitcher';
-import startuparkSetup from '../../startupark-setup/StartuparkSetup';
+import StartuparkSetup from '../../startupark-setup/StartuparkSetup';
 import {
   EyeIcon,
   ArrowRightIcon,
@@ -52,38 +52,78 @@ const UserDashboard = () => {
     fetchUserData();
   }, [navigate, baseUrl]);
 
-  const handleRoleSwitch = async (role) => {
-    setRoleSwitchLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const setupCheck = await axios.get(`${baseUrl}/startupark/api/startupark/form/startup`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (setupCheck.data.hasFormData) {
-        await axios.post(
-          `${baseUrl}/startupark/api/startupark/role`,
-          { role },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        navigate('/startupark/startup-dashboard');
-      } else {
-        setShowStartupSetup(true);
-      }
-    } catch (error) {
-      console.error('Role switch failed:', error);
-    } finally {
-      setRoleSwitchLoading(false);
-    }
-  };
-
-  const handleSetupComplete = () => {
-    setShowStartupSetup(false);
+// In UserDashboard.jsx - Update handleRoleSwitch function
+const handleRoleSwitch = async (role) => {
+  setRoleSwitchLoading(true);
+  try {
     const token = localStorage.getItem("token");
-    axios.get(`${baseUrl}/api/mappuser/me`, {
+    
+    // Check if user already has a startup form
+    const setupCheck = await axios.get(`${baseUrl}/startupark/api/startupark/form/startup`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (setupCheck.data.hasFormData) {
+      // Already has startup form - switch role directly
+      await axios.post(
+        `${baseUrl}/startupark/api/startupark/switch-to-startup`,
+        { role },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Update local user state
+      const userRes = await axios.get(`${baseUrl}/api/mappuser/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(userRes.data);
+      
+      // Navigate to startup dashboard
+      navigate('/startupark/startup-dashboard');
+    } else {
+      // No startup form yet - show setup
+      setShowStartupSetup(true);
+    }
+  } catch (error) {
+    console.error('Role switch failed:', error);
+    // Even on error, show setup
+    setShowStartupSetup(true);
+  } finally {
+    setRoleSwitchLoading(false);
+  }
+};
+
+// Update handleSetupComplete function
+const handleSetupComplete = async () => {
+  setShowStartupSetup(false);
+  const token = localStorage.getItem("token");
+  
+  try {
+    // Get updated user data
+    const userRes = await axios.get(`${baseUrl}/api/mappuser/me`, {
       headers: { Authorization: `Bearer ${token}` },
-    }).then(res => setUser(res.data));
-  };
+    });
+    
+    // Check if role is already startup
+    if (userRes.data.startuparkRole === 'startup') {
+      navigate('/startupark/startup-dashboard');
+    } else {
+      // Force switch to startup role
+      await axios.post(
+        `${baseUrl}/startupark/api/startupark/switch-to-startup`,
+        { role: 'startup' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Update local state and redirect
+      setUser(prev => ({ ...prev, startuparkRole: 'startup' }));
+      navigate('/startupark/startup-dashboard');
+    }
+  } catch (error) {
+    console.error('Failed after setup:', error);
+    // Still try to redirect
+    navigate('/startupark/startup-dashboard');
+  }
+};
 
   const QuickActionCard = ({ title, description, icon: Icon, action, buttonText }) => (
     <div className="rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
@@ -128,7 +168,7 @@ const UserDashboard = () => {
   }
 
   if (showStartupSetup) {
-    return <startuparkSetup onComplete={handleSetupComplete} />;
+    return <StartuparkSetup onComplete={handleSetupComplete} />;
   }
 
   return (
@@ -153,11 +193,13 @@ const UserDashboard = () => {
     </div>
     {/* RoleSwitcher moved here */}
     <div className="lg:mr-2 md:mr-0">
-      <RoleSwitcher 
-        currentRole={user.startuparkRole} 
-        onSwitch={handleRoleSwitch}
-        loading={roleSwitchLoading}
-      />
+    
+<RoleSwitcher 
+  currentRole={user.startuparkRole} 
+  setLoading={setRoleSwitchLoading}
+  setShowStartupSetup={setShowStartupSetup}
+  loading={roleSwitchLoading}
+/>
     </div>
   </div>
 </div>
