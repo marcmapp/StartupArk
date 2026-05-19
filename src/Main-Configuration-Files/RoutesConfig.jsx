@@ -84,7 +84,8 @@ export const privateRoutes = [
   { path: "/settings", element: (<PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Settings /></LayoutWrapper></PrivateRoute>) },
 
   // pages
-  { path: "/startupark", element: <PrivateRoute><Startupark /></PrivateRoute> },
+// Update this line in your privateRoutes array
+{ path: "/startupark", element: <PrivateRoute><LayoutWrapper sidebarOptions={MainDashboard}><Startupark /></LayoutWrapper></PrivateRoute> },
 
   // Role-specific dashboards with fixed sidebars
   { path: "/startupark/user-dashboard", element: (<PrivateRoute><LayoutWrapper sidebarOptions={UserDashboardSidebar}><StartuparkUserDashboard /></LayoutWrapper></PrivateRoute>) },

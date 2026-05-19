@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from "framer-motion";
 import axios from 'axios';
-
+import { motion } from "framer-motion";
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
   const [user, setUser] = useState(null);
