@@ -38,7 +38,7 @@ export default function StartuparkSetup({ onComplete }) {
     { id: 4, title: 'All Set!', description: 'Ready to get started' }
   ];
 
-  // 🔥 FIXED: Handle forced setup from RoleSwitcher
+  // Handle forced setup from RoleSwitcher
   useEffect(() => {
     console.log('Location state:', location.state);
     
@@ -180,7 +180,7 @@ export default function StartuparkSetup({ onComplete }) {
     fetchFormStatus();
   }, [role, agreementDone]);
 
-  // 🔥 FIXED: Auto-redirect when form is done
+  // Auto-redirect when form is done
   useEffect(() => {
     if (formDone) {
       console.log('✅ Form done, preparing redirect...');
@@ -322,7 +322,7 @@ export default function StartuparkSetup({ onComplete }) {
     }
   }
 
-  // 🔥 FIXED: Step renderer with forced setup handling
+  // Step renderer with forced setup handling
   function renderStep() {
     console.log('Rendering step:', currentStep, 'Role:', role, 'Force setup:', location.state?.forceSetup);
     
@@ -537,7 +537,7 @@ export default function StartuparkSetup({ onComplete }) {
   // Loading state
   if (loading && !currentStep) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your setup progress...</p>
@@ -548,7 +548,7 @@ export default function StartuparkSetup({ onComplete }) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen px-4">
+      <div className="flex flex-col items-center justify-center h-full px-4">
         <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-6">
           <svg className="w-10 h-10 text-red-600" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -567,7 +567,7 @@ export default function StartuparkSetup({ onComplete }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 px-4">
+    <>
       {/* Success Modal */}
       {showSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -591,7 +591,7 @@ export default function StartuparkSetup({ onComplete }) {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto py-8 px-4">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-gray-900 mb-3">Complete Your Profile</h1>
@@ -610,7 +610,7 @@ export default function StartuparkSetup({ onComplete }) {
               style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
             ></div>
             
-            {steps.map((step, index) => {
+            {steps.map((step) => {
               const isCompleted = currentStep > step.id;
               const isCurrent = currentStep === step.id;
               
@@ -660,6 +660,6 @@ export default function StartuparkSetup({ onComplete }) {
           <p className="mt-1">By completing this setup, you agree to our Terms of Service and Privacy Policy</p>
         </div>
       </div>
-    </div>
+    </>
   );
 }
