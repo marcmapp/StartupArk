@@ -37,12 +37,12 @@ const EditStartupProfile = () => {
   const [uploadError, setUploadError] = useState(null);
   
   // NEW: State for files to upload
-  const [filesToUpload, setFilesToUpload] = useState({
-    logo: null,
-    gallery: [],
-    pitchDeck: null,
-    teamAvatars: {}
-  });
+const [filesToUpload, setFilesToUpload] = useState({
+  logo: null,
+  gallery: {},       // <-- keyed by gallery index: { 0: File, 2: File, ... }
+  pitchDeck: null,
+  teamAvatars: {}
+});
 
   const logoInputRef = useRef();
   const galleryInputRef = useRef();
@@ -120,30 +120,14 @@ const EditStartupProfile = () => {
 
     fetchProfile();
   }, [baseUrl]);
+useEffect(() => {
+  // Capture current blob URLs at mount time for cleanup on unmount only
+  return () => {
+    // We use a ref snapshot to avoid premature revocation
+    // Blob cleanup is handled explicitly in handleSubmit after success
+  };
+}, []); // empty deps — runs cleanup only on unmount
 
-  // Clean up blob URLs on unmount
-  useEffect(() => {
-    return () => {
-      // Clean up logo blob URL
-      if (formData.logo && isBlobUrl(formData.logo)) {
-        URL.revokeObjectURL(formData.logo);
-      }
-      
-      // Clean up gallery blob URLs
-      formData.gallery.forEach(item => {
-        if (item.url && isBlobUrl(item.url)) {
-          URL.revokeObjectURL(item.url);
-        }
-      });
-      
-      // Clean up team avatar blob URLs
-      formData.team.forEach(member => {
-        if (member.avatar && isBlobUrl(member.avatar)) {
-          URL.revokeObjectURL(member.avatar);
-        }
-      });
-    };
-  }, [formData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -241,11 +225,16 @@ const EditStartupProfile = () => {
         });
       }
 
-      // Store files for upload
-      setFilesToUpload(prev => ({
-        ...prev,
-        gallery: [...prev.gallery, ...newGalleryItems.map(item => item.file)]
-      }));
+// REPLACE WITH:
+setFilesToUpload(prev => {
+  const updatedGallery = { ...prev.gallery };
+  // New files start after existing formData.gallery length
+  const startIndex = formData.gallery.length; // current length before setState
+  newGalleryItems.forEach((item, i) => {
+    updatedGallery[startIndex + i] = item.file;
+  });
+  return { ...prev, gallery: updatedGallery };
+});
 
       setFormData(prev => ({
         ...prev,
@@ -337,12 +326,22 @@ const EditStartupProfile = () => {
       return { ...prev, gallery: updatedGallery };
     });
     
-    // Also remove from filesToUpload
-    setFilesToUpload(prev => {
-      const updatedGallery = [...prev.gallery];
-      updatedGallery.splice(index, 1);
-      return { ...prev, gallery: updatedGallery };
-    });
+    // REPLACE WITH:
+setFilesToUpload(prev => {
+  const updatedGallery = {};
+  // Re-index remaining files after removal
+  Object.entries(prev.gallery).forEach(([key, file]) => {
+    const keyIndex = parseInt(key);
+    if (keyIndex < index) {
+      updatedGallery[keyIndex] = file;
+    } else if (keyIndex > index) {
+      updatedGallery[keyIndex - 1] = file; // shift down
+    }
+    // skip the removed index
+  });
+  return { ...prev, gallery: updatedGallery };
+});
+
   };
 
   // Team management functions
@@ -388,132 +387,186 @@ const EditStartupProfile = () => {
     });
   };
 
-  // UPDATED: handleSubmit to use single request approach
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setUploadProgress(0);
-    setUploadError(null);
+ // ── 2. REPLACE the entire handleSubmit function ───────────────────────────────
+// This rewrites the upload flow to:
+//   Step 1 — Upload each file to R2 via presigned PUT URL
+//   Step 2 — Collect the R2 keys returned
+//   Step 3 — Submit plain JSON with keys (no files in the request body)
 
-    try {
-      // Create FormData object
-      const submitFormData = new FormData();
-      
-      // Prepare form data for submission
-      const submissionData = {
-        ...formData,
-        // Don't send blob URLs in the JSON - they'll be replaced with S3 keys
-        logo: formData.logo && !isBlobUrl(formData.logo) ? formData.logo : null,
-        pitchDeck: formData.pitchDeck && !isBlobUrl(formData.pitchDeck) ? formData.pitchDeck : null,
-        gallery: formData.gallery.map(item => ({
-          caption: item.caption,
-          url: item.url && !isBlobUrl(item.url) ? item.url : null
-        })),
-        team: formData.team.map(member => ({
-          name: member.name,
-          position: member.position,
-          bio: member.bio,
-          avatar: member.avatar && !isBlobUrl(member.avatar) ? member.avatar : null
-        }))
-      };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setUploadProgress(0);
+  setUploadError(null);
 
-      // Add JSON data
-      submitFormData.append('formData', JSON.stringify(submissionData));
-      
-      // Add new files that need to be uploaded
-      // Logo
-      if (filesToUpload.logo) {
-        submitFormData.append('logo', filesToUpload.logo);
-      }
-      
-      // Pitch deck
-      if (filesToUpload.pitchDeck) {
-        submitFormData.append('pitchDeck', filesToUpload.pitchDeck);
-      }
-      
-      // Gallery images
-      filesToUpload.gallery.forEach((file, index) => {
-        submitFormData.append(`gallery[${index}]`, file);
-      });
-      
-      // Team avatars
-      Object.entries(filesToUpload.teamAvatars).forEach(([index, file]) => {
-        submitFormData.append(`team[${index}][avatar]`, file);
-      });
+  try {
+    const token = localStorage.getItem('token');
 
-      const token = localStorage.getItem('token');
-      
-      // Single request to update profile
-      const response = await axios.post(
-        `${baseUrl}/startupark/api/startupark/form/startup`,
-        submitFormData,
+    // ── Helper: upload one file to R2 via presigned URL ──────────────────────
+    const uploadFileToR2 = async (file, category) => {
+      // Step A: Get presigned PUT URL from backend
+      const urlResponse = await axios.get(
+        `${baseUrl}/startupark/api/s3/upload-url`,
         {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const percentCompleted = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              setUploadProgress(percentCompleted);
-            }
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            filename: file.name,
+            filetype: file.type,
+            filecategory: category
           }
         }
       );
 
-      if (response.data.success) {
-        // Clean up blob URLs
-        if (formData.logo && isBlobUrl(formData.logo)) {
-          URL.revokeObjectURL(formData.logo);
-        }
-        
-        if (formData.pitchDeck && isBlobUrl(formData.pitchDeck)) {
-          URL.revokeObjectURL(formData.pitchDeck);
-        }
-        
-        formData.gallery.forEach(item => {
-          if (item.url && isBlobUrl(item.url)) {
-            URL.revokeObjectURL(item.url);
-          }
-        });
-        
-        formData.team.forEach(member => {
-          if (member.avatar && isBlobUrl(member.avatar)) {
-            URL.revokeObjectURL(member.avatar);
-          }
-        });
-        
-        // Clear filesToUpload state
-        setFilesToUpload({
-          logo: null,
-          gallery: [],
-          pitchDeck: null,
-          teamAvatars: {}
-        });
-        
-        navigate('/dashboard');
-      } else {
-        throw new Error(response.data.error || 'Update failed');
+      if (!urlResponse.data.success) {
+        throw new Error(`Failed to get upload URL for ${file.name}`);
       }
-      
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      
-      if (error.response?.status === 400) {
-        const errorData = error.response.data;
-        if (errorData.details && Array.isArray(errorData.details)) {
-          setUploadError(`Validation Errors:\n${errorData.details.join('\n')}`);
-        } else {
-          setUploadError(`Validation Error: ${errorData.error || errorData.message}`);
-        }
-      } else {
-        setUploadError(`Failed to update profile: ${error.response?.data?.error || error.message}`);
+
+      const { url, key } = urlResponse.data;
+
+      // Step B: PUT file directly to R2 (no auth header — presigned URL handles auth)
+      await axios.put(url, file, {
+        headers: { 'Content-Type': file.type },
+        // Don't send Authorization header to R2
+        transformRequest: [(data) => data],
+      });
+
+      return key; // R2 key to store in DB
+    };
+
+    // ── Upload all pending files ──────────────────────────────────────────────
+    const totalFiles =
+      (filesToUpload.logo ? 1 : 0) +
+      (filesToUpload.pitchDeck ? 1 : 0) +
+      filesToUpload.gallery.length +
+      Object.keys(filesToUpload.teamAvatars).length;
+
+    let uploadedCount = 0;
+    const updateProgress = () => {
+      uploadedCount++;
+      if (totalFiles > 0) {
+        setUploadProgress(Math.round((uploadedCount / totalFiles) * 80)); // 80% for uploads
       }
-    } finally {
-      setIsSubmitting(false);
+    };
+
+    // Upload logo
+    let logoKey = formData.logo && !isBlobUrl(formData.logo) ? formData.logo : null;
+    if (filesToUpload.logo) {
+      logoKey = await uploadFileToR2(filesToUpload.logo, 'logo');
+      updateProgress();
     }
-  };
+
+    // Upload pitch deck
+    let pitchDeckKey = formData.pitchDeck && !isBlobUrl(formData.pitchDeck) && formData.pitchDeck !== 'pending'
+      ? formData.pitchDeck
+      : null;
+    if (filesToUpload.pitchDeck) {
+      pitchDeckKey = await uploadFileToR2(filesToUpload.pitchDeck, 'pitchdeck');
+      updateProgress();
+    }
+const galleryItemsRaw = await Promise.all(
+  formData.gallery.map(async (item, index) => {
+    if (filesToUpload.gallery[index]) {
+      // This index has a new file to upload
+      const key = await uploadFileToR2(filesToUpload.gallery[index], 'gallery');
+      updateProgress();
+      return { caption: item.caption, url: key };
+    }
+    // Existing item — keep R2 key as-is, strip blob URLs
+    const url = item.url && !isBlobUrl(item.url) ? item.url : null;
+    return { caption: item.caption, url };
+  })
+);
+const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
+    // Upload team avatars
+    const teamMembers = await Promise.all(
+      formData.team.map(async (member, index) => {
+        if (filesToUpload.teamAvatars[index]) {
+          const key = await uploadFileToR2(filesToUpload.teamAvatars[index], 'team');
+          updateProgress();
+          return {
+            name: member.name,
+            position: member.position,
+            bio: member.bio,
+            avatar: key
+          };
+        }
+        return {
+          name: member.name,
+          position: member.position,
+          bio: member.bio,
+          avatar: member.avatar && !isBlobUrl(member.avatar) ? member.avatar : null
+        };
+      })
+    );
+
+    setUploadProgress(85);
+
+    // ── Submit clean JSON with R2 keys ────────────────────────────────────────
+    const submissionData = {
+      ...formData,
+      logo: logoKey,
+      pitchDeck: pitchDeckKey,
+      gallery: galleryItems,
+      team: teamMembers,
+    };
+
+    // Remove any remaining blob URLs from other fields
+    Object.keys(submissionData).forEach(key => {
+      if (typeof submissionData[key] === 'string' && submissionData[key].startsWith('blob:')) {
+        submissionData[key] = null;
+      }
+    });
+
+    const response = await axios.post(
+      `${baseUrl}/startupark/api/startupark/form/startup`,
+      submissionData, // plain JSON — no FormData
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    setUploadProgress(100);
+
+    if (response.data.success) {
+      // Clean up all blob URLs after successful save
+      if (formData.logo && isBlobUrl(formData.logo)) URL.revokeObjectURL(formData.logo);
+      if (formData.pitchDeck && isBlobUrl(formData.pitchDeck)) URL.revokeObjectURL(formData.pitchDeck);
+      formData.gallery.forEach(item => {
+        if (item.url && isBlobUrl(item.url)) URL.revokeObjectURL(item.url);
+      });
+      formData.team.forEach(member => {
+        if (member.avatar && isBlobUrl(member.avatar)) URL.revokeObjectURL(member.avatar);
+      });
+
+      setFilesToUpload({ logo: null, gallery: {}, pitchDeck: null, teamAvatars: {} });
+      navigate('/startupark/startup-profile');
+    } else {
+      throw new Error(response.data.error || 'Update failed');
+    }
+
+  } catch (error) {
+    console.error('Error updating profile:', error);
+
+    if (error.response?.status === 400) {
+      const errorData = error.response.data;
+      if (errorData.details && Array.isArray(errorData.details)) {
+        setUploadError(`Validation Errors:\n${errorData.details.join('\n')}`);
+      } else {
+        setUploadError(`Validation Error: ${errorData.error || errorData.message}`);
+      }
+    } else if (error.message?.includes('upload URL')) {
+      setUploadError('Failed to prepare file upload. Please try again.');
+    } else {
+      setUploadError(`Failed to update profile: ${error.response?.data?.error || error.message}`);
+    }
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   // Image component with fallback
   const ImageWithFallback = ({ src, alt, className, fallbackSrc }) => {
@@ -977,11 +1030,11 @@ const EditStartupProfile = () => {
             Add Images
           </button>
           <p className="text-xs text-gray-500 mb-4">Upload product screenshots, team photos, etc. (max 5MB each)</p>
-          {filesToUpload.gallery.length > 0 && (
-            <p className="text-xs text-green-600 mb-2">
-              ✓ {filesToUpload.gallery.length} image(s) ready for upload
-            </p>
-          )}
+          {Object.keys(filesToUpload.gallery).length > 0 && (
+  <p className="text-xs text-green-600 mb-2">
+    ✓ {Object.keys(filesToUpload.gallery).length} image(s) ready for upload
+  </p>
+)}
 
           {formData.gallery.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

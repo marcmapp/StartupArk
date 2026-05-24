@@ -3,6 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from "react";
 import axios from 'axios';
 
+// R2 public CDN base URL — files served directly, no backend proxy
+const R2_PUBLIC_BASE = 'https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev';
+
+const getImageUrl = (key) => {
+  if (!key) return null;
+  if (key.startsWith('blob:')) return key;
+  if (key.startsWith('http')) return key;
+  // Old proxy path format — convert to direct R2 URL
+  if (key.startsWith('/startupark/api/s3/file/')) {
+    const r2Key = decodeURIComponent(key.replace('/startupark/api/s3/file/', ''));
+    return `${R2_PUBLIC_BASE}/${r2Key}`;
+  }
+  return `${R2_PUBLIC_BASE}/${key}`;
+};
+
 export const useStartupData = (startupId = null) => {
   const [startupData, setStartupData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,37 +27,21 @@ export const useStartupData = (startupId = null) => {
 
   const getAuthToken = () => localStorage.getItem('token');
 
-  // Enhanced image processing function
   const processStartupData = (data) => {
     if (!data) return null;
 
-    const getImageUrl = (key) => {
-      if (!key) return null;
-      if (key.startsWith('http')) return key;
-      if (key.startsWith('blob:')) return key;
-      return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
-    };
-
-    // Process product images to ensure proper format
     const processProductImages = (products = []) => {
       return products.map(product => ({
         ...product,
-        // Ensure images array exists and is properly formatted
         images: product.images?.map(img => ({
           ...img,
           url: getImageUrl(img.url)
         })) || [],
-        // Maintain backward compatibility with featuredImage and image fields
         featuredImage: getImageUrl(product.featuredImage || product.image),
         image: getImageUrl(product.image || product.featuredImage),
-        // Helper method to get display images for carousel
         getDisplayImages: function() {
-          if (this.images && this.images.length > 0) {
-            return this.images;
-          }
-          if (this.featuredImage) {
-            return [{ url: this.featuredImage, type: 'image', isFeatured: true }];
-          }
+          if (this.images && this.images.length > 0) return this.images;
+          if (this.featuredImage) return [{ url: this.featuredImage, type: 'image', isFeatured: true }];
           return [];
         }
       }));
@@ -60,12 +59,10 @@ export const useStartupData = (startupId = null) => {
         avatar: getImageUrl(member.avatar)
       })) || [],
       pitchDeck: getImageUrl(data.pitchDeck),
-      // Process products with enhanced image handling
       products: processProductImages(data.products || [])
     };
   };
 
-  // Enhanced product fetching with better error handling
   const fetchStartupProducts = async (startupId) => {
     try {
       const token = getAuthToken();
@@ -76,7 +73,6 @@ export const useStartupData = (startupId = null) => {
       return response.data || [];
     } catch (error) {
       console.error('Error fetching startup products:', error);
-      // Don't throw error for products - return empty array instead
       return [];
     }
   };
@@ -85,9 +81,8 @@ export const useStartupData = (startupId = null) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const token = getAuthToken();
 
+      const token = getAuthToken();
       if (!token) {
         navigate('/login');
         return;
@@ -97,26 +92,21 @@ export const useStartupData = (startupId = null) => {
       let startupWithProducts;
 
       if (id) {
-        // Fetch specific startup by ID (for detail view)
         response = await axios.get(`${baseUrl}/startupark/api/startupark/startups-by-id/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         startupWithProducts = response.data;
-        
-        // Always fetch products separately to ensure we have the latest data
-        // and proper image formatting
+
         try {
           const products = await fetchStartupProducts(id);
           startupWithProducts.products = products;
         } catch (productsError) {
-          console.warn('Could not fetch products, using existing data:', productsError);
-          // If products fetch fails, ensure products array exists
+          console.warn('Could not fetch products:', productsError);
           startupWithProducts.products = startupWithProducts.products || [];
         }
-        
+
       } else {
-        // Fetch current user's startup data (for profile view)
         response = await axios.get(`${baseUrl}/startupark/api/startupark/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -125,8 +115,7 @@ export const useStartupData = (startupId = null) => {
           const startupForm = response.data.find(form => form.role === 'startup');
           if (startupForm) {
             startupWithProducts = startupForm.formData;
-            
-            // Fetch products for current user's startup
+
             if (startupForm._id) {
               try {
                 const products = await fetchStartupProducts(startupForm._id);
@@ -148,7 +137,6 @@ export const useStartupData = (startupId = null) => {
         }
       }
 
-      // Process the complete startup data with products
       const processedData = processStartupData(startupWithProducts);
       setStartupData(processedData);
 
@@ -156,7 +144,7 @@ export const useStartupData = (startupId = null) => {
       console.error('Error fetching startup data:', err);
       const errorMessage = err.response?.data?.error || 'Failed to load startup data';
       setError(errorMessage);
-      
+
       if (err.response?.status === 401) {
         navigate('/login');
       } else if (err.response?.status === 404) {
@@ -167,19 +155,15 @@ export const useStartupData = (startupId = null) => {
     }
   };
 
-  // Function to refresh products only
   const refreshProducts = async () => {
     if (!startupData) return;
-    
     try {
-      const startupId = startupData._id;
-      const products = await fetchStartupProducts(startupId);
-      
+      const id = startupData._id;
+      const products = await fetchStartupProducts(id);
       setStartupData(prev => ({
         ...prev,
         products: processStartupData({ products }).products
       }));
-      
       return products;
     } catch (error) {
       console.error('Error refreshing products:', error);
@@ -187,15 +171,13 @@ export const useStartupData = (startupId = null) => {
     }
   };
 
-  // Function to update a specific product in the local state
   const updateProductInState = (productId, updatedProduct) => {
     setStartupData(prev => {
       if (!prev) return prev;
-      
       return {
         ...prev,
-        products: prev.products.map(product => 
-          product._id === productId 
+        products: prev.products.map(product =>
+          product._id === productId
             ? processStartupData({ products: [updatedProduct] }).products[0]
             : product
         )
@@ -203,11 +185,9 @@ export const useStartupData = (startupId = null) => {
     });
   };
 
-  // Function to add a new product to the local state
   const addProductToState = (newProduct) => {
     setStartupData(prev => {
       if (!prev) return prev;
-      
       return {
         ...prev,
         products: [
@@ -218,11 +198,9 @@ export const useStartupData = (startupId = null) => {
     });
   };
 
-  // Function to remove a product from the local state
   const removeProductFromState = (productId) => {
     setStartupData(prev => {
       if (!prev) return prev;
-      
       return {
         ...prev,
         products: prev.products.filter(product => product._id !== productId)
@@ -240,7 +218,6 @@ export const useStartupData = (startupId = null) => {
     error,
     refetch: fetchStartupData,
     setStartupData,
-    // New product management functions
     refreshProducts,
     updateProductInState,
     addProductToState,
