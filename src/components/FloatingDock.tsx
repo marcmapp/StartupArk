@@ -1,138 +1,102 @@
-// components/RoleBasedFloatingDock.jsx
+// components/FloatingDock.tsx
+// Bottom utility bar — all quick-access facilities live here.
+// Sidebar handles discovery/navigation; this handles actions & tools.
 import React from "react";
 import { FloatingDock } from "./ui/floating-dock";
 import {
-  IconHome,
-  IconBuilding,
-  IconUsers,
-  IconBriefcase,
-  IconCalendarEvent,
+  IconLayoutDashboard,
   IconMessage,
   IconBookmarks,
-  IconSettings,
-  IconChartBar,
-  IconLayoutDashboard,
-  IconFileDescription,
-  IconVideo,
-  IconBuildingStore,
-  IconSchool,
+  IconCalendar,
+  IconBell,
+  IconCalendarEvent,
+  IconBriefcase,
+  IconCalendarStats,
 } from "@tabler/icons-react";
 
-const RoleBasedFloatingDock = ({ user }) => {
+const iconCls = "h-full w-full text-zinc-600 dark:text-zinc-300";
+
+const RoleBasedFloatingDock = ({ user }: { user: any }) => {
   if (!user) return null;
 
-  const userRole = user.startuparkRole || user.role || (user.isStartup ? 'startup' : 'user');
-  
-  // Common items for all roles
-  const commonItems = [
+  const userRole: string = user.startuparkRole || user.role || (user.isStartup ? 'startup' : 'user');
+
+  // ── Universal utilities (every role) ──────────────────────
+  const core = [
     {
-      title: "Dashboard",
-      icon: <IconLayoutDashboard className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-      href: userRole === 'startup' ? "/startupark/startup-dashboard" : 
-            userRole === 'student' ? "/startupark/student-dashboard" : 
-            "/startupark/user-dashboard"
+      title: "Hub",
+      icon: <IconLayoutDashboard className={iconCls} />,
+      href: "/dashboard",
     },
     {
-      title: "Profile",
-      icon: <IconUsers className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-      href: "/profile"
+      title: "Messages",
+      icon: <IconMessage className={iconCls} />,
+      href: "/startupark/chat",
     },
     {
-      title: "Chat",
-      icon: <IconMessage className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-      href: "/startupark/chat"
+      title: "Saved",
+      icon: <IconBookmarks className={iconCls} />,
+      href: "/startupark/favorites",
+    },
+    {
+      title: "Notifications",
+      // Placeholder — notification page to be built
+      icon: <IconBell className={iconCls} />,
+      href: "/dashboard",
     },
   ];
 
-  // Role-specific items
-  const roleSpecificItems = [];
-  
-  if (userRole === 'startup') {
-    roleSpecificItems.push(
+  // ── Role-specific utility shortcuts ───────────────────────
+  const byRole: Record<string, { title: string; icon: React.ReactNode; href: string }[]> = {
+    startup: [
       {
-        title: "My Startup",
-        icon: <IconBuilding className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/startup-profile"
+        title: "My Calendar",
+        icon: <IconCalendar className={iconCls} />,
+        href: "/startupark/startupcalender",
       },
       {
         title: "Bookings",
-        icon: <IconCalendarEvent className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/manage-bookings"
+        icon: <IconCalendarStats className={iconCls} />,
+        href: "/startupark/manage-bookings",
+      },
+    ],
+    user: [
+      {
+        title: "My Calendar",
+        icon: <IconCalendar className={iconCls} />,
+        href: "/startupark/usercalender",
       },
       {
-        title: "Events",
-        icon: <IconVideo className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/startup/events"
+        title: "My Bookings",
+        icon: <IconCalendarStats className={iconCls} />,
+        href: "/startupark/my-bookings",
+      },
+    ],
+    student: [
+      {
+        title: "My Calendar",
+        icon: <IconCalendar className={iconCls} />,
+        href: "/startupark/usercalender",
       },
       {
-        title: "Jobs",
-        icon: <IconBriefcase className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/jobposting"
-      }
-    );
-  } else if (userRole === 'user') {
-    roleSpecificItems.push(
-      {
-        title: "Startups",
-        icon: <IconBuildingStore className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/startups"
+        title: "Meetings",
+        icon: <IconCalendarStats className={iconCls} />,
+        href: "/startupark/my-bookings",
       },
-      {
-        title: "Events",
-        icon: <IconVideo className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/events"
-      },
-      {
-        title: "Favorites",
-        icon: <IconBookmarks className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/favorites"
-      },
-      {
-        title: "Career",
-        icon: <IconBriefcase className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/launchpad"
-      }
-    );
-  } else if (userRole === 'student') {
-    roleSpecificItems.push(
-      {
-        title: "Startups",
-        icon: <IconBuildingStore className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/startups"
-      },
-      {
-        title: "Career",
-        icon: <IconSchool className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/launchpad"
-      },
-      {
-        title: "Events",
-        icon: <IconVideo className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-        href: "/startupark/events"
-      }
-    );
-  }
+    ],
+  };
 
-  // Common footer items
-  const footerItems = [
-    {
-      title: "Analytics",
-      icon: <IconChartBar className="h-full w-full text-neutral-500 dark:text-neutral-300" />,
-      href: "/dashboard"
-    }
-  ];
+  const dockItems = [...core, ...(byRole[userRole] || byRole.user)];
 
-  const dockItems = [...commonItems, ...roleSpecificItems, ...footerItems];
-
-  return dockItems.length > 0 ? (
-    <div className="fixed bottom-6 left-4 z-40 md:bottom-6 md:left-1/2 md:transform md:-translate-x-1/2">
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
       <FloatingDock
         items={dockItems}
-        desktopClassName="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm border border-gray-200 dark:border-neutral-800 shadow-xl"
-        mobileClassName="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm shadow-xl"
+        desktopClassName="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-black/[0.06] dark:border-white/10 shadow-xl shadow-black/10 dark:shadow-black/40"
+        mobileClassName="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl shadow-xl"
       />
     </div>
-  ) : null;
+  );
 };
 
 export default RoleBasedFloatingDock;

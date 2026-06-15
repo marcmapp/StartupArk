@@ -27,7 +27,7 @@ const ShareModal = ({ isOpen, onClose, vcData, startupData, onCopy, onDownload, 
                 type="text"
                 readOnly
                 value={`${window.location.origin}/vc/${vcData?._id}`}
-                className="flex-1 rounded-l-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs sm:text-sm border p-2 truncate"
+                className="flex-1 rounded-l-md border-gray-300 shadow-sm focus:border-transparent focus:ring-zinc-400/40 dark:focus:ring-white/20 text-xs sm:text-sm border p-2 truncate"
               />
               <button
                 onClick={onCopy}
@@ -66,7 +66,7 @@ const ShareModal = ({ isOpen, onClose, vcData, startupData, onCopy, onDownload, 
           <div className="pt-3 sm:pt-4 flex justify-end">
             <button
               onClick={onClose}
-              className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-xs sm:text-sm"
+              className="px-3 py-1 sm:px-4 sm:py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-md hover:bg-zinc-800 dark:hover:bg-zinc-200 text-xs sm:text-sm"
             >
               Close
             </button>

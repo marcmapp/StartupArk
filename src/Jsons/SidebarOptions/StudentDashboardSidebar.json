@@ -1,9 +1,9 @@
 [
-  { "to": "/startupark/student-dashboard", "name": "Home", "icon": "home" },
-  { "to": "/startupark/startupsList", "name": "Startups", "icon": "rocket" },
-  { "to": "/products", "name": "Explore Products", "icon": "folder" },
-  { "to": "/startupark/chat", "name": "Chat", "icon": "chat" },
-  { "to": "/startupark/launchpad", "name": "Career LaunchPad", "icon": "briefcase" },
-  
-  { "to": "/startupark/events", "name": "Events", "icon": "calendar" }
+  { "to": "/startupark/student-dashboard", "name": "Dashboard", "icon": "home", "type": "solid", "tooltip": "Your student overview" },
+  { "to": "/startupark/startupsList", "name": "Browse Startups", "icon": "compass", "type": "solid", "tooltip": "Discover startups to join" },
+  { "to": "/startupark/nearby", "name": "Nearby", "icon": "map-pin", "type": "solid", "tooltip": "Find startups near you" },
+  { "to": "/products", "name": "Products", "icon": "box", "type": "solid", "tooltip": "Explore startup products" },
+  { "to": "/startupark/projectark", "name": "Project Ark", "icon": "briefcase-alt-2", "type": "solid", "tooltip": "Find projects, internship work & build your portfolio" },
+  { "to": "/startupark/launchpad", "name": "Career LaunchPad", "icon": "briefcase", "type": "solid", "tooltip": "Internships, jobs & applications" },
+  { "to": "/startupark/events", "name": "Events", "icon": "calendar-event", "type": "solid", "tooltip": "Workshops, talks & webinars" }
 ]

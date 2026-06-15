@@ -27,6 +27,7 @@ import StartuparkStartupProfile from '../pages/Product-Specific-Pages/startupark
 import StartupDetail from '../pages/Product-Specific-Pages/startupark/users/startups/startup-list/startup-description-page/StartupDetail'
 import StartupList from '../pages/Product-Specific-Pages/startupark/users/startups/startup-list/StartupList'
 import EditStartupProfile from "../pages/Product-Specific-Pages/startupark/users/startups/startup-profile/EditStartupProfile";
+import EditProfile from "../pages/Product-Specific-Pages/startupark/users/EditProfile";
 import StartupDashboard from "../pages/Product-Specific-Pages/startupark/users/startups/startup-dashboard/StartupDashboard";
 
 
@@ -54,10 +55,7 @@ import ChatInterface from "../pages/Product-Specific-Pages/startupark/chat/ChatI
 import CareerLaunchPad from "../pages/Product-Specific-Pages/startupark/resource-module/careerlaunchpad/CareerLaunchPad";
 import StartupJobPosting from "../pages/Product-Specific-Pages/startupark/resource-module/careerlaunchpad/StartupJobPosting";
 import StartupApplications from "../pages/Product-Specific-Pages/startupark/resource-module/application/StartupApplications";
-//V-events
-import StartupVEvents from "../pages/Product-Specific-Pages/startupark/VirtualEvent/StartupVEvents";
-import VEvents from "../pages/Product-Specific-Pages/startupark/VirtualEvent/VEvents";
-// V-events - UPDATED IMPORTS
+// Virtual events (canonical pages)
 import StartupEventsPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/StartupEventsPage";
 import UserEventsPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/UserEventsPage";
 import EventDetailPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/EventDetailPage";
@@ -66,6 +64,9 @@ import ProductPlans from "../pages/ProductPlans";
 import ProductManagement from "../pages/Product-Specific-Pages/startupark/products/ProductManagement";
 import CalendarWrapper from "../pages/Product-Specific-Pages/startupark/calendars/CalendarWrapper";
 import Loader from "../components/Loader";
+import GeoSearch from "../pages/Product-Specific-Pages/startupark/geo/GeoSearch";
+import ProjectArk from "../pages/Product-Specific-Pages/startupark/projectark/ProjectArk";
+import CreateWorkPost from "../pages/Product-Specific-Pages/startupark/projectark/CreateWorkPost";
 
 // ** Public Routes (No Auth Required) **
 export const publicRoutes = [
@@ -95,10 +96,12 @@ export const privateRoutes = [
   //startup-profile with fixed sidebar
   { path: "/startupark/startup-profile", element: (<PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartuparkStartupProfile /></LayoutWrapper ></PrivateRoute>) },
   { path: "/startupark/startup-edit-profile", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><EditStartupProfile /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/edit-profile", element: <PrivateRoute><LayoutWrapper dynamicSidebar><EditProfile /></LayoutWrapper></PrivateRoute> },
 
   // Pages with dynamic sidebars
   { path: "/startupark/startupsList", element: <PrivateRoute><LayoutWrapper dynamicSidebar><Startups /></LayoutWrapper ></PrivateRoute> },
   { path: "/startupark/startups", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupList /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/nearby", element: <PrivateRoute><LayoutWrapper dynamicSidebar><GeoSearch /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/startups/:id", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupDetail /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/startups-by-id/:id", element: <PrivateRoute><LayoutWrapper dynamicSidebar><StartupDetail /></LayoutWrapper></PrivateRoute> },
   
@@ -135,10 +138,8 @@ export const privateRoutes = [
   { path: "/startupark/startup/applications", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupApplications /></LayoutWrapper ></PrivateRoute> },
 
   // ========== VIRTUAL EVENTS ROUTES ==========
-  // Events with fixed sidebars
-  { path: "/startupark/sv-event", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupVEvents /></LayoutWrapper ></PrivateRoute> },
-  { path: "/startupark/v-event", element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><VEvents /></LayoutWrapper ></PrivateRoute> },
-  { 
+  // (Removed dead duplicate routes sv-event/v-event → StartupVEvents/VEvents.)
+  {
     path: "/startupark/startup/events", 
     element: <PrivateRoute><LayoutWrapper sidebarOptions={StartupDashboardSidebar}><StartupEventsPage /></LayoutWrapper ></PrivateRoute> 
   },
@@ -160,4 +161,8 @@ export const privateRoutes = [
   },
 
   //{ path: "/loader", element: <PrivateRoute><LayoutWrapper dynamicSidebar><Loader /></LayoutWrapper></PrivateRoute> },
+
+  // ========== PROJECTARK ROUTES ==========
+  { path: "/startupark/projectark", element: <PrivateRoute><LayoutWrapper dynamicSidebar><ProjectArk /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/projectark/create", element: <PrivateRoute><LayoutWrapper dynamicSidebar><CreateWorkPost /></LayoutWrapper></PrivateRoute> },
 ];

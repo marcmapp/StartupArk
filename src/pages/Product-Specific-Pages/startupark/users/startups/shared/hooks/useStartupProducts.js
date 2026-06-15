@@ -26,18 +26,18 @@ export const useStartupProducts = (startupId = null) => {
       if (startupId) {
         // Fetch products for a specific startup
         response = await axios.get(
-          `${baseUrl}/startupark/api/products/startup/${startupId}`,
+          `${baseUrl}/startupark/api/products?startupId=${startupId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         // Fetch current user's products
         response = await axios.get(
-          `${baseUrl}/startupark/api/products/my-products`,
+          `${baseUrl}/startupark/api/products?mine=true`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
 
-      setProducts(response.data || []);
+      setProducts(response.data?.products || []);
     } catch (error) {
       console.error('Error fetching products:', error);
       if (error.response?.status === 401) {

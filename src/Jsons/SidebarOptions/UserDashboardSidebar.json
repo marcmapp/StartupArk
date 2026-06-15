@@ -1,10 +1,9 @@
 [
-  { "to": "/startupark/user-dashboard", "name": "Dashboard", "icon": "home", "type": "solid" },
-  { "to": "/products", "name": "Products", "icon": "box", "type": "solid" },
-  {"to": "/startupark/chat",  "name": "Chat","icon": "chat","type": "solid","features": ["video"]  },
-  { "to": "/startupark/favorites", "name": "Favorite Startups", "icon": "star", "type": "solid", "note": "To Go Startups" },
-  { "to": "/startupark/usercalender", "name": "calendar", "icon": "star", "type": "solid", "note": "To Go Startups" },
-  { "to": "/startupark/my-bookings", "name": "Orders", "icon": "briefcase", "type": "solid", "note": "Projects" },
-  { "to": "/startupark/launchpad", "name": "LaunchPad", "icon": "bell", "type": "solid" },
-  { "to": "/startupark/blog", "name": "Blog", "icon": "briefcase", "type": "solid", "note": "Additional" }
+  { "to": "/startupark/user-dashboard", "name": "Dashboard", "icon": "home", "type": "solid", "tooltip": "Your personalised overview" },
+  { "to": "/startupark/startupsList", "name": "Browse Startups", "icon": "compass", "type": "solid", "tooltip": "Discover & explore startups" },
+  { "to": "/startupark/nearby", "name": "Nearby", "icon": "map-pin", "type": "solid", "tooltip": "Find startups near you" },
+  { "to": "/products", "name": "Products", "icon": "box", "type": "solid", "tooltip": "Explore startup products & services" },
+  { "to": "/startupark/projectark", "name": "Project Ark", "icon": "briefcase-alt-2", "type": "solid", "tooltip": "Work marketplace — find projects & post requirements" },
+  { "to": "/startupark/launchpad", "name": "Career LaunchPad", "icon": "briefcase", "type": "solid", "tooltip": "Jobs, internships & opportunities" },
+  { "to": "/startupark/events", "name": "Events", "icon": "calendar-event", "type": "solid", "tooltip": "Startup events & webinars" }
 ]

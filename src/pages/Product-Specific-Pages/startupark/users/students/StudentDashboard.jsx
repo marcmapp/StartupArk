@@ -1,341 +1,205 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
-import HyperText from '../../../../../components/HyperText';
+import { useNavigate } from 'react-router-dom';
 import Loader from '../../../../../components/Loader';
-import {
-  UserCircleIcon,
-  AcademicCapIcon,
-  BookOpenIcon,
-  CalendarIcon,
-  BriefcaseIcon,
-  ClockIcon,
-  WrenchScrewdriverIcon,
-  EyeIcon,
-  ArrowRightIcon,
-  ChartBarIcon,
-  BuildingStorefrontIcon
-} from '@heroicons/react/24/outline';
+import { getImageUrl } from '../../../../../utils/imageUrls';
+import 'boxicons';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
-function StudentDashboard() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    connections: 0,
-    applications: 0,
-    skills: 0,
-    events: 0
-  });
-  
+const StatCard = ({ label, value, icon }) => (
+  <div className="glass-card p-4 flex items-center gap-3">
+    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-black/[0.04] dark:bg-white/[0.06] text-zinc-700 dark:text-zinc-300">
+      <box-icon name={icon} type="solid" color="currentColor" size="20px" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{label}</p>
+      <p className="text-xl font-bold text-zinc-900 dark:text-white">{value}</p>
+    </div>
+  </div>
+);
+
+const ActionCard = ({ title, desc, icon, onClick }) => (
+  <button
+    onClick={onClick}
+    className="w-full text-left p-4 rounded-xl border border-black/[0.06] dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/20 transition-all duration-200 group"
+  >
+    <div className="flex items-start gap-3">
+      <div className="flex-shrink-0 mt-0.5 text-zinc-700 dark:text-zinc-300">
+        <box-icon name={icon} type="solid" color="currentColor" size="20px" />
+      </div>
+      <div className="min-w-0">
+        <p className="font-semibold text-zinc-900 dark:text-white text-sm">{title}</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{desc}</p>
+      </div>
+      <div className="ml-auto flex-shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors">
+        <box-icon name="chevron-right" color="currentColor" size="16px" />
+      </div>
+    </div>
+  </button>
+);
+
+export default function StudentDashboard() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStudentData();
-  }, []);
-
-  const fetchStudentData = async () => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+    if (!token) { navigate('/'); return; }
+    Promise.allSettled([
+      axios.get(`${baseUrl}/api/mappuser/me`, { headers: { Authorization: `Bearer ${token}` } }),
+      axios.get(`${baseUrl}/startupark/api/profile/student`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]).then(([u, p]) => {
+      setUser(u.status === 'fulfilled' ? u.value.data : null);
+      setProfile(p.status === 'fulfilled' ? p.value.data?.profile : null);
+    }).catch(() => navigate('/')).finally(() => setLoading(false));
+  }, [navigate]);
 
-    try {
-      const userResponse = await axios.get(`${baseUrl}/api/mappuser/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  if (loading || !user) return <Loader />;
 
-      const dashboardResponse = await axios.get(`${baseUrl}/startupark/api/startupark/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      console.log('Dashboard API Response:', dashboardResponse.data);
-      
-      let studentFormData = null;
-      
-      if (dashboardResponse.data && Array.isArray(dashboardResponse.data)) {
-        const studentForm = dashboardResponse.data.find(form => form.role === 'student');
-        if (studentForm) {
-          studentFormData = studentForm.formData;
-        }
-      }
-
-      if (!studentFormData) {
-        try {
-          const formCheckResponse = await axios.get(`${baseUrl}/startupark/api/startupark/form/student`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (formCheckResponse.data && formCheckResponse.data.hasFormData) {
-            studentFormData = formCheckResponse.data.formData || {};
-          }
-        } catch (formError) {
-          console.log('No student form exists yet');
-        }
-      }
-
-      const mergedUserData = {
-        ...userResponse.data,
-        ...(studentFormData || {})
-      };
-
-      setUser(mergedUserData);
-      
-      const skillsCount = Array.isArray(studentFormData?.skills) ? studentFormData.skills.length : 0;
-      
-      setStats({
-        connections: Math.floor(Math.random() * 50) + 10,
-        applications: Math.floor(Math.random() * 20) + 5,
-        skills: skillsCount,
-        events: Math.floor(Math.random() * 10) + 2
-      });
-
-    } catch (error) {
-      console.error('Failed to fetch student data:', error);
-      
-      if (error.response?.status === 404) {
-        const token = localStorage.getItem('token');
-        const userResponse = await axios.get(`${baseUrl}/api/mappuser/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUser(userResponse.data);
-        setStats({
-          connections: 0,
-          applications: 0,
-          skills: 0,
-          events: 0
-        });
-      } else if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/');
-      } else {
-        const token = localStorage.getItem('token');
-        const userResponse = await axios.get(`${baseUrl}/api/mappuser/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUser(userResponse.data);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const QuickActionCard = ({ title, description, icon: Icon, action, buttonText }) => (
-    <div className="rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-start space-x-4">
-        <div className="flex-shrink-0 p-3 rounded-xl bg-emerald-50">
-          <Icon className="h-6 w-6 text-emerald-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold  mb-2">{title}</h3>
-          <p className=" text-sm mb-4">{description}</p>
-          <button
-            onClick={action}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-          >
-            {buttonText}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const StatCard = ({ title, value, icon: Icon, color = 'emerald' }) => (
-    <div className="rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium ">{title}</p>
-          <p className="text-2xl font-bold  mt-1">{value}</p>
-        </div>
-        <div className={`p-3 rounded-xl bg-${color}-50`}>
-          <Icon className={`h-6 w-6 text-${color}-600`} />
-        </div>
-      </div>
-    </div>
-  );
-
-  const InfoCard = ({ title, icon: Icon, children }) => (
-    <div className="rounded-xl border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center space-x-2">
-          <Icon className="h-5 w-5 " />
-          <h2 className="text-lg font-semibold ">{title}</h2>
-        </div>
-      </div>
-      <div className="p-6">
-        {children}
-      </div>
-    </div>
-  );
-
-  const ActivityItem = ({ type, text, time, status }) => (
-    <div className="flex items-center py-3 border-b border-gray-100 last:border-0">
-      <div className={`w-2 h-2 rounded-full mr-4 ${
-        status === 'pending' ? 'bg-amber-400' : 
-        status === 'success' ? 'bg-emerald-400' : 'bg-blue-400'
-      }`}></div>
-      <div className="flex-1">
-        <p className=" font-medium">{text}</p>
-        <p className="text-sm text-gray-500">{time}</p>
-      </div>
-    </div>
-  );
-
-  const EventItem = ({ title, date, type, location }) => (
-    <div className="p-4 rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors duration-200">
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="font-semibold ">{title}</h3>
-        <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
-          {type}
-        </span>
-      </div>
-      <div className="flex items-center text-sm  mb-1">
-        <CalendarIcon className="h-4 w-4 mr-1" />
-        {date}
-      </div>
-      <div className="flex items-center text-sm ">
-        <BuildingStorefrontIcon className="h-4 w-4 mr-1" />
-        {location}
-      </div>
-    </div>
-  );
-
-  if (loading) {
-    return <Loader />;
-  }
-
-  const userName = user?.username || user?.name || 'Student';
-  const userInstitution = user?.institution || 'Not specified';
-  const userCourse = user?.course || 'Not specified';
-  const userYearOfStudy = user?.yearOfStudy || 'Not specified';
-  const userSkills = Array.isArray(user?.skills) ? user.skills.slice(0, 5) : [];
-  const hasCompleteProfile = user?.institution && user?.course && user?.yearOfStudy;
-
-
-
-  
+  const name = user.username || user.email || 'Student';
+  const avatarKey = profile?.profilePicture || user.profilePicture || user.profileImage;
+  const avatarUrl = avatarKey ? getImageUrl(avatarKey, baseUrl) : null;
+  const skills = Array.isArray(profile?.skills) ? profile.skills : [];
+  const hasProfile = !!(profile?.institution && profile?.course);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-4">
-          {/* Student Icon Placeholder */}
-          <div className="h-16 w-16 rounded-xl bg-emerald-100 flex items-center justify-center border border-emerald-200">
-            <AcademicCapIcon className="h-10 w-10 text-emerald-600" />
+
+      {/* Welcome banner — mono glass */}
+      <div className="glass-panel p-6 sm:p-8 mb-6">
+        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06] pointer-events-none">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-zinc-900 dark:bg-white blur-3xl" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-zinc-900 dark:bg-white blur-2xl" />
+        </div>
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name} className="w-16 h-16 rounded-2xl object-cover border border-black/10 dark:border-white/15 flex-shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center text-2xl font-bold flex-shrink-0">
+                {name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-1">Student Dashboard</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Welcome, {name}</h1>
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">
+                {profile?.institution ? `${profile.institution} · ${profile.course || ''}` : 'Continue your journey to career success.'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold ">
-              Welcome back, <span className="text-highlight">{userName}</span>!
-            </h1>
-            <p className=" mt-1">
-              Continue your journey to career success.
-            </p>
-          </div>
+          <button onClick={() => navigate('/startupark/launchpad')} className="btn-mono shrink-0">
+            <box-icon name="briefcase" type="solid" size="16px" color="currentColor" />
+            Career LaunchPad
+          </button>
         </div>
       </div>
 
-      {/* Profile Completion Alert */}
-      {!hasCompleteProfile && (
-        <div className="mb-8 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                <span className="text-amber-600 text-xl">💡</span>
-              </div>
-            </div>
-            <div className="ml-4 flex-1">
-              <h3 className="text-lg font-semibold text-amber-800">Complete Your Profile</h3>
-              <p className="text-amber-700 mt-1">
-                Add your education details to get personalized startup recommendations.
-              </p>
-            </div>
-            <div className="ml-4">
-              <button 
-                onClick={() => navigate('/profile')}
-                className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
-              >
-                Complete Now
-              </button>
-            </div>
+      {/* Profile completion alert (semantic amber kept) */}
+      {!hasProfile && (
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/50 rounded-2xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0 text-amber-600 dark:text-amber-400">
+            <box-icon name="error" type="solid" color="currentColor" size="20px" />
           </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">Complete Your Profile</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400">Add your education details to get matched with startups.</p>
+          </div>
+          <button onClick={() => navigate('/startupark/edit-profile')} className="shrink-0 text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl transition-colors">
+            Complete
+          </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-8">
-         
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <StatCard label="Skills" value={skills.length || '—'} icon="code-block" />
+        <StatCard label="Applications" value="—" icon="notepad" />
+        <StatCard label="Messages" value="—" icon="chat" />
+        <StatCard label="Events Joined" value="—" icon="calendar-event" />
+      </div>
 
-          {/* Quick Actions */}
-          <InfoCard title="Quick Actions" icon={ChartBarIcon}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <QuickActionCard
-                title="Update Profile"
-                description="Edit your student information"
-                icon={UserCircleIcon}
-                action={() => navigate('/profile')}
-                buttonText="Edit"
-              />
-              <QuickActionCard
-                title="Find Startups"
-                description="Discover opportunities"
-                icon={EyeIcon}
-                action={() => navigate('/startupark/startupsList')}
-                buttonText="Browse"
-              />
-              
+      {/* Main grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="glass-card p-6">
+            <h2 className="font-bold text-zinc-900 dark:text-white mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <ActionCard title="Browse Startups" desc="Find startups to apply to" icon="rocket" onClick={() => navigate('/startupark/startupsList')} />
+              <ActionCard title="Career LaunchPad" desc="Jobs, internships & opportunities" icon="briefcase" onClick={() => navigate('/startupark/launchpad')} />
+              <ActionCard title="Explore Products" desc="Discover startup products" icon="box" onClick={() => navigate('/products')} />
+              <ActionCard title="My Meetings" desc="Track your meeting requests" icon="calendar-check" onClick={() => navigate('/startupark/my-bookings')} />
+              <ActionCard title="Messages" desc="Chat with founders & mentors" icon="chat" onClick={() => navigate('/startupark/chat')} />
+              <ActionCard title="My Profile" desc="Update your student info" icon="user-circle" onClick={() => navigate('/startupark/edit-profile')} />
             </div>
-          </InfoCard>
+          </div>
 
-          
+          {skills.length > 0 && (
+            <div className="glass-card p-5">
+              <h3 className="font-bold text-zinc-900 dark:text-white mb-3 text-sm">My Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {skills.slice(0, 8).map((skill, i) => (
+                  <span key={i} className="px-3 py-1 glass-inset text-zinc-700 dark:text-zinc-200 rounded-full text-xs font-medium">
+                    {skill}
+                  </span>
+                ))}
+                {skills.length > 8 && (
+                  <span className="px-3 py-1 glass-inset text-zinc-500 dark:text-zinc-400 rounded-full text-xs">+{skills.length - 8} more</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-8">
-          {/* Profile Summary */}
-          <InfoCard title="Your Profile" icon={AcademicCapIcon}>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm ">Institution</p>
-                <p className="font-medium ">{userInstitution}</p>
-              </div>
-              <div>
-                <p className="text-sm ">Course</p>
-                <p className="font-medium ">{userCourse}</p>
-              </div>
-              <div>
-                <p className="text-sm ">Year of Study</p>
-                <p className="font-medium ">{userYearOfStudy}</p>
-              </div>
-              {userSkills.length > 0 && (
-                <div>
-                  <p className="text-sm  mb-2">Top Skills</p>
-                  <div className="flex flex-wrap gap-2">
-                    {userSkills.map((skill, index) => (
-                      <span key={index} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
+        {/* Profile sidebar */}
+        <div className="space-y-4">
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-3 mb-4">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={name} className="w-12 h-12 rounded-full object-cover border border-black/10 dark:border-white/15 flex-shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                  {name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <button 
-                onClick={() => navigate('/profile')}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-medium transition-colors duration-200 mt-4"
-              >
-                Edit Profile
-              </button>
+              <div className="min-w-0">
+                <p className="font-bold text-zinc-900 dark:text-white truncate">{name}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{user.email}</p>
+              </div>
             </div>
-          </InfoCard>
+            <div className="space-y-2.5">
+              {[
+                { label: 'Role', value: 'Student' },
+                { label: 'Institution', value: profile?.institution || 'Not set' },
+                { label: 'Course', value: profile?.course || 'Not set' },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between text-sm gap-2">
+                  <span className="text-zinc-500 dark:text-zinc-400 flex-shrink-0">{label}</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium truncate max-w-[140px] glass-inset text-zinc-700 dark:text-zinc-200">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          
+          <div className="glass-card p-4">
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Quick Links</p>
+            {[
+              { label: 'Edit Profile', icon: 'user', to: '/startupark/edit-profile' },
+              { label: 'My Meetings', icon: 'calendar-check', to: '/startupark/my-bookings' },
+              { label: 'Browse Startups', icon: 'rocket', to: '/startupark/startupsList' },
+            ].map(({ label, icon, to }) => (
+              <button key={to} onClick={() => navigate(to)}
+                className="w-full flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-sm text-zinc-700 dark:text-zinc-300 transition-colors">
+                <box-icon name={icon} type="solid" color="currentColor" size="16px" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  );  
+  );
 }
-
-export default StudentDashboard;

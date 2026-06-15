@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  FiMessageSquare, FiSearch, FiSend, FiImage, FiPaperclip, 
+  FiMessageSquare, FiSearch, FiSend, FiImage, FiPaperclip,
   FiLoader, FiCheck, FiCheckCircle, FiVideo, FiMic,
-  FiMoreVertical, FiInfo, FiX, FiPlay, FiPause
+  FiMoreVertical, FiInfo, FiX, FiPlay, FiPause, FiChevronLeft
 } from 'react-icons/fi';
 import { IoCheckmarkDone, IoEllipsisHorizontal } from 'react-icons/io5';
 import { io } from 'socket.io-client';
@@ -45,6 +45,22 @@ const ChatInterface = () => {
   const fileInputRef = useRef(null);
   const audioRef = useRef(null);
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  // Backend stores participants as `participantIds` and message author as `senderId`
+  // (populated to {_id, username, profilePicture}). Normalize both so the rest of
+  // this component can rely on `message.sender._id` and `message.timestamp`.
+  const getParticipantIds = (conv) => conv?.participantIds || conv?.participants || [];
+  const otherParticipantId = (conv, selfId) => {
+    const list = getParticipantIds(conv);
+    const other = list.find(p => String(typeof p === 'object' ? p?._id : p) !== String(selfId));
+    return other ? (typeof other === 'object' ? other._id : other) : null;
+  };
+  const normalizeMsg = (m) => {
+    if (!m) return m;
+    const s = m.sender || m.senderId;
+    const sender = s && typeof s === 'object' ? s : { _id: s };
+    return { ...m, sender, timestamp: m.timestamp || m.createdAt || new Date() };
+  };
 
   // Helper function to get user data from localStorage
   const getUserData = () => {
@@ -138,8 +154,9 @@ const ChatInterface = () => {
 
     newSocket.on('connect', () => {
       console.log('Connected to server with ID:', newSocket.id);
-      // Emit user online status
+      // Join personal room (server keys direct emits by userId) + online status.
       if (currentUser?.id) {
+        newSocket.emit('identify', currentUser.id);
         newSocket.emit('user_online', { userId: currentUser.id });
       }
     });
@@ -174,28 +191,79 @@ const ChatInterface = () => {
     return () => {
       newSocket.close();
     };
-  }, [baseUrl, currentUser]);
+  }, [baseUrl]);
 
-  // Fetch conversations
+  // Identify to the server (join personal room) whenever socket + user are ready,
+  // and re-identify on every reconnect so realtime delivery keeps working.
+  useEffect(() => {
+    if (!socket || !currentUser?.id) return;
+    const identify = () => {
+      socket.emit('identify', currentUser.id);
+      socket.emit('user_online', { userId: currentUser.id });
+      if (selectedConversation?._id) socket.emit('join_conversation', selectedConversation._id);
+    };
+    if (socket.connected) identify();
+    socket.on('connect', identify);
+    return () => socket.off('connect', identify);
+  }, [socket, currentUser, selectedConversation]);
+
+  // Fetch conversations — and if startupId is in URL, auto-initiate/select that conversation
   useEffect(() => {
     const fetchConversations = async () => {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch(`${baseUrl}/startupark/api/chat/conversations`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
-          setConversations(data);
-          
-          // If startupId is provided in URL, select that conversation
+          const convList = Array.isArray(data) ? data : (data.conversations || []);
+          setConversations(convList);
+
           if (startupId) {
-            const conv = data.find(c => c.startupId?._id === startupId || c.startupId === startupId);
-            if (conv) {
-              setSelectedConversation(conv);
+            // Conversations key the startup via contextId (no startupId field on the model).
+            let conv = convList.find(c =>
+              String(c.contextId) === String(startupId) ||
+              c.startupId?._id === startupId || c.startupId === startupId
+            );
+
+            if (!conv) {
+              // Not in the list yet — let the backend resolve the recipient from the
+              // startup id (contextId) and create/return the conversation.
+              try {
+                let recipientId;
+                try {
+                  const startupRes = await fetch(`${baseUrl}/startupark/api/profile/startups/${startupId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  });
+                  if (startupRes.ok) {
+                    const startupJson = await startupRes.json();
+                    const startupObj = startupJson.startup || startupJson;
+                    recipientId = startupObj.userId?._id || startupObj.userId;
+                  }
+                } catch { /* backend resolves from contextId anyway */ }
+
+                const initRes = await fetch(`${baseUrl}/startupark/api/chat/initiate`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({ recipientId, contextType: 'startup', contextId: startupId })
+                });
+                if (initRes.ok) {
+                  const initJson = await initRes.json();
+                  conv = initJson.conversation || initJson;
+                  setConversations(prev => prev.find(c => c._id === conv._id) ? prev : [conv, ...prev]);
+                } else {
+                  const errJson = await initRes.json().catch(() => ({}));
+                  setError(errJson.error || 'Could not open this conversation.');
+                }
+              } catch (e) {
+                console.error('Error initiating conversation from URL:', e);
+                setError('Could not open this conversation.');
+              }
             }
+
+            if (conv) setSelectedConversation(conv);
           }
         }
       } catch (error) {
@@ -220,10 +288,10 @@ const ChatInterface = () => {
       for (const conversation of conversations) {
         // For startup users: Show the user they're chatting with
         if (currentUser.role === 'startup') {
-          const otherParticipant = conversation.participants?.find(
-            p => p._id !== currentUser.id
+          const otherParticipant = getParticipantIds(conversation).find(
+            p => String(typeof p === 'object' ? p?._id : p) !== String(currentUser.id)
           );
-          
+
           let userName = 'Unknown User';
           let userImage = null;
           let userId = null;
@@ -234,11 +302,11 @@ const ChatInterface = () => {
               userId = typeof otherParticipant === 'string' ? otherParticipant : otherParticipant._id;
               const userDetails = await fetchUserDetails(userId);
               userName = userDetails?.username || userDetails?.name || 'Unknown User';
-              userImage = userDetails?.profileImage;
+              userImage = userDetails?.profilePicture || userDetails?.profileImage;
             } else {
               // We have the full user object
               userName = otherParticipant.username || otherParticipant.name || 'Unknown User';
-              userImage = otherParticipant.profileImage;
+              userImage = otherParticipant.profilePicture || otherParticipant.profileImage;
               userId = otherParticipant._id;
             }
           }
@@ -250,30 +318,42 @@ const ChatInterface = () => {
             userId: userId
           };
         } else {
-          // For regular users: Show the startup they're chatting with
-          const startupInfo = conversation.startupId;
-          
-          let startupName = 'Unknown Startup';
+          // For regular users: resolve the startup from contextId (the model has no startupId).
+          let startupName = '';
           let startupLogo = null;
-          let startupId = null;
-          
-          if (startupInfo) {
-            if (typeof startupInfo === 'object') {
-              startupName = startupInfo.formData?.startupName || startupInfo.startupName || 'Unknown Startup';
-              startupLogo = startupInfo.formData?.logo || startupInfo.logo;
-              startupId = startupInfo._id;
-            } else if (typeof startupInfo === 'string') {
-              startupName = 'Unknown Startup';
-              startupId = startupInfo;
+          const sid = conversation.contextId || conversation.startupId?._id || conversation.startupId;
+
+          if (sid && conversation.contextType !== 'general') {
+            try {
+              const sres = await fetch(`${baseUrl}/startupark/api/profile/startups/${sid}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+              });
+              if (sres.ok) {
+                const sj = await sres.json();
+                const s = sj.startup || sj;
+                startupName = s.companyName || s.startupName || '';
+                startupLogo = s.logo;
+              }
+            } catch { /* fall through to participant */ }
+          }
+
+          // Fallback: show the other participant if the startup couldn't be resolved.
+          if (!startupName) {
+            const op = getParticipantIds(conversation).find(
+              p => String(typeof p === 'object' ? p?._id : p) !== String(currentUser.id)
+            );
+            if (op && typeof op === 'object') {
+              startupName = op.username || op.name || 'Chat';
+              startupLogo = op.profilePicture || op.profileImage;
+            } else {
+              startupName = 'Chat';
             }
           }
-          
-          displayInfo[conversation._id] = {
-            name: startupName,
-            image: startupLogo,
-            isStartup: true,
-            userId: startupId
-          };
+
+          // Presence is keyed by the OTHER participant's user id (the startup owner),
+          // not the startup id — so the online dot reflects the person, not the company.
+          const ownerId = otherParticipantId(conversation, currentUser.id);
+          displayInfo[conversation._id] = { name: startupName, image: startupLogo, isStartup: true, userId: ownerId };
         }
       }
       
@@ -303,29 +383,26 @@ const ChatInterface = () => {
 
         if (messagesRes.ok) {
           const messagesData = await messagesRes.json();
-          setMessages(messagesData.messages || []);
+          setMessages((messagesData.messages || []).map(normalizeMsg));
         }
 
-        // Get other user info
-        const otherParticipant = selectedConversation.participants
-          .find(p => p._id !== currentUser.id);
-
-        if (otherParticipant) {
+        // Get other user info (participantIds may be string ids or populated objects)
+        const list = getParticipantIds(selectedConversation);
+        const otherParticipant = list.find(p => String(typeof p === 'object' ? p?._id : p) !== String(currentUser.id));
+        if (otherParticipant && typeof otherParticipant === 'object') {
           setOtherUser(otherParticipant);
         }
 
-        // Only fetch startup details if the current user is NOT a startup
-        if (currentUser.role !== 'startup' && selectedConversation.startupId) {
-          const startupId = selectedConversation.startupId._id || selectedConversation.startupId;
-          const startupRes = await fetch(`${baseUrl}/startupark/api/startupark/startups-by-id/${startupId}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+        // Resolve the startup from contextId for non-startup users.
+        const sid = selectedConversation.contextId
+          || selectedConversation.startupId?._id || selectedConversation.startupId;
+        if (currentUser.role !== 'startup' && sid && selectedConversation.contextType !== 'general') {
+          const startupRes = await fetch(`${baseUrl}/startupark/api/profile/startups/${sid}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
-
           if (startupRes.ok) {
-            const startupData = await startupRes.json();
-            setStartup(startupData);
+            const startupJson = await startupRes.json();
+            setStartup(startupJson.startup || startupJson);
           }
         }
 
@@ -428,8 +505,9 @@ const ChatInterface = () => {
   // Socket listeners
   useEffect(() => {
     if (socket) {
-      socket.on('receive_message', (message) => {
-        if (message.conversationId === selectedConversation?._id) {
+      socket.on('receive_message', (raw) => {
+        const message = normalizeMsg(raw);
+        if (String(message.conversationId) === String(selectedConversation?._id)) {
           // Check if this is a duplicate of an optimistic message
           const now = new Date();
           const messageTime = new Date(message.timestamp);
@@ -503,14 +581,14 @@ const ChatInterface = () => {
   }, [socket, selectedConversation, messages, currentUser]);
 
   // Handle file selection
+  const MAX_FILE_MB = 25;
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
-    const validFiles = files.filter(file => {
-      const fileType = file.type.split('/')[0];
-      return fileType === 'image' || fileType === 'video' || file.type === 'application/pdf';
-    });
-    
-    setMediaFiles(prev => [...prev, ...validFiles]);
+    const tooBig = files.find(f => f.size > MAX_FILE_MB * 1024 * 1024);
+    if (tooBig) { setError(`"${tooBig.name}" exceeds the ${MAX_FILE_MB}MB limit.`); }
+    const ok = files.filter(f => f.size <= MAX_FILE_MB * 1024 * 1024);
+    setMediaFiles(prev => [...prev, ...ok]);
+    e.target.value = ''; // allow re-picking the same file
   };
 
   // Remove selected file
@@ -570,117 +648,78 @@ const ChatInterface = () => {
     }
   };
 
-  // Send recorded audio
+  // Classify a file into our attachment type buckets.
+  const attachmentType = (mime = '') => {
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+    return 'file';
+  };
+
+  // Presign → PUT to R2 → return the attachment descriptor stored on the message.
+  const uploadAttachment = async (file, name, mime) => {
+    const token = localStorage.getItem('token');
+    const up = await fetch(`${baseUrl}/startupark/api/chat/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ conversationId: selectedConversation._id, filename: name, contentType: mime }),
+    });
+    if (!up.ok) throw new Error('upload-url-failed');
+    const { uploadUrl, key } = await up.json();
+    const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': mime }, body: file });
+    if (!put.ok) throw new Error('r2-put-failed');
+    return { key, type: attachmentType(mime), name, size: file.size, mime };
+  };
+
+  // Send one message carrying the recorded audio.
   const sendRecordedAudio = async () => {
     if (!recordedAudio || !socket || !selectedConversation || !currentUser) return;
-
     try {
-      setSending(true);
-      
-      // Get receiver ID
-      let receiverId;
-      if (selectedConversation.participants) {
-        const otherParticipant = selectedConversation.participants.find(
-          p => (typeof p === 'string' ? p !== currentUser.id : p._id !== currentUser.id)
-        );
-        receiverId = typeof otherParticipant === 'string' ? otherParticipant : otherParticipant?._id;
-      }
-      
-      if (!receiverId) {
-        console.error('No receiver found in conversation');
-        return;
-      }
-      
-      // Create form data to send the audio file
-      const formData = new FormData();
-      formData.append('audio', recordedAudio, 'audio-message.webm');
-      formData.append('senderId', currentUser.id);
-      formData.append('receiverId', receiverId);
-      formData.append('startupId', selectedConversation.startupId?._id || selectedConversation.startupId);
-      formData.append('conversationId', selectedConversation._id);
-      
-      // Send audio message to server
-      const response = await fetch(`${baseUrl}/startupark/api/chat/audio-message`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      });
-      
-      if (response.ok) {
-        const messageData = await response.json();
-        // Emit message via socket
-        socket.emit('send_message', messageData);
-        setRecordedAudio(null);
-        setAudioUrl('');
-      } else {
-        throw new Error('Failed to send audio message');
-      }
-      
+      const att = await uploadAttachment(recordedAudio, `voice-${Date.now()}.webm`, 'audio/webm');
+      emitMessageWithAttachments([att]);
+      setRecordedAudio(null);
+      setAudioUrl('');
     } catch (error) {
       console.error('Error sending audio message:', error);
-      setError('Failed to send audio message');
-    } finally {
-      setSending(false);
+      setError('Failed to send voice message');
     }
   };
 
-  // Send media files
+  // Upload all picked files and send them as a single message (with optional caption).
   const sendMediaFiles = async () => {
     if (mediaFiles.length === 0 || !socket || !selectedConversation || !currentUser) return;
-
     try {
-      setSending(true);
-      
-      // Get receiver ID
-      let receiverId;
-      if (selectedConversation.participants) {
-        const otherParticipant = selectedConversation.participants.find(
-          p => (typeof p === 'string' ? p !== currentUser.id : p._id !== currentUser.id)
-        );
-        receiverId = typeof otherParticipant === 'string' ? otherParticipant : otherParticipant?._id;
-      }
-      
-      if (!receiverId) {
-        console.error('No receiver found in conversation');
-        return;
-      }
-      
-      // Send each media file
+      const atts = [];
       for (const file of mediaFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('senderId', currentUser.id);
-        formData.append('receiverId', receiverId);
-        formData.append('startupId', selectedConversation.startupId?._id || selectedConversation.startupId);
-        formData.append('conversationId', selectedConversation._id);
-        formData.append('fileType', file.type.split('/')[0]); // 'image', 'video', or 'application'
-        
-        const response = await fetch(`${baseUrl}/startupark/api/chat/media-message`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: formData
-        });
-        
-        if (response.ok) {
-          const messageData = await response.json();
-          // Emit message via socket
-          socket.emit('send_message', messageData);
-        } else {
-          console.error('Failed to send media file:', file.name);
-        }
+        atts.push(await uploadAttachment(file, file.name, file.type || 'application/octet-stream'));
       }
-      
+      emitMessageWithAttachments(atts, newMessage.trim());
       setMediaFiles([]);
-      
+      setNewMessage('');
     } catch (error) {
       console.error('Error sending media files:', error);
-      setError('Failed to send media files');
-    } finally {
-      setSending(false);
+      setError('Failed to send attachment');
+    }
+  };
+
+  // Optimistically render + send a message with attachments.
+  const emitMessageWithAttachments = (attachments, content = '') => {
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const optimistic = {
+      _id: tempId, content, attachments,
+      sender: { _id: currentUser.id, name: currentUser.name, profilePicture: currentUser.avatar },
+      timestamp: new Date(), read: false, delivered: false, isOptimistic: true,
+    };
+    setMessages(prev => [...prev, optimistic]);
+    const payload = { conversationId: selectedConversation._id, senderId: currentUser.id, content, attachments };
+    if (socket?.connected) {
+      socket.emit('send_message', payload);
+    } else {
+      fetch(`${baseUrl}/startupark/api/chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(payload),
+      }).then(r => r.ok && r.json()).then(d => d && setMessages(prev => prev.map(m => m._id === tempId ? normalizeMsg(d.message) : m))).catch(() => {});
     }
   };
 
@@ -692,18 +731,8 @@ const ChatInterface = () => {
       setSending(true);
       
       // Get receiver ID - handle both object and string participants
-      let receiverId;
-      if (selectedConversation.participants) {
-        const otherParticipant = selectedConversation.participants.find(
-          p => (typeof p === 'string' ? p !== currentUser.id : p._id !== currentUser.id)
-        );
-        receiverId = typeof otherParticipant === 'string' ? otherParticipant : otherParticipant?._id;
-      }
-      
-      if (!receiverId) {
-        console.error('No receiver found in conversation');
-        return;
-      }
+      // Backend resolves the recipient itself; receiverId is best-effort metadata.
+      const receiverId = otherParticipantId(selectedConversation, currentUser.id);
       
       // Send media files first if any
       if (mediaFiles.length > 0) {
@@ -759,9 +788,22 @@ const ChatInterface = () => {
         
         setMessages(prev => [...prev, optimisticMessage]);
         setNewMessage('');
-        
-        // Emit message via socket
-        socket.emit('send_message', messageData);
+
+        // Prefer realtime socket; fall back to REST so a message is never lost
+        // if the socket is mid-reconnect.
+        if (socket?.connected) {
+          socket.emit('send_message', messageData);
+        } else {
+          const res = await fetch(`${baseUrl}/startupark/api/chat/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+            body: JSON.stringify({ conversationId: messageData.conversationId, content: messageData.content })
+          });
+          if (res.ok) {
+            const { message } = await res.json();
+            setMessages(prev => prev.map(m => m._id === tempMessageId ? normalizeMsg(message) : m));
+          }
+        }
       }
       
     } catch (error) {
@@ -805,7 +847,7 @@ const ChatInterface = () => {
     if (message.sender._id !== currentUser?.id) return null;
     
     if (message.read) {
-      return <IoCheckmarkDone className="text-blue-500 ml-1" size={16} />;
+      return <IoCheckmarkDone className="text-zinc-900 dark:text-white ml-1" size={16} />;
     } else if (message.delivered) {
       return <IoCheckmarkDone className="text-gray-400 ml-1" size={16} />;
     } else if (!message.isOptimistic) {
@@ -815,52 +857,44 @@ const ChatInterface = () => {
     return <FiLoader className="animate-spin text-gray-400 ml-1" size={14} />;
   };
 
-  const renderMessageContent = (message) => {
-    if (message.fileUrl) {
-      const fileType = message.fileType || message.fileUrl.split('.').pop();
-      
-      if (message.fileType === 'image' || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileType)) {
-        return (
-          <div className="mt-2">
-            <img 
-              src={getImageUrl(message.fileUrl, baseUrl)} 
-              alt="Shared content" 
-              className="max-w-xs rounded-lg"
-            />
-            {message.content && <p className="text-sm mt-2">{message.content}</p>}
-          </div>
-        );
-      } else if (message.fileType === 'video' || ['mp4', 'webm', 'mov'].includes(fileType)) {
-        return (
-          <div className="mt-2">
-            <video controls className="max-w-xs rounded-lg">
-              <source src={getImageUrl(message.fileUrl, baseUrl)} type={`video/${fileType}`} />
-              Your browser does not support the video tag.
-            </video>
-            {message.content && <p className="text-sm mt-2">{message.content}</p>}
-          </div>
-        );
-      } else if (message.fileType === 'audio' || message.fileType === 'application' || ['mp3', 'wav', 'pdf'].includes(fileType)) {
-        return (
-          <div className="mt-2">
-            <div className="flex items-center p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-              <FiPaperclip className="mr-2" />
-              <a 
-                href={getImageUrl(message.fileUrl, baseUrl)} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                {message.fileName || `Download ${fileType.toUpperCase()} file`}
-              </a>
-            </div>
-            {message.content && <p className="text-sm mt-2">{message.content}</p>}
-          </div>
-        );
-      }
+  const renderAttachment = (att, i, mine) => {
+    const url = att.key ? getImageUrl(att.key, baseUrl) : (att.url || '');
+    if (att.type === 'image') {
+      return (
+        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+          <img src={url} alt={att.name || 'image'} className="max-w-[260px] max-h-72 rounded-lg object-cover" loading="lazy" />
+        </a>
+      );
     }
-    
-    return <p className="text-sm">{message.content}</p>;
+    if (att.type === 'video') {
+      return <video key={i} controls className="max-w-[260px] rounded-lg" src={url} />;
+    }
+    if (att.type === 'audio') {
+      return <audio key={i} controls className="w-56" src={url} />;
+    }
+    const kb = att.size ? `${(att.size / 1024).toFixed(0)} KB` : '';
+    return (
+      <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+        className={`flex items-center gap-2 p-2.5 rounded-lg border ${mine ? 'border-white/20 dark:border-black/10' : 'border-black/10 dark:border-white/15'} hover:opacity-90`}>
+        <FiPaperclip className="flex-shrink-0" />
+        <span className="text-sm truncate max-w-[180px]">{att.name || 'Attachment'}</span>
+        {kb && <span className="text-xs opacity-60 ml-auto">{kb}</span>}
+      </a>
+    );
+  };
+
+  const renderMessageContent = (message, mine) => {
+    const atts = Array.isArray(message.attachments) ? message.attachments : [];
+    return (
+      <div className="space-y-1.5">
+        {atts.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            {atts.map((a, i) => renderAttachment(a, i, mine))}
+          </div>
+        )}
+        {message.content && <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>}
+      </div>
+    );
   };
 
   const filteredConversations = conversations.filter(conv => {
@@ -880,22 +914,22 @@ const ChatInterface = () => {
 
   if (conversationsLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900 dark:border-white"></div>
       </div>
     );
   }
 
   return (
-    <div className="w-screen h-screen flex bg-white dark:bg-black overflow-hidden">
+    <div className="flex w-full h-[calc(100dvh-7rem)] rounded-2xl overflow-hidden border border-black/[0.06] dark:border-white/10 glass-card !p-0">
 
       {/* Conversations sidebar */}
-      <div className="w-full md:w-96 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-black">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-black">
+      <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} w-full md:w-80 lg:w-96 border-r border-black/[0.06] dark:border-white/10 flex-col bg-black/[0.02] dark:bg-white/[0.02]`}>
+        <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Messages</h1>
             <button 
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06]"
               onClick={() => setShowConversationMenu(!showConversationMenu)}
             >
               <FiMoreVertical className="text-gray-600 dark:text-gray-300" />
@@ -903,7 +937,7 @@ const ChatInterface = () => {
           </div>
         </div>
 
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-black">
+        <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950">
           <div className="relative">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -911,7 +945,7 @@ const ChatInterface = () => {
               placeholder="Search conversations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20 dark:bg-zinc-800 dark:text-white"
             />
           </div>
         </div>
@@ -938,10 +972,10 @@ const ChatInterface = () => {
                 <div
                   key={conversation._id}
                   onClick={() => setSelectedConversation(conversation)}
-                  className={`flex items-center p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer ${
-                    isSelected 
-                      ? 'bg-indigo-50 dark:bg-indigo-900/30' 
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                  className={`flex items-center p-4 border-b border-gray-100 dark:border-white/10 cursor-pointer ${
+                    isSelected
+                      ? 'bg-black/[0.05] dark:bg-white/[0.08]'
+                      : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                   } transition-colors`}
                 >
                   <div className="flex-shrink-0 mr-4 relative">
@@ -957,8 +991,8 @@ const ChatInterface = () => {
                         )}
                       </>
                     ) : (
-                      <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex items-center justify-center relative">
-                        <FiMessageSquare className="text-indigo-600 dark:text-indigo-300" size={20} />
+                      <div className="w-12 h-12 bg-zinc-200 dark:bg-zinc-800 rounded-lg flex items-center justify-center relative">
+                        <FiMessageSquare className="text-zinc-500 dark:text-zinc-400" size={20} />
                         {isOnline && (
                           <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
                         )}
@@ -988,7 +1022,7 @@ const ChatInterface = () => {
                       )}
                       
                       {conversation.unreadCount > 0 && (
-                        <span className="bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-2">
+                        <span className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs rounded-full h-5 w-5 flex items-center justify-center ml-2">
                           {conversation.unreadCount}
                         </span>
                       )}
@@ -1005,8 +1039,15 @@ const ChatInterface = () => {
       {selectedConversation ? (
         <div className="flex-1 flex flex-col">
           {/* Chat header */}
-          <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between bg-white dark:bg-black">
+          <div className="border-b border-gray-200 dark:border-white/10 px-4 sm:px-6 py-4 flex items-center justify-between bg-white dark:bg-zinc-950">
             <div className="flex items-center">
+              <button
+                onClick={() => setSelectedConversation(null)}
+                className="md:hidden mr-2 p-1.5 -ml-1 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                aria-label="Back to conversations"
+              >
+                <FiChevronLeft size={22} />
+              </button>
               {(() => {
                 const displayInfo = conversationDisplayInfo[selectedConversation._id] || { name: 'Unknown', image: null, isStartup: false, userId: null };
                 const isOnline = displayInfo.userId && isUserOnline(displayInfo.userId);
@@ -1033,8 +1074,9 @@ const ChatInterface = () => {
                       <h2 className="font-semibold text-gray-900 dark:text-white">
                         {displayInfo.name}
                       </h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {isOnline ? 'Online' : 'Offline'}
+                      <p className={`text-xs flex items-center gap-1.5 ${typingUsers.length > 0 ? 'text-zinc-500 dark:text-zinc-400 italic' : isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                        {typingUsers.length === 0 && <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-zinc-400 dark:bg-zinc-600'}`} />}
+                        {typingUsers.length > 0 ? 'typing…' : isOnline ? 'Online' : 'Offline'}
                       </p>
                     </div>
                   </>
@@ -1043,20 +1085,20 @@ const ChatInterface = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300">
                 <FiVideo size={20} />
               </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300">
                 <FiMic size={20} />
               </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300">
                 <FiInfo size={20} />
               </button>
             </div>
           </div>
 
           {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-black">
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-zinc-950">
             <div className="max-w-3xl mx-auto space-y-6">
               {Object.keys(groupedMessages).length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -1066,38 +1108,32 @@ const ChatInterface = () => {
                 Object.entries(groupedMessages).map(([date, dateMessages]) => (
                   <div key={date}>
                     <div className="flex justify-center my-4">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-zinc-800 px-3 py-1 rounded-full">
                         {date}
                       </span>
                     </div>
-                    {dateMessages.map((message) => (
-                      <div
-                        key={message._id}
-                        className={`flex ${message.sender._id === currentUser?.id ? 'justify-end' : 'justify-start'} mb-3`}
-                      >
+                    {dateMessages.map((message) => {
+                      const mine = String(message.sender?._id) === String(currentUser?.id);
+                      return (
+                      <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'} mb-2`}>
                         <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                            message.sender._id === currentUser?.id
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
+                          className={`max-w-xs lg:max-w-md px-3.5 py-2 rounded-2xl ${
+                            mine
+                              ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-br-md'
+                              : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border border-black/[0.06] dark:border-white/10 rounded-bl-md'
                           }`}
                         >
-                          {renderMessageContent(message)}
-                          <div className="flex items-center justify-end mt-1">
-                            <span
-                              className={`text-xs ${
-                                message.sender._id === currentUser?.id
-                                  ? 'text-indigo-200'
-                                  : 'text-gray-500 dark:text-gray-400'
-                              }`}
-                            >
+                          {renderMessageContent(message, mine)}
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span className={`text-[10px] ${mine ? 'text-zinc-300 dark:text-zinc-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
                               {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                             {getMessageStatusIcon(message)}
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ))
               )}
@@ -1105,7 +1141,7 @@ const ChatInterface = () => {
               {/* Typing indicator */}
               {typingUsers.length > 0 && (
                 <div ref={typingIndicatorRef} className="flex justify-start mb-3">
-                  <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2">
+                  <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -1121,7 +1157,7 @@ const ChatInterface = () => {
 
           {/* Media preview */}
           {(mediaFiles.length > 0 || recordedAudio) && (
-            <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-100 dark:bg-gray-800">
+            <div className="border-t border-gray-200 dark:border-white/10 px-4 py-3 bg-gray-100 dark:bg-zinc-900">
               <div className="max-w-3xl mx-auto">
                 <div className="flex flex-wrap gap-2 mb-2">
                   {mediaFiles.map((file, index) => (
@@ -1133,7 +1169,7 @@ const ChatInterface = () => {
                           className="w-16 h-16 object-cover rounded-lg"
                         />
                       ) : (
-                        <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                        <div className="w-16 h-16 bg-gray-200 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
                           <FiPaperclip size={20} />
                         </div>
                       )}
@@ -1147,7 +1183,7 @@ const ChatInterface = () => {
                   ))}
                   
                   {recordedAudio && (
-                    <div className="flex items-center bg-white dark:bg-gray-700 p-2 rounded-lg">
+                    <div className="flex items-center bg-white dark:bg-zinc-800 p-2 rounded-lg">
                       <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlayingAudio(false)} />
                       {isPlayingAudio ? (
                         <button onClick={pauseRecordedAudio} className="text-red-500 mr-2">
@@ -1176,7 +1212,7 @@ const ChatInterface = () => {
           )}
 
           {/* Message input */}
-          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-black">
+          <div className="border-t border-gray-200 dark:border-white/10 px-4 py-3 bg-white dark:bg-zinc-950">
             <div className="max-w-3xl mx-auto">
               <div className="flex items-center mb-2">
                 <input
@@ -1184,14 +1220,14 @@ const ChatInterface = () => {
                   ref={fileInputRef}
                   onChange={handleFileSelect}
                   multiple
-                  accept="image/*,video/*,.pdf"
                   className="hidden"
                 />
-                <button 
+                <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mr-2"
+                  title="Attach image or file"
+                  className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white mr-1 transition-colors"
                 >
-                  <FiImage size={20} />
+                  <FiPaperclip size={20} />
                 </button>
                 <button 
                   onClick={isRecording ? stopRecording : startRecording}
@@ -1214,12 +1250,12 @@ const ChatInterface = () => {
                     }
                   }}
                   placeholder="Type your message..."
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-black dark:text-white"
+                  className="flex-1 border border-gray-300 dark:border-white/10 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20 dark:bg-zinc-950 dark:text-white"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={(!newMessage.trim() && mediaFiles.length === 0 && !recordedAudio) || sending}
-                  className="ml-3 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  className="ml-3 p-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
                 >
                   {sending ? (
                     <FiLoader className="animate-spin" size={20} />
@@ -1232,11 +1268,20 @@ const ChatInterface = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 hidden md:flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            <FiMessageSquare size={64} className="mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2 dark:text-white">Select a conversation</h2>
-            <p>Choose a conversation from the list to start messaging</p>
+        <div className="flex-1 hidden md:flex items-center justify-center bg-transparent">
+          <div className="text-center text-zinc-500 dark:text-zinc-400 px-6">
+            <FiMessageSquare size={56} className="mx-auto mb-4 opacity-60" />
+            {error ? (
+              <>
+                <h2 className="text-lg font-semibold mb-2 text-red-600 dark:text-red-400">Couldn't open chat</h2>
+                <p className="text-sm max-w-xs mx-auto">{error}</p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-semibold mb-2 text-zinc-900 dark:text-white">Select a conversation</h2>
+                <p className="text-sm">Choose a conversation from the list to start messaging</p>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -238,10 +238,10 @@ const CalendarWrapper = ({ type }) => {
         {/* Top Bar */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
               {label}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               {moment(currentDate).format('MMMM YYYY')} • {filteredEvents().length} events
             </p>
           </div>
@@ -255,7 +255,7 @@ const CalendarWrapper = ({ type }) => {
                 placeholder="Search events..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 w-48"
+                className="input-mono pl-10 w-48"
               />
             </div>
 
@@ -264,14 +264,14 @@ const CalendarWrapper = ({ type }) => {
               onClick={() => setShowFilters(!showFilters)}
               className={`inline-flex items-center px-3 py-2 border rounded-lg text-sm font-medium transition-all duration-200 ${
                 showFilters 
-                  ? 'bg-blue-50 border-blue-500 text-blue-700' 
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'bg-black/[0.05] dark:bg-white/[0.08] border-zinc-400 dark:border-white/30 text-zinc-900 dark:text-white' 
+                  : 'border-gray-300 dark:border-white/10 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
               }`}
             >
               <FiFilter className="h-4 w-4 mr-2" />
               Filters
               {(filterStatus !== 'all' || selectedCategories.length > 0) && (
-                <span className="ml-2 bg-blue-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                <span className="ml-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full w-5 h-5 text-xs flex items-center justify-center">
                   {(filterStatus !== 'all' ? 1 : 0) + selectedCategories.length}
                 </span>
               )}
@@ -282,7 +282,7 @@ const CalendarWrapper = ({ type }) => {
               <button
                 onClick={fetchEvents}
                 disabled={isLoading}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 bg-white dark:bg-zinc-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 rounded-lg transition-all duration-200 disabled:opacity-50"
               >
                 <FiRefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -291,20 +291,20 @@ const CalendarWrapper = ({ type }) => {
               <div className="inline-flex rounded-lg shadow-sm border border-gray-300 overflow-hidden">
                 <button
                   onClick={() => navigate('PREV')}
-                  className="inline-flex items-center px-3 py-2 border-r border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center px-3 py-2 border-r border-gray-300 bg-white dark:bg-zinc-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
                 >
                   <FiChevronLeft className="h-5 w-5" />
                 </button>
                 <button
                   onClick={moveToToday}
-                  className="inline-flex items-center px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors border-r border-gray-300"
+                  className="inline-flex items-center px-4 py-2 bg-white dark:bg-zinc-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors border-r border-gray-300"
                 >
                   <FiSun className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Today</span>
                 </button>
                 <button
                   onClick={() => navigate('NEXT')}
-                  className="inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center px-3 py-2 bg-white dark:bg-zinc-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
                 >
                   <FiChevronRight className="h-5 w-5" />
                 </button>
@@ -315,15 +315,15 @@ const CalendarWrapper = ({ type }) => {
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm animate-slideDown">
+          <div className="glass-card p-4 mb-4 animate-fade-in">
             <div className="flex flex-wrap gap-6">
               {/* Status Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Status</label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-mono"
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
@@ -335,7 +335,7 @@ const CalendarWrapper = ({ type }) => {
 
               {/* Category Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Categories</label>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(eventCategories).map(([key, category]) => (
                     <button
@@ -350,7 +350,7 @@ const CalendarWrapper = ({ type }) => {
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
                         selectedCategories.includes(key)
                           ? 'text-white border-transparent'
-                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                          : 'bg-white dark:bg-zinc-800 border-gray-300 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
                       }`}
                       style={{
                         backgroundColor: selectedCategories.includes(key) ? category.color : undefined
@@ -369,7 +369,7 @@ const CalendarWrapper = ({ type }) => {
                     setFilterStatus('all');
                     setSelectedCategories([]);
                   }}
-                  className="text-sm text-gray-600 hover:text-gray-800 underline transition-colors"
+                  className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white underline transition-colors"
                 >
                   Clear all
                 </button>
@@ -380,7 +380,7 @@ const CalendarWrapper = ({ type }) => {
 
         {/* View Toggles */}
         <div className="flex justify-between items-center">
-          <div className="inline-flex rounded-lg shadow-sm border border-gray-300 overflow-hidden bg-white">
+          <div className="inline-flex rounded-lg shadow-sm border border-gray-300 dark:border-white/10 overflow-hidden bg-white dark:bg-zinc-800">
             {[
               { key: Views.DAY, icon: FiColumns, label: 'Day' },
               { key: Views.WEEK, icon: FiGrid, label: 'Week' },
@@ -390,10 +390,10 @@ const CalendarWrapper = ({ type }) => {
               <button
                 key={key}
                 onClick={() => handleViewChange(key)}
-                className={`inline-flex items-center px-4 py-2 border-r border-gray-300 last:border-r-0 text-sm font-medium transition-all duration-200 ${
+                className={`inline-flex items-center px-4 py-2 border-r border-gray-300 dark:border-white/10 last:border-r-0 text-sm font-medium transition-all duration-200 ${
                   view === key
-                    ? 'bg-blue-500 text-white shadow-inner'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-inner'
+                    : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
                 }`}
               >
                 <Icon className="h-4 w-4 mr-2" />
@@ -408,7 +408,7 @@ const CalendarWrapper = ({ type }) => {
               <FiShare2 className="h-4 w-4 mr-2" />
               Share
             </button>
-            <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
+            <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-white dark:text-zinc-900 bg-zinc-900 dark:bg-white border border-transparent rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-sm">
               <FiPlus className="h-4 w-4 mr-2" />
               New Event
             </button>
@@ -449,57 +449,124 @@ const CalendarWrapper = ({ type }) => {
     );
   };
 
+  // Compact month navigator for the left pane (Teams/Outlook style).
+  const MiniMonth = () => {
+    const [cursor, setCursor] = useState(moment(currentDate).startOf('month'));
+    useEffect(() => { setCursor(moment(currentDate).startOf('month')); }, [currentDate]);
+    const gridStart = moment(cursor).startOf('month').startOf('week');
+    const days = Array.from({ length: 42 }, (_, i) => moment(gridStart).add(i, 'days'));
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-bold text-zinc-900 dark:text-white">{cursor.format('MMMM YYYY')}</span>
+          <div className="flex gap-1">
+            <button onClick={() => setCursor(moment(cursor).subtract(1, 'month'))} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"><FiChevronLeft size={15} /></button>
+            <button onClick={() => setCursor(moment(cursor).add(1, 'month'))} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"><FiChevronRight size={15} /></button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-0.5">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+            <span key={i} className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 text-center py-1">{d}</span>
+          ))}
+          {days.map((d) => {
+            const isToday = d.isSame(moment(), 'day');
+            const isSel = d.isSame(moment(currentDate), 'day');
+            const inMonth = d.isSame(cursor, 'month');
+            return (
+              <button
+                key={d.format('YYYY-MM-DD')}
+                onClick={() => { setCurrentDate(d.toDate()); setView(Views.DAY); }}
+                className={`h-7 w-7 mx-auto rounded-full text-xs flex items-center justify-center transition-colors ${
+                  isToday ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold'
+                  : isSel ? 'ring-1 ring-zinc-400 dark:ring-white/40 text-zinc-900 dark:text-white'
+                  : inMonth ? 'text-zinc-700 dark:text-zinc-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
+                  : 'text-zinc-300 dark:text-zinc-600 hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                {d.date()}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="h-[85vh] p-6 flex flex-col bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl shadow-lg relative text-black">
+    <div className="h-[88vh] flex glass-card rounded-2xl relative text-zinc-900 dark:text-white overflow-hidden">
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-2xl z-10">
+        <div className="absolute inset-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center rounded-2xl z-20">
           <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-gray-600">Loading events...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900 dark:border-white mb-4"></div>
+            <p className="text-zinc-500 dark:text-zinc-400">Loading events...</p>
           </div>
         </div>
       )}
 
-      <Calendar
-        localizer={localizer}
-        events={filteredEvents()}
-        startAccessor="start"
-        endAccessor="end"
-        date={currentDate}
-        view={view}
-        onView={handleViewChange}
-        onNavigate={handleNavigate}
-        onSelectEvent={handleEventClick}
-        views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-        eventPropGetter={eventStyleGetter}
-        components={{
-          toolbar: CustomToolbar,
-          event: CustomEvent
-        }}
-        step={30}
-        timeslots={2}
-        showMultiDayTimes
-        selectable
-        popup
-        defaultDate={new Date()}
-        className="flex-1 rounded-xl shadow-inner bg-white p-4 border border-gray-200"
-        dayPropGetter={(date) => ({
-          className: moment(date).isSame(new Date(), 'day') 
-            ? 'bg-blue-50 border-2 border-blue-200' 
-            : ''
-        })}
-      />
+      {/* Left pane — mini month + legend (Teams-style) */}
+      <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 border-r border-black/[0.06] dark:border-white/10 p-5 gap-6 overflow-y-auto">
+        <div>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Calendar</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{type === 'startup' ? 'Your meeting schedule' : 'My meetings & events'}</p>
+        </div>
+        <button onClick={() => { setCurrentDate(new Date()); setView(Views.WEEK); }} className="btn-mono w-full py-2.5">
+          <FiSun size={15} /> Today
+        </button>
+        <MiniMonth />
+        <div>
+          <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2.5">Categories</p>
+          <div className="space-y-1.5">
+            {Object.entries(eventCategories).map(([k, c]) => (
+              <div key={k} className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
+                {c.name}
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main calendar */}
+      <div className="flex-1 flex flex-col p-4 sm:p-5 min-w-0">
+        <Calendar
+          localizer={localizer}
+          events={filteredEvents()}
+          startAccessor="start"
+          endAccessor="end"
+          date={currentDate}
+          view={view}
+          onView={handleViewChange}
+          onNavigate={handleNavigate}
+          onSelectEvent={handleEventClick}
+          views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+          eventPropGetter={eventStyleGetter}
+          components={{
+            toolbar: CustomToolbar,
+            event: CustomEvent
+          }}
+          step={30}
+          timeslots={2}
+          showMultiDayTimes
+          selectable
+          popup
+          defaultDate={new Date()}
+          className="flex-1 rounded-xl bg-white dark:bg-zinc-900 p-3 sm:p-4 border border-gray-200 dark:border-white/10 rbc-mono"
+          dayPropGetter={(date) => ({
+            className: moment(date).isSame(new Date(), 'day') ? 'rbc-today-mono' : ''
+          })}
+        />
+      </div>
 
       {/* Enhanced Event Details Modal */}
       {isModalOpen && selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div 
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto transform animate-scaleIn"
+            className="bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto transform animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="relative p-6 border-b border-gray-100">
+            <div className="relative p-6 border-b border-black/10 dark:border-white/10">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
@@ -509,20 +576,20 @@ const CalendarWrapper = ({ type }) => {
                         backgroundColor: eventCategories[selectedEvent.category]?.color || '#3B82F6' 
                       }}
                     />
-                    <h3 className="text-2xl font-bold text-gray-900 leading-tight">
+                    <h3 className="text-2xl font-bold text-zinc-900 dark:text-white leading-tight">
                       {selectedEvent.title}
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
                     {getStatusBadge(selectedEvent.extendedProps?.status)}
-                    <span className="text-sm text-gray-500 capitalize">
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400 capitalize">
                       {selectedEvent.category} • {selectedEvent.extendedProps?.duration}min
                     </span>
                   </div>
                 </div>
                 <button 
                   onClick={closeModal}
-                  className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                  className="flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors p-2 hover:bg-black/[0.05] dark:hover:bg-white/[0.06] rounded-lg"
                 >
                   <FiX className="h-6 w-6" />
                 </button>
@@ -532,16 +599,16 @@ const CalendarWrapper = ({ type }) => {
             {/* Modal Body */}
             <div className="p-6 space-y-6">
               {/* Time Section */}
-              <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-xl">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <FiClock className="h-5 w-5 text-blue-600" />
+              <div className="flex items-start gap-4 p-4 glass-inset">
+                <div className="flex-shrink-0 w-10 h-10 bg-black/[0.05] dark:bg-white/[0.08] rounded-lg flex items-center justify-center">
+                  <FiClock className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-900 mb-1">Schedule</p>
-                  <p className="text-gray-800 font-semibold">
+                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Schedule</p>
+                  <p className="text-zinc-900 dark:text-white font-semibold">
                     {moment(selectedEvent.start).format('dddd, MMMM Do YYYY')}
                   </p>
-                  <p className="text-gray-600">
+                  <p className="text-zinc-500 dark:text-zinc-400">
                     {moment(selectedEvent.start).format('h:mm A')} - {moment(selectedEvent.end).format('h:mm A')}
                   </p>
                 </div>
@@ -551,24 +618,24 @@ const CalendarWrapper = ({ type }) => {
               <div className="grid gap-4">
                 {selectedEvent.extendedProps?.meetingPurpose && (
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <FiInfo className="h-5 w-5 text-purple-600" />
+                    <div className="flex-shrink-0 w-10 h-10 bg-black/[0.05] dark:bg-white/[0.08] rounded-lg flex items-center justify-center">
+                      <FiInfo className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Purpose</p>
-                      <p className="text-gray-900">{selectedEvent.extendedProps.meetingPurpose}</p>
+                      <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Purpose</p>
+                      <p className="text-zinc-900 dark:text-white">{selectedEvent.extendedProps.meetingPurpose}</p>
                     </div>
                   </div>
                 )}
 
                 {selectedEvent.extendedProps?.meetingType && (
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <FiUser className="h-5 w-5 text-green-600" />
+                    <div className="flex-shrink-0 w-10 h-10 bg-black/[0.05] dark:bg-white/[0.08] rounded-lg flex items-center justify-center">
+                      <FiUser className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Meeting Type</p>
-                      <p className="text-gray-900 capitalize">{selectedEvent.extendedProps.meetingType}</p>
+                      <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Meeting Type</p>
+                      <p className="text-zinc-900 dark:text-white capitalize">{selectedEvent.extendedProps.meetingType}</p>
                     </div>
                   </div>
                 )}
@@ -579,25 +646,25 @@ const CalendarWrapper = ({ type }) => {
                       <FiXCircle className="h-5 w-5 text-red-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">
+                      <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                         Cancellation Reason {selectedEvent.extendedProps.cancelledBy && 
                           <span className="text-red-600">(by {selectedEvent.extendedProps.cancelledBy})</span>
                         }
                       </p>
-                      <p className="text-gray-900">{selectedEvent.extendedProps.cancellationReason}</p>
+                      <p className="text-zinc-900 dark:text-white">{selectedEvent.extendedProps.cancellationReason}</p>
                     </div>
                   </div>
                 )}
 
-                {selectedEvent.extendedProps?.meetLink && (
+                {selectedEvent.extendedProps?.meetingLink && (
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                       <FiVideo className="h-5 w-5 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Meeting Link</p>
-                      <a 
-                        href={selectedEvent.extendedProps.meetLink} 
+                      <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Meeting Link</p>
+                      <a
+                        href={selectedEvent.extendedProps.meetingLink}
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
@@ -612,7 +679,7 @@ const CalendarWrapper = ({ type }) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+            <div className="p-6 border-t border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] rounded-b-2xl">
               <div className="flex flex-wrap gap-3">
                 {selectedEvent.extendedProps?.status === 'confirmed' && type === 'startup' && (
                   <button
@@ -641,7 +708,7 @@ const CalendarWrapper = ({ type }) => {
 
                 <button
                   onClick={closeModal}
-                  className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-white transition-all duration-200 font-medium"
+                  className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-white/10 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-all duration-200 font-medium"
                 >
                   Close
                 </button>

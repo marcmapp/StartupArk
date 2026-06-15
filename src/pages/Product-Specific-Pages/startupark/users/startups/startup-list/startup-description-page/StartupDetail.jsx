@@ -50,7 +50,7 @@ const StartupDetail = () => {
       // Format team member avatars
       team: data.team?.map(member => ({
         ...member,
-        avatar: getFormattedImageUrl(member.avatar)
+        profilePhoto: getFormattedImageUrl(member.profilePhoto)
       })) || []
     };
   };
@@ -78,7 +78,7 @@ const StartupDetail = () => {
         {/* Left Column - Main Content */}
         <div className="flex-1">
           {/* Tabs */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="glass-card overflow-hidden">
             <StartupTabs 
               activeTab={activeTab}
               onTabChange={setActiveTab}
@@ -102,11 +102,11 @@ const StartupDetail = () => {
 
               {activeTab === 'pitch' && (
                 <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-gray-900">Pitch Deck</h2>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Pitch Deck</h2>
                   {startupDataWithProducts.pitchDeck ? (
-                    <div className="bg-gray-50 rounded-lg p-6 flex flex-col items-center">
+                    <div className="glass-inset p-6 flex flex-col items-center">
                       {startupDataWithProducts.pitchDeck.endsWith('.pdf') ? (
-                        <div className="mb-4 p-4 bg-white rounded-lg shadow-inner">
+                        <div className="mb-4 p-4 bg-white dark:bg-zinc-800 rounded-lg shadow-inner">
                           <svg className="h-16 w-16 text-red-500" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
                             <path d="M14 2v6h6" />
@@ -116,8 +116,8 @@ const StartupDetail = () => {
                           </svg>
                         </div>
                       ) : (
-                        <div className="mb-4 p-4 bg-white rounded-lg shadow-inner">
-                          <svg className="h-16 w-16 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                        <div className="mb-4 p-4 bg-white dark:bg-zinc-800 rounded-lg shadow-inner">
+                          <svg className="h-16 w-16 text-zinc-400 dark:text-zinc-500" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
                             <path d="M14 2v6h6" />
                             <path d="M8 12h8" />
@@ -127,7 +127,7 @@ const StartupDetail = () => {
                         </div>
                       )}
 
-                      <p className="text-gray-600 mb-4 text-center">
+                      <p className="text-zinc-600 dark:text-zinc-300 mb-4 text-center">
                         {startupDataWithProducts.pitchDeck.split('/').pop()}
                       </p>
 
@@ -135,7 +135,7 @@ const StartupDetail = () => {
                         <a
                           href={startupDataWithProducts.pitchDeck}
                           download
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center"
+                          className="btn-mono"
                         >
                           <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -148,7 +148,7 @@ const StartupDetail = () => {
                             href={startupDataWithProducts.pitchDeck}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+                            className="btn-ghost"
                           >
                             <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -159,22 +159,12 @@ const StartupDetail = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
+                    <div className="text-center py-8 glass-inset">
+                      <svg className="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No pitch deck available</h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <h3 className="mt-2 text-sm font-medium text-zinc-900 dark:text-white">No pitch deck available</h3>
+                      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                         This startup hasn't uploaded a pitch deck yet.
                       </p>
                     </div>
@@ -204,53 +194,57 @@ const StartupDetail = () => {
         {/* Right Column - Sidebar */}
         <div className="lg:w-80 space-y-6">
           {/* Quick Facts */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Facts</h3>
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Quick Facts</h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Industry</p>
-                <p className="text-gray-900 font-medium">{startupDataWithProducts.industry || 'Not specified'}</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Industry</p>
+                <p className="text-zinc-900 dark:text-white font-medium">{startupDataWithProducts.industry || 'Not specified'}</p>
               </div>
 
               {startupDataWithProducts.foundedYear && (
                 <div>
-                  <p className="text-sm text-gray-500">Founded</p>
-                  <p className="text-gray-900 font-medium">{startupDataWithProducts.foundedYear}</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Founded</p>
+                  <p className="text-zinc-900 dark:text-white font-medium">{startupDataWithProducts.foundedYear}</p>
                 </div>
               )}
 
               {startupDataWithProducts.teamSize && (
                 <div>
-                  <p className="text-sm text-gray-500">Team Size</p>
-                  <p className="text-gray-900 font-medium">{startupDataWithProducts.teamSize}</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Team Size</p>
+                  <p className="text-zinc-900 dark:text-white font-medium">{startupDataWithProducts.teamSize}</p>
                 </div>
               )}
 
               {startupDataWithProducts.fundingStage && (
                 <div>
-                  <p className="text-sm text-gray-500">Funding Stage</p>
-                  <p className="text-gray-900 font-medium">{startupDataWithProducts.fundingStage}</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Funding Stage</p>
+                  <p className="text-zinc-900 dark:text-white font-medium">{startupDataWithProducts.fundingStage}</p>
                 </div>
               )}
 
               {startupDataWithProducts.businessModel && (
                 <div>
-                  <p className="text-sm text-gray-500">Business Model</p>
-                  <p className="text-gray-900 font-medium">{startupDataWithProducts.businessModel}</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Business Model</p>
+                  <p className="text-zinc-900 dark:text-white font-medium">{startupDataWithProducts.businessModel}</p>
                 </div>
               )}
 
               {startupDataWithProducts.location && (
                 <div>
-                  <p className="text-sm text-gray-500">Location</p>
-                  <p className="text-gray-900 font-medium">{startupDataWithProducts.location}</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Location</p>
+                  <p className="text-zinc-900 dark:text-white font-medium">
+                    {(typeof startupDataWithProducts.location === 'object'
+                      ? [startupDataWithProducts.location?.city, startupDataWithProducts.location?.state].filter(Boolean).join(', ')
+                      : startupDataWithProducts.location) || 'Not specified'}
+                  </p>
                 </div>
               )}
 
               {/* Products Count */}
               <div>
-                <p className="text-sm text-gray-500">Products</p>
-                <p className="text-gray-900 font-medium">{products?.length || 0}</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Products</p>
+                <p className="text-zinc-900 dark:text-white font-medium">{products?.length || 0}</p>
               </div>
             </div>
           </div>
@@ -265,15 +259,15 @@ const StartupDetail = () => {
 
           {/* Social Media */}
           {(startupDataWithProducts.linkedin || startupDataWithProducts.twitter || startupDataWithProducts.facebook) && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Connect With Us</h3>
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Connect With Us</h3>
               <div className="flex space-x-4">
                 {startupDataWithProducts.linkedin && (
                   <a
                     href={startupDataWithProducts.linkedin.includes('http') ? startupDataWithProducts.linkedin : `https://${startupDataWithProducts.linkedin}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-indigo-600 transition-colors"
+                    className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
                   >
                     <span className="sr-only">LinkedIn</span>
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -286,7 +280,7 @@ const StartupDetail = () => {
                     href={startupDataWithProducts.twitter.includes('http') ? startupDataWithProducts.twitter : `https://twitter.com/${startupDataWithProducts.twitter}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-indigo-600 transition-colors"
+                    className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
                   >
                     <span className="sr-only">Twitter</span>
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -299,7 +293,7 @@ const StartupDetail = () => {
                     href={startupDataWithProducts.facebook.includes('http') ? startupDataWithProducts.facebook : `https://facebook.com/${startupDataWithProducts.facebook}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-indigo-600 transition-colors"
+                    className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
                   >
                     <span className="sr-only">Facebook</span>
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -318,15 +312,15 @@ const StartupDetail = () => {
 
 // Contact Card Component
 const ContactCard = ({ email, phone, website, contactName }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
+  <div className="glass-card p-6">
+    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Contact</h3>
     <div className="space-y-3">
       {email && (
         <div>
-          <p className="text-sm text-gray-500">Email</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Email</p>
           <a
             href={`mailto:${email}`}
-            className="text-indigo-600 hover:text-indigo-800 text-sm"
+            className="text-zinc-900 dark:text-white hover:underline text-sm"
           >
             {email}
           </a>
@@ -334,10 +328,10 @@ const ContactCard = ({ email, phone, website, contactName }) => (
       )}
       {phone && (
         <div>
-          <p className="text-sm text-gray-500">Phone</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Phone</p>
           <a
             href={`tel:${phone}`}
-            className="text-gray-900 text-sm"
+            className="text-zinc-900 dark:text-white text-sm"
           >
             {phone}
           </a>
@@ -345,12 +339,12 @@ const ContactCard = ({ email, phone, website, contactName }) => (
       )}
       {website && (
         <div>
-          <p className="text-sm text-gray-500">Website</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Website</p>
           <a
             href={website}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center"
+            className="text-zinc-900 dark:text-white hover:underline text-sm flex items-center"
           >
             {website.replace(/^https?:\/\//, '')}
             <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,23 +361,23 @@ const ContactCard = ({ email, phone, website, contactName }) => (
 const LoadingStartupDetail = () => (
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div className="mb-6">
-      <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+      <div className="h-6 w-24 glass-inset rounded animate-pulse"></div>
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-6">
-        <div className="h-96 bg-gray-200 rounded-lg animate-pulse"></div>
+        <div className="h-96 glass-inset rounded-lg animate-pulse"></div>
         <div className="space-y-4">
-          <div className="h-8 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-8 w-1/3 glass-inset rounded animate-pulse"></div>
+          <div className="h-4 glass-inset rounded animate-pulse"></div>
+          <div className="h-4 glass-inset rounded animate-pulse"></div>
+          <div className="h-4 w-2/3 glass-inset rounded animate-pulse"></div>
         </div>
       </div>
 
       <div className="space-y-6">
-        <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
-        <div className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>
+        <div className="h-64 glass-inset rounded-lg animate-pulse"></div>
+        <div className="h-48 glass-inset rounded-lg animate-pulse"></div>
       </div>
     </div>
   </div>
@@ -434,12 +428,12 @@ const EmptyState = () => (
         d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
       />
     </svg>
-    <h3 className="mt-2 text-lg font-medium text-gray-900">Startup not found</h3>
-    <p className="mt-1 text-gray-500">The startup you're looking for doesn't exist or may have been removed.</p>
+    <h3 className="mt-2 text-lg font-medium text-zinc-900 dark:text-white">Startup not found</h3>
+    <p className="mt-1 text-zinc-500 dark:text-zinc-400">The startup you're looking for doesn't exist or may have been removed.</p>
     <div className="mt-6">
       <Link
         to="/startupark/startups"
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        className="btn-mono px-4 py-2"
       >
         Browse Startups
       </Link>

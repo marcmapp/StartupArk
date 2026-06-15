@@ -48,7 +48,7 @@ const VirtualCardPublicView = () => {
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold">{startup.startupName}</h1>
+              <h1 className="text-2xl font-bold">{startup.companyName || startup.startupName}</h1>
               <p className="text-blue-100">{startup.tagline}</p>
             </div>
             {startup.logo && (
@@ -78,7 +78,11 @@ const VirtualCardPublicView = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Location</h3>
-                  <p>{startup.location}</p>
+                  <p>
+                    {(typeof startup.location === 'object'
+                      ? [startup.location?.city, startup.location?.state].filter(Boolean).join(', ')
+                      : startup.location) || 'N/A'}
+                  </p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Founded</h3>

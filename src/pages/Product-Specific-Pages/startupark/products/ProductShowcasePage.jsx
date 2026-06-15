@@ -1,587 +1,381 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import ProductImageCarousel from './ProductImageCarousel';
-import { FiExternalLink, FiSearch, FiFilter, FiX, FiArrowRight, FiUser } from 'react-icons/fi';
-import { MdRocketLaunch, MdTrendingUp } from 'react-icons/md';
-import Loader from '../../../../components/Loader';
 
-const ProductShowcase = () => {
+const BASE = import.meta.env.VITE_API_BASE_URL;
+const R2 = 'https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev';
+
+function r2Url(key) {
+  if (!key) return null;
+  if (key.startsWith('http') || key.startsWith('blob:')) return key;
+  return `${R2}/${key}`;
+}
+
+function getThumb(product) {
+  if (product.gallery?.length > 0) return r2Url(product.gallery[0].url);
+  if (product.featuredImage) return r2Url(product.featuredImage);
+  return null;
+}
+
+const STAGE_STYLES = {
+  launched: 'bg-green-900/50 text-green-400 ring-green-800',
+  beta:     'bg-blue-900/50 text-blue-400 ring-blue-800',
+  scaling:  'bg-amber-900/50 text-amber-400 ring-amber-800',
+  concept:  'bg-zinc-800 text-zinc-400 ring-zinc-700',
+};
+const STAGE_LABELS = { concept: 'Concept', beta: 'Beta', launched: 'Launched', scaling: 'Scaling' };
+const PRICING_LABELS = { free: 'Free', freemium: 'Freemium', paid: 'Paid', 'contact-us': 'Contact Us' };
+
+export default function ProductShowcase() {
   const [products, setProducts] = useState([]);
-  const [currentUserProducts, setCurrentUserProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [publicProducts, setPublicProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    industry: '',
-    stage: '',
-    tags: []
-  });
+  const [filters, setFilters] = useState({ industry: '', stage: '', tags: [] });
   const [availableTags, setAvailableTags] = useState([]);
   const [availableIndustries, setAvailableIndustries] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [baseUrl] = useState(import.meta.env.VITE_API_BASE_URL);
-  const [currentUserStartupId, setCurrentUserStartupId] = useState(null);
-
-  const getAuthToken = () => {
-    return localStorage.getItem('token') || document.cookie
-      .split('; ')
-      .find(row => row.startsWith('token='))
-      ?.split('=')[1];
-  };
-
-  // UPDATED: Helper function to get image URL
-  const getImageUrl = (key) => {
-    if (!key) return '/default-product.png';
-    if (key.startsWith('http') || key.startsWith('blob:')) return key;
-    
-    // Check if it's already a full URL
-    if (key.includes(baseUrl)) return key;
-    
-    // Assume it's an S3 key
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
-  };
-
-  // Helper function to get startup logo URL
-  const getStartupLogoUrl = (logoKey) => {
-    if (!logoKey) return null;
-    return getImageUrl(logoKey);
-  };
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const token = getAuthToken();
-        const [productsRes, dashboardRes] = await Promise.all([
-          axios.get(`${baseUrl}/startupark/api/products`),
-          token ? axios.get(`${baseUrl}/startupark/api/startupark/dashboard`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }) : Promise.resolve({ data: [] })
-        ]);
-        
-        const allProducts = productsRes.data.products || productsRes.data || [];
-        setProducts(allProducts);
-        
-        if (dashboardRes.data) {
-          const userStartup = dashboardRes.data.find(item => item.role === 'startup');
-          if (userStartup) {
-            setCurrentUserStartupId(userStartup._id);
-            
-            const userProducts = allProducts.filter(product => 
-              product.startupId?._id === userStartup._id || 
-              product.startup?._id === userStartup._id
-            );
-            setCurrentUserProducts(userProducts);
-          }
-        }
-        
-        const allTags = new Set();
-        const allIndustries = new Set();
-        
-        allProducts.forEach(product => {
-          if (product.tags) {
-            product.tags.forEach(tag => allTags.add(tag));
-          }
-          if (product.industry) {
-            allIndustries.add(product.industry);
-          }
-        });
-        
-        setAvailableTags(Array.from(allTags));
-        setAvailableIndustries(Array.from(allIndustries));
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError(err.response?.data?.error || 'Failed to load products');
-      } finally {
-        setLoading(false);
-      }
-    };
+    axios.get(`${BASE}/startupark/api/products`)
+      .then(res => {
+        const all = res.data.products || res.data || [];
+        setProducts(all);
 
-    fetchProducts();
-  }, [baseUrl]);
+        const tagSet = new Set();
+        const indSet = new Set();
+        all.forEach(p => {
+          p.tags?.forEach(t => tagSet.add(t));
+          if (p.industry) indSet.add(p.industry);
+        });
+        setAvailableTags([...tagSet]);
+        setAvailableIndustries([...indSet]);
+      })
+      .catch(err => setError(err.response?.data?.error || 'Failed to load products'))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     let results = products;
 
-    if (currentUserStartupId) {
-      results = results.filter(product => 
-        !product.startupId || product.startupId._id !== currentUserStartupId
-      );
-    }
-
     if (searchTerm) {
-      results = results.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.shortDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      const q = searchTerm.toLowerCase();
+      results = results.filter(p =>
+        p.name?.toLowerCase().includes(q) ||
+        p.shortDescription?.toLowerCase().includes(q)
       );
     }
-
-    if (filters.industry !== '') {
-      results = results.filter(product => product.industry === filters.industry);
-    }
-
-    if (filters.stage !== '') {
-      results = results.filter(product => product.stage === filters.stage);
-    }
-
+    if (filters.industry) results = results.filter(p => p.industry === filters.industry);
+    if (filters.stage) results = results.filter(p => p.stage === filters.stage);
     if (filters.tags.length > 0) {
-      results = results.filter(product =>
-        product.tags && filters.tags.some(tag => product.tags.includes(tag))
-      );
+      results = results.filter(p => p.tags && filters.tags.some(t => p.tags.includes(t)));
     }
 
     setFilteredProducts(results);
-    setPublicProducts(results);
-  }, [searchTerm, filters, products, currentUserStartupId]);
-
-  // Helper function to get display images
-  const getDisplayImages = (product) => {
-    if (product.images && product.images.length > 0) {
-      return product.images.map(img => ({
-        ...img,
-        url: getImageUrl(img.url)
-      }));
-    }
-    
-    if (product.featuredImage) {
-      return [{ url: getImageUrl(product.featuredImage), type: 'image', isFeatured: true }];
-    }
-    
-    return [];
-  };
-
-  const handleTagToggle = (tag) => {
-    setFilters(prev => ({
-      ...prev,
-      tags: prev.tags.includes(tag)
-        ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag]
-    }));
-  };
+  }, [searchTerm, filters, products]);
 
   const clearFilters = () => {
-    setFilters({
-      industry: '',
-      stage: '',
-      tags: []
-    });
+    setFilters({ industry: '', stage: '', tags: [] });
     setSearchTerm('');
   };
 
+  const toggleTag = tag =>
+    setFilters(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag]
+    }));
+
+  const activeFilterCount = [
+    filters.industry ? 1 : 0,
+    filters.stage ? 1 : 0,
+    filters.tags.length
+  ].reduce((a, b) => a + b, 0);
+
   if (loading) {
-    return <Loader />;
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-zinc-300 animate-spin mx-auto" />
+          <p className="text-sm text-zinc-500">Loading products…</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FiX className="w-8 h-8 text-red-500" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Error Loading Products</h3>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-            >
-              Try Again
-            </button>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-6">
+        <div className="glass-card p-10 text-center max-w-md space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-red-900/30 flex items-center justify-center mx-auto">
+            <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <p className="text-zinc-300">{error}</p>
+          <button onClick={() => window.location.reload()} className="btn-mono text-sm px-5 py-2">
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg mb-6">
-            <MdRocketLaunch className="w-6 h-6 text-indigo-600" />
-            <span className="text-sm font-semibold text-gray-700">Product Showcase</span>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-6">
+
+        {/* Page header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-100">Product Showcase</h1>
+            <p className="text-sm text-zinc-500 mt-0.5">Discover products from across the StartupArk ecosystem</p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent mb-4">
-            Discover Innovation
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Explore groundbreaking products from our vibrant startup ecosystem
-          </p>
+          <Link to="/startupark/products/manage" className="btn-ghost text-xs px-4 py-2 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Manage My Products
+          </Link>
         </div>
 
-        {/* Current User Products Header */}
-        {currentUserProducts.length > 0 && (
-          <div className="mb-8">
-            <div className="rounded-2xl p-6 shadow-xl border border-cyan/20">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                <div className="flex-shrink-0">
-                  <div className="h-20 w-20 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 overflow-hidden flex items-center justify-center">
-                    {currentUserProducts[0]?.startupId?.formData?.logo || currentUserProducts[0]?.startup?.logo ? (
-                      <img
-                        src={getStartupLogoUrl(
-                          currentUserProducts[0].startupId?.formData?.logo || 
-                          currentUserProducts[0].startup?.logo
-                        )}
-                        alt="Startup logo"
-                        className="h-16 w-16 object-cover"
-                        onError={(e) => {
-                          e.target.src = '/default-product.png';
-                        }}
-                      />
-                    ) : (
-                      <div className="h-16 w-16 flex items-center justify-center">
-                        <FiUser className="w-8 h-8 text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold">My Products</h2>
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
-                      Featured
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    {currentUserProducts.length} Product{currentUserProducts.length !== 1 ? 's' : ''} from Your Startup
-                  </h3>
-                  <p className="mb-3">
-                    Manage and track your product portfolio
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {currentUserProducts.slice(0, 3).map(product => (
-                      <span key={product._id} className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm">
-                        {product.name}
-                      </span>
-                    ))}
-                    {currentUserProducts.length > 3 && (
-                      <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm text-white">
-                        +{currentUserProducts.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex-shrink-0">
-                  <Link 
-                    to="/manage-products"
-                    className="inline-flex items-center gap-2 bg-white text-cyan-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-lg hover:shadow-xl"
-                  >
-                    Manage Products
-                    <FiArrowRight className="ml-1" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-            
-            {/* Separator */}
-            <div className="mt-6 text-center">
-              <div className="inline-flex items-center gap-4 text-gray-500">
-                <div className="h-px w-20 bg-gray-300"></div>
-                <span className="text-sm font-medium">Discover Other Products</span>
-                <div className="h-px w-20 bg-gray-300"></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Search and Filter Section */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-8 border border-white/50">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            {/* Search Bar */}
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FiSearch className="text-gray-400 w-5 h-5" />
-              </div>
+        {/* Search + filter bar */}
+        <div className="glass-card p-4 space-y-4">
+          <div className="flex gap-3">
+            {/* Search */}
+            <div className="relative flex-1">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
                 type="text"
-                placeholder="Search products by name, description..."
-                className="w-full pl-12 pr-4 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
+                placeholder="Search products…"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="input-mono w-full pl-9 text-sm"
               />
             </div>
-            
-            {/* Filter Controls */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center gap-2 px-5 py-4 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md"
-              >
-                <FiFilter className="w-4 h-4" />
-                Filters
-                {(filters.tags.length > 0 || filters.industry || filters.stage) && (
-                  <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-                    {[filters.industry ? 1 : 0, filters.stage ? 1 : 0, filters.tags.length].reduce((a, b) => a + b, 0)}
-                  </span>
-                )}
-              </button>
-              
-              {(filters.tags.length > 0 || filters.industry || filters.stage || searchTerm) && (
-                <button
-                  onClick={clearFilters}
-                  className="inline-flex items-center gap-2 px-5 py-4 text-gray-600 hover:text-gray-800 font-medium transition-colors"
-                >
-                  Clear All
-                </button>
+
+            {/* Filter toggle */}
+            <button
+              onClick={() => setShowFilters(v => !v)}
+              className={`btn-ghost text-xs px-4 py-2 flex items-center gap-2 ${showFilters ? 'ring-1 ring-zinc-600' : ''}`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="bg-zinc-200 text-zinc-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {activeFilterCount}
+                </span>
               )}
-            </div>
+            </button>
+
+            {(activeFilterCount > 0 || searchTerm) && (
+              <button onClick={clearFilters} className="btn-ghost text-xs px-3 py-2 text-zinc-500">
+                Clear
+              </button>
+            )}
           </div>
 
-          {/* Expanded Filters */}
+          {/* Expanded filters */}
           {showFilters && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Industry Filter */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Industry</label>
-                  <select
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    value={filters.industry}
-                    onChange={(e) => setFilters({...filters, industry: e.target.value})}
-                  >
-                    <option value="">All Industries</option>
-                    {availableIndustries.map((industry, index) => (
-                      <option key={index} value={industry}>{industry}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-zinc-800">
+              {/* Industry */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-zinc-500 uppercase tracking-wide font-medium">Industry</label>
+                <select
+                  value={filters.industry}
+                  onChange={e => setFilters(f => ({ ...f, industry: e.target.value }))}
+                  className="input-mono w-full text-sm"
+                >
+                  <option value="">All Industries</option>
+                  {availableIndustries.map(ind => (
+                    <option key={ind} value={ind}>{ind}</option>
+                  ))}
+                </select>
+              </div>
 
-                {/* Stage Filter */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Stage</label>
-                  <select
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    value={filters.stage}
-                    onChange={(e) => setFilters({...filters, stage: e.target.value})}
-                  >
-                    <option value="">All Stages</option>
-                    <option value="Concept">Concept</option>
-                    <option value="Beta">Beta</option>
-                    <option value="Launched">Launched</option>
-                    <option value="Scaling">Scaling</option>
-                  </select>
-                </div>
+              {/* Stage */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-zinc-500 uppercase tracking-wide font-medium">Stage</label>
+                <select
+                  value={filters.stage}
+                  onChange={e => setFilters(f => ({ ...f, stage: e.target.value }))}
+                  className="input-mono w-full text-sm"
+                >
+                  <option value="">All Stages</option>
+                  <option value="concept">Concept</option>
+                  <option value="beta">Beta</option>
+                  <option value="launched">Launched</option>
+                  <option value="scaling">Scaling</option>
+                </select>
+              </div>
 
-                {/* Tags Filter */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Popular Tags</label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableTags.slice(0, 8).map(tag => (
-                      <button
-                        key={tag}
-                        onClick={() => handleTagToggle(tag)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          filters.tags.includes(tag)
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
+              {/* Tags */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-zinc-500 uppercase tracking-wide font-medium">Tags</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableTags.slice(0, 8).map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`text-xs px-2.5 py-1 rounded-full ring-1 transition-all ${
+                        filters.tags.includes(tag)
+                          ? 'bg-zinc-200 text-zinc-900 ring-zinc-400'
+                          : 'bg-zinc-900 text-zinc-400 ring-zinc-700 hover:ring-zinc-500'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Results Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Discover Products
-            </h2>
-            <p className="text-gray-600 mt-2">
-              Showing <span className="font-semibold text-blue-600">{publicProducts.length}</span> products
-              {publicProducts.length !== products.length - currentUserProducts.length && (
-                <span className="text-gray-500"> (filtered)</span>
-              )}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <MdTrendingUp className="w-4 h-4" />
-            <span>Sorted by popularity</span>
-          </div>
+        {/* Results count */}
+        <div className="flex items-center justify-between text-xs text-zinc-500">
+          <span>
+            Showing <span className="text-zinc-300 font-semibold">{filteredProducts.length}</span>
+            {filteredProducts.length !== products.length && ` of ${products.length}`} products
+          </span>
+          <span>Sorted by latest</span>
         </div>
 
-        {/* Products Grid */}
-        {publicProducts.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden text-center py-16">
-            <div className="w-24 h-24 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FiSearch className="w-10 h-10 text-blue-500" />
+        {/* Product grid */}
+        {filteredProducts.length === 0 ? (
+          <div className="glass-card py-16 text-center space-y-4">
+            <div className="w-14 h-14 rounded-xl bg-zinc-800 flex items-center justify-center mx-auto">
+              <svg className="w-7 h-7 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">No products found</h3>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">
-              We couldn't find any products matching your criteria. Try adjusting your search or filters.
-            </p>
-            <button
-              onClick={clearFilters}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-            >
-              Clear all filters
-            </button>
+            <div>
+              <p className="text-zinc-300 font-medium">No products found</p>
+              <p className="text-xs text-zinc-600 mt-1">Try adjusting your search or filters</p>
+            </div>
+            <button onClick={clearFilters} className="btn-ghost text-xs px-4 py-2">Clear filters</button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {publicProducts.map(product => (
-              <ProductCard 
-                key={product._id} 
-                product={product} 
-                getDisplayImages={getDisplayImages}
-                getImageUrl={getImageUrl}
-                getStartupLogoUrl={getStartupLogoUrl}
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredProducts.map(product => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         )}
+
       </div>
     </div>
   );
-};
+}
 
-// Product Card Component
-const ProductCard = ({ product, getDisplayImages, getImageUrl, getStartupLogoUrl }) => {
-  const displayImages = getDisplayImages(product);
+function ProductCard({ product }) {
+  const thumb = getThumb(product);
   const startup = product.startupId || product.startup;
+  const stage = product.stage || 'concept';
+  const stageStyle = STAGE_STYLES[stage] || STAGE_STYLES.concept;
+  const [imgErr, setImgErr] = useState(false);
 
   return (
-    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200">
-      {/* Product Image with Carousel */}
-      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-        <ProductImageCarousel 
-          images={displayImages}
-          productName={product.name}
-          className="h-48"
-          showThumbnails={false}
-          enableZoom={false}
-        />
-        
-        {/* Stage Badge */}
-        {product.stage && (
-          <div className="absolute top-3 right-3">
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-lg ${
-              product.stage === 'Launched' ? 'bg-green-500 text-white' :
-              product.stage === 'Beta' ? 'bg-blue-500 text-white' :
-              product.stage === 'Scaling' ? 'bg-purple-500 text-white' :
-              'bg-gray-500 text-white'
-            }`}>
-              {product.stage}
-            </span>
+    <Link
+      to={`/products/${product._id}`}
+      className="group glass-card overflow-hidden flex flex-col hover:ring-1 hover:ring-zinc-600 transition-all duration-200"
+    >
+      {/* Image */}
+      <div className="relative h-44 bg-zinc-900 overflow-hidden">
+        {thumb && !imgErr ? (
+          <img
+            src={thumb}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <svg className="w-10 h-10 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
           </div>
         )}
-        
-        {/* Startup Logo */}
+
+        {/* Stage badge */}
+        <div className="absolute top-2.5 right-2.5">
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ${stageStyle}`}>
+            {STAGE_LABELS[stage] || stage}
+          </span>
+        </div>
+
+        {/* Dark gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-transparent" />
+
+        {/* Startup badge */}
         {startup && (
-          <div className="absolute bottom-3 left-3 flex items-center gap-2">
-            {startup.formData?.logo || startup.logo ? (
+          <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5">
+            {startup.logo ? (
               <img
-                src={getStartupLogoUrl(startup.formData?.logo || startup.logo)}
-                alt="Startup logo"
-                className="h-8 w-8 rounded-full border-2 border-white bg-white shadow-md"
-                onError={(e) => {
-                  e.target.src = '/default-product.png';
-                }}
+                src={r2Url(startup.logo)}
+                alt=""
+                className="w-5 h-5 rounded-full ring-1 ring-zinc-700 object-cover"
+                onError={e => { e.target.style.display = 'none'; }}
               />
-            ) : null}
-            <span className="px-2 py-1 bg-black/70 text-white text-xs rounded-lg backdrop-blur-sm">
-              {startup.formData?.startupName || startup.name}
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-[9px] font-bold text-zinc-300 ring-1 ring-zinc-600">
+                {(startup.companyName || startup.name)?.[0] || 'S'}
+              </div>
+            )}
+            <span className="text-[10px] text-zinc-300 font-medium">
+              {startup.companyName || startup.name}
             </span>
           </div>
         )}
-        
-        {/* Website Link */}
-        {product.website && (
-          <div className="absolute bottom-3 right-3">
-            <a
-              href={product.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white/90 backdrop-blur-sm p-2 rounded-lg shadow-lg hover:bg-white transition-colors"
-              title="Visit website"
-            >
-              <FiExternalLink className="w-4 h-4 text-gray-700" />
-            </a>
-          </div>
-        )}
-        
-        {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
-      {/* Product Content */}
-      <div className="p-5">
-        {/* Product Header */}
-        <div className="mb-3">
-          <h3 className="font-bold text-lg text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-2">
+      {/* Content */}
+      <div className="p-4 flex flex-col flex-1 space-y-3">
+        <div>
+          <h3 className="font-semibold text-zinc-100 text-sm leading-tight line-clamp-2 group-hover:text-white transition-colors">
             {product.name}
           </h3>
-          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
-            {product.shortDescription}
-          </p>
+          {product.shortDescription && (
+            <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+              {product.shortDescription}
+            </p>
+          )}
         </div>
 
         {/* Tags */}
         {product.tags?.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-1">
-            {product.tags.slice(0, 3).map((tag, index) => (
-              <span key={index} className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-md font-medium">
-                {tag}
+          <div className="flex flex-wrap gap-1">
+            {product.tags.slice(0, 3).map((t, i) => (
+              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500 ring-1 ring-zinc-700">
+                {t}
               </span>
             ))}
             {product.tags.length > 3 && (
-              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-600">
                 +{product.tags.length - 3}
               </span>
             )}
           </div>
         )}
 
-        {/* Meta Information */}
-        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-          {product.industry && (
-            <span className="flex items-center gap-1">
-              <FiExternalLink className="w-4 h-4" />
-              {product.industry}
+        {/* Bottom row */}
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-zinc-800">
+          <span className="text-[10px] text-zinc-600 capitalize">{product.industry || product.category}</span>
+          {product.pricing && (
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ${
+              product.pricing === 'free'
+                ? 'bg-emerald-900/40 text-emerald-400 ring-emerald-800'
+                : 'bg-zinc-800 text-zinc-400 ring-zinc-700'
+            }`}>
+              {PRICING_LABELS[product.pricing] || product.pricing}
             </span>
-          )}
-          {product.price && (
-            <span className="font-semibold text-green-600">
-              ${product.price}
-            </span>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <Link
-            to={`/products/${product._id}`}
-            className="text-blue-600 hover:text-blue-800 font-semibold text-sm flex items-center gap-2 group-hover:gap-3 transition-all"
-          >
-            View Details
-            <FiExternalLink className="w-4 h-4" />
-          </Link>
-          
-          {startup && (
-            <Link
-              to={`/startups/${startup._id}`}
-              className="text-gray-500 hover:text-gray-700 text-xs flex items-center gap-1"
-            >
-              <span>By {startup.formData?.startupName || startup.name}</span>
-            </Link>
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
-};
-
-export default ProductShowcase;
+}

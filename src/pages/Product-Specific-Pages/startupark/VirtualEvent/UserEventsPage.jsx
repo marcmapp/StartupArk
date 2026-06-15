@@ -53,13 +53,13 @@ const UserEventsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 dark:bg-zinc-950 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Virtual Events</h1>
+        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-8">Virtual Events</h1>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow mb-6">
+          <div className="border-b border-gray-200 dark:border-white/10">
             <nav className="flex -mb-px">
               {['discover', 'attending', 'my-events'].map((tab) => (
                 <button
@@ -68,7 +68,7 @@ const UserEventsPage = () => {
                   className={`py-4 px-6 text-center border-b-2 font-medium text-sm capitalize ${
                     activeTab === tab
                       ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:border-gray-300 dark:border-white/10'
                   }`}
                 >
                   {tab === 'discover' ? 'Discover Events' : 
@@ -92,12 +92,12 @@ const UserEventsPage = () => {
         </div>
 
         {getEventsToShow().length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
+          <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-lg shadow">
             <svg className="w-24 h-24 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
-            <p className="text-gray-500">
+            <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">No events found</h3>
+            <p className="text-zinc-500 dark:text-zinc-400">
               {activeTab === 'discover' 
                 ? 'Check back later for new events.' 
                 : 'You are not registered for any events yet.'}

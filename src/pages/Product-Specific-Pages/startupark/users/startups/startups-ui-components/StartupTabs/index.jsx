@@ -25,7 +25,7 @@ const StartupTabs = ({
   ];
 
   return (
-    <div className="border-b border-gray-200">
+    <div className="border-b border-black/[0.06] dark:border-white/[0.08]">
       <nav className="-mb-px flex space-x-6 sm:space-x-8 px-5 sm:px-8 overflow-x-auto">
         {tabs.map(tab => (
           <button
@@ -33,17 +33,17 @@ const StartupTabs = ({
             onClick={() => onTabChange(tab.key)}
             className={`py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors flex items-center ${
               activeTab === tab.key
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
+                : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-600'
             }`}
           >
             <tab.icon className="inline mr-1.5" />
             {tab.label}
             {tab.count !== undefined && (
               <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
-                tab.count > 0 
-                  ? 'bg-indigo-100 text-indigo-700' 
-                  : 'bg-gray-100 text-gray-500'
+                tab.count > 0
+                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                  : 'glass-inset text-zinc-500 dark:text-zinc-400'
               }`}>
                 {tab.count || 0}
               </span>

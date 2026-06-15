@@ -1,347 +1,294 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AddProductForm from './AddProductForm';
-import ProductImageCarousel from './ProductImageCarousel';
 import axios from 'axios';
-import { 
-  FiEdit2, 
-  FiTrash2, 
-  FiEye, 
-  FiPlus, 
-  FiExternalLink, 
-  FiAlertCircle,
-  FiSearch,
-  FiFilter,
-  FiUsers,
-  FiTrendingUp,
-  FiPackage,
-  FiGlobe,
-  FiTag
-} from 'react-icons/fi';
-import { MdRocketLaunch } from 'react-icons/md';
 
-const ProductManagement = () => {
+const BASE = import.meta.env.VITE_API_BASE_URL;
+const R2 = 'https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev';
+
+function r2Url(key) {
+  if (!key) return null;
+  if (key.startsWith('http') || key.startsWith('blob:')) return key;
+  return `${R2}/${key}`;
+}
+
+function authGet() {
+  const token = localStorage.getItem('token');
+  return { Authorization: `Bearer ${token}` };
+}
+
+const STAGE_STYLES = {
+  launched: 'bg-green-900/40 text-green-400 ring-green-800',
+  beta:     'bg-blue-900/40 text-blue-400 ring-blue-800',
+  scaling:  'bg-amber-900/40 text-amber-400 ring-amber-800',
+  concept:  'bg-zinc-800 text-zinc-400 ring-zinc-700',
+};
+const STAGE_LABEL = { concept: 'Concept', beta: 'Beta', launched: 'Launched', scaling: 'Scaling' };
+
+export default function ProductManagement() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [baseUrl] = useState(import.meta.env.VITE_API_BASE_URL);
-  const [hasStartupProfile, setHasStartupProfile] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [hasStartup, setHasStartup] = useState(false);
   const [startupProfile, setStartupProfile] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [search, setSearch] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  // UPDATED: Helper function to get image URL
-  const getImageUrl = (key) => {
-    if (!key) return '/default-product.png';
-    if (key.startsWith('http') || key.startsWith('blob:')) return key;
-    
-    // Check if it's already a full URL
-    if (key.includes(baseUrl)) return key;
-    
-    // Assume it's an S3 key
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
-  };
+  useEffect(() => { checkProfile(); }, []);
 
-  const getAuthToken = () => {
-    return localStorage.getItem('token');
-  };
-
-  useEffect(() => {
-    checkStartupProfile();
-  }, []);
-
-  useEffect(() => {
-    if (products.length > 0) {
-      const filtered = products.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.shortDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [searchTerm, products]);
-
-  const checkStartupProfile = async () => {
+  async function checkProfile() {
     try {
-      const token = getAuthToken();
-      const response = await axios.get(`${baseUrl}/startupark/api/startupark/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const userStartup = response.data.find(item => item.role === 'startup');
-      if (userStartup) {
-        setHasStartupProfile(true);
-        setStartupProfile(userStartup);
-        fetchProducts();
+      const { data } = await axios.get(`${BASE}/startupark/api/profile/startup`, { headers: authGet() });
+      if (data?.profile) {
+        setHasStartup(true);
+        setStartupProfile(data.profile);
+        await fetchProducts();
       } else {
-        setHasStartupProfile(false);
+        setHasStartup(false);
         setLoading(false);
       }
-    } catch (err) {
-      console.error('Error checking startup profile:', err);
-      setHasStartupProfile(false);
+    } catch (e) {
+      setHasStartup(e.response?.status !== 404 ? false : false);
       setLoading(false);
     }
-  };
+  }
 
-  const fetchProducts = async () => {
+  async function fetchProducts() {
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = getAuthToken();
-      const response = await axios.get(`${baseUrl}/startupark/api/products/my-products`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProducts(response.data || []);
-      setFilteredProducts(response.data || []);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError(err.response?.data?.error || 'Failed to load products');
+      const { data } = await axios.get(`${BASE}/startupark/api/products?mine=true`, { headers: authGet() });
+      setProducts(data?.products || []);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Failed to load products');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleDeleteProduct = async (productId) => {
-    if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-      return;
-    }
-
+  async function deleteProduct(id) {
     try {
-      const token = getAuthToken();
-      await axios.delete(`${baseUrl}/startupark/api/products/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      setProducts(prev => prev.filter(p => p._id !== productId));
-      setFilteredProducts(prev => prev.filter(p => p._id !== productId));
-    } catch (err) {
-      console.error('Error deleting product:', err);
-      alert('Failed to delete product');
+      await axios.delete(`${BASE}/startupark/api/products/${id}`, { headers: authGet() });
+      setProducts(prev => prev.filter(p => p._id !== id));
+      setDeleteConfirm(null);
+    } catch (e) {
+      setError('Failed to delete product');
     }
+  }
+
+  function handleSuccess(product) {
+    setShowForm(false);
+    setEditing(null);
+    if (!product) return;
+    if (editing) {
+      setProducts(prev => prev.map(p => p._id === product._id ? product : p));
+    } else {
+      setProducts(prev => [product, ...prev]);
+    }
+  }
+
+  function getThumb(product) {
+    if (product.featuredImage) return r2Url(product.featuredImage);
+    const first = product.gallery?.[0];
+    if (first?.url) return r2Url(first.url);
+    return null;
+  }
+
+  const filtered = search
+    ? products.filter(p =>
+        p.name?.toLowerCase().includes(search.toLowerCase()) ||
+        p.shortDescription?.toLowerCase().includes(search.toLowerCase()) ||
+        p.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
+      )
+    : products;
+
+  const stats = {
+    total: products.length,
+    launched: products.filter(p => p.stage === 'launched').length,
+    beta: products.filter(p => p.stage === 'beta').length,
+    withSite: products.filter(p => p.website).length,
   };
 
-  const handleProductSuccess = (product) => {
-    setShowProductForm(false);
-    setEditingProduct(null);
-    
-    if (product) {
-      if (editingProduct) {
-        setProducts(prev => prev.map(p => p._id === product._id ? product : p));
-        setFilteredProducts(prev => prev.map(p => p._id === product._id ? product : p));
-      } else {
-        setProducts(prev => [product, ...prev]);
-        setFilteredProducts(prev => [product, ...prev]);
-      }
-    }
-  };
-
-  // Helper function to get display images
-  const getDisplayImages = (product) => {
-    if (product.images && product.images.length > 0) {
-      return product.images.map(img => ({
-        ...img,
-        url: getImageUrl(img.url)
-      }));
-    }
-    
-    if (product.featuredImage) {
-      return [{ url: getImageUrl(product.featuredImage), type: 'image', isFeatured: true }];
-    }
-    
-    return [];
-  };
-
+  // ── Loading ──────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your products...</p>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-zinc-300 animate-spin mx-auto" />
+          <p className="text-sm text-zinc-500">Loading products…</p>
         </div>
       </div>
     );
   }
 
-  if (!hasStartupProfile) {
+  // ── No startup profile ────────────────────────────────────────
+  if (!hasStartup) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FiAlertCircle className="w-10 h-10 text-yellow-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Startup Profile Required</h2>
-            <p className="text-gray-600 mb-8 text-lg">
-              You need to create a startup profile before you can manage products.
-            </p>
-            <Link
-              to="/startupark/startup-edit-profile"
-              className="inline-flex items-center gap-2 bg-yellow-600 text-white px-8 py-4 rounded-xl hover:bg-yellow-700 font-semibold text-lg transition-colors shadow-lg hover:shadow-xl"
-            >
-              Create Startup Profile
-            </Link>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-6">
+        <div className="glass-card p-10 text-center max-w-md space-y-5">
+          <div className="w-14 h-14 rounded-2xl bg-zinc-800 flex items-center justify-center mx-auto">
+            <svg className="w-7 h-7 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
           </div>
+          <div>
+            <h2 className="text-lg font-bold">Startup Profile Required</h2>
+            <p className="text-sm text-zinc-500 mt-1">Create a startup profile before adding products.</p>
+          </div>
+          <Link to="/startupark/startup-edit-profile" className="btn-mono text-sm px-6 py-2.5 inline-block">
+            Create Profile
+          </Link>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-indigo-100 rounded-lg">
-                  <MdRocketLaunch className="w-6 h-6 text-indigo-600" />
-                </div>
-                <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
-              </div>
-              <p className="text-gray-600 text-lg">
-                Manage your product portfolio for <span className="font-semibold text-indigo-600">{startupProfile?.name}</span>
-              </p>
-            </div>
-            
+  // ── Form view ─────────────────────────────────────────────────
+  if (showForm) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setEditingProduct(null);
-                setShowProductForm(true);
-              }}
-              className="flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+              onClick={() => { setShowForm(false); setEditing(null); }}
+              className="btn-ghost text-xs px-3 py-1.5"
             >
-              <FiPlus className="w-5 h-5" />
-              Add New Product
+              ← Back
             </button>
+            <span className="text-sm text-zinc-400">{editing ? 'Edit Product' : 'New Product'}</span>
           </div>
+          <AddProductForm
+            onSuccess={handleSuccess}
+            isEdit={!!editing}
+            initialData={editing}
+            onCancel={() => { setShowForm(false); setEditing(null); }}
+          />
+        </div>
+      </div>
+    );
+  }
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-xl">
-                  <FiPackage className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{products.length}</p>
-                  <p className="text-gray-600 text-sm">Total Products</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-xl">
-                  <FiTrendingUp className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {products.filter(p => p.stage === 'Launched').length}
-                  </p>
-                  <p className="text-gray-600 text-sm">Launched</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-xl">
-                  <FiUsers className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {products.filter(p => p.stage === 'Beta').length}
-                  </p>
-                  <p className="text-gray-600 text-sm">In Beta</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-100 rounded-xl">
-                  <FiGlobe className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {products.filter(p => p.website).length}
-                  </p>
-                  <p className="text-gray-600 text-sm">With Website</p>
-                </div>
-              </div>
-            </div>
+  // ── Main view ─────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Header */}
+      <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10 px-4 md:px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-lg font-bold">Product Management</h1>
+            {startupProfile && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Portfolio for <span className="text-zinc-300">{startupProfile.companyName || startupProfile.name}</span>
+              </p>
+            )}
           </div>
+          <button
+            onClick={() => { setEditing(null); setShowForm(true); }}
+            className="btn-mono text-sm px-4 py-2 shrink-0"
+          >
+            + Add Product
+          </button>
+        </div>
+      </div>
 
-          {/* Search Bar */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
-              <div className="flex-1 relative">
-                <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search products by name, description, or tags..."
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 space-y-5">
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Total Products', value: stats.total, icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+            { label: 'Launched', value: stats.launched, icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+            { label: 'In Beta', value: stats.beta, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+            { label: 'With Website', value: stats.withSite, icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' },
+          ].map(stat => (
+            <div key={stat.label} className="glass-card p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={stat.icon} />
+                </svg>
               </div>
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 px-5 py-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-all">
-                  <FiFilter className="w-4 h-4" />
-                  Filters
+              <div>
+                <p className="text-xl font-bold text-zinc-100">{stat.value}</p>
+                <p className="text-xs text-zinc-500">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="glass-card p-3">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name, description, or tags…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="input-mono text-sm w-full pl-9 h-10"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div className="glass-inset p-3 text-red-400 text-sm">{error}</div>
+        )}
+
+        {/* Delete confirm modal */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="glass-card p-6 max-w-sm w-full space-y-4">
+              <h3 className="font-bold text-zinc-100">Delete Product?</h3>
+              <p className="text-sm text-zinc-400">This will soft-delete the product and hide it from users. This cannot be undone.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1 py-2 text-sm">Cancel</button>
+                <button
+                  onClick={() => deleteProduct(deleteConfirm)}
+                  className="flex-1 py-2 text-sm font-semibold rounded-lg bg-red-900/60 text-red-300 ring-1 ring-red-800 hover:bg-red-900"
+                >
+                  Delete
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Products Grid */}
-        {showProductForm ? (
-          <AddProductForm
-            onSuccess={handleProductSuccess}
-            isEdit={!!editingProduct}
-            initialData={editingProduct}
-            startupId={startupProfile?._id}
-            onCancel={() => {
-              setShowProductForm(false);
-              setEditingProduct(null);
-            }}
-          />
-        ) : filteredProducts.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden text-center py-16">
-            <div className="w-24 h-24 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FiPackage className="w-12 h-12 text-indigo-600" />
+        {/* Grid */}
+        {filtered.length === 0 ? (
+          <div className="glass-inset flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-800 flex items-center justify-center">
+              <svg className="w-7 h-7 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">No products found</h3>
-            <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
-              {searchTerm ? 'No products match your search. Try different keywords.' : 'Start building your product portfolio to showcase your innovation.'}
-            </p>
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setShowProductForm(true);
-              }}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold text-lg shadow-lg hover:shadow-xl"
-            >
-              Add Your First Product
-            </button>
+            <div className="text-center">
+              <p className="text-zinc-300 font-medium">
+                {search ? 'No matching products' : 'No products yet'}
+              </p>
+              <p className="text-xs text-zinc-600 mt-1">
+                {search ? 'Try different keywords' : 'Start building your product portfolio'}
+              </p>
+            </div>
+            {!search && (
+              <button
+                onClick={() => { setEditing(null); setShowForm(true); }}
+                className="btn-mono text-sm px-5 py-2"
+              >
+                + Add First Product
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProducts.map(product => (
-              <ModernProductCard 
-                key={product._id} 
-                product={product} 
-                getDisplayImages={getDisplayImages}
-                getImageUrl={getImageUrl}
-                onEdit={() => {
-                  setEditingProduct(product);
-                  setShowProductForm(true);
-                }}
-                onDelete={() => handleDeleteProduct(product._id)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(product => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                thumb={getThumb(product)}
+                onEdit={() => { setEditing(product); setShowForm(true); }}
+                onDelete={() => setDeleteConfirm(product._id)}
               />
             ))}
           </div>
@@ -349,141 +296,106 @@ const ProductManagement = () => {
       </div>
     </div>
   );
-};
+}
 
-// Modern Product Card Component for Management
-const ModernProductCard = ({ product, getDisplayImages, getImageUrl, onEdit, onDelete }) => {
-  const displayImages = getDisplayImages(product);
+function ProductCard({ product, thumb, onEdit, onDelete }) {
+  const stage = product.stage || 'concept';
+  const stageStyle = STAGE_STYLES[stage] || STAGE_STYLES.concept;
 
   return (
-    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-indigo-200 overflow-hidden">
-      {/* Product Image with Carousel */}
-      <div className="relative h-48 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
-        <ProductImageCarousel 
-          images={displayImages}
-          productName={product.name}
-          className="h-48"
-          showThumbnails={false}
-          enableZoom={false}
-        />
-        
-        {/* Action Overlay */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+    <div className="glass-card overflow-hidden group flex flex-col hover:ring-zinc-600 transition-all">
+      {/* Thumbnail */}
+      <div className="relative h-44 bg-zinc-900 overflow-hidden">
+        {thumb ? (
+          <img
+            src={thumb}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <svg className="w-10 h-10 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+
+        {/* Stage badge */}
+        <div className="absolute top-3 left-3">
+          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ring-1 ${stageStyle}`}>
+            {STAGE_LABEL[stage] || stage}
+          </span>
+        </div>
+
+        {/* Hover actions */}
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
           <button
             onClick={onEdit}
-            className="bg-white text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-zinc-100 text-zinc-900 text-xs font-semibold hover:bg-white"
           >
-            <FiEdit2 className="w-4 h-4" />
             Edit
           </button>
           <Link
             to={`/products/${product._id}`}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-100 text-xs font-semibold hover:bg-zinc-700"
           >
-            <FiEye className="w-4 h-4" />
             View
           </Link>
         </div>
 
-        {/* Stage Badge */}
-        <div className="absolute top-4 left-4">
-          <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg backdrop-blur-sm ${
-            product.stage === 'Launched' ? 'bg-green-500 text-white' :
-            product.stage === 'Beta' ? 'bg-blue-500 text-white' :
-            product.stage === 'Scaling' ? 'bg-purple-500 text-white' :
-            'bg-gray-600 text-white'
-          }`}>
-            {product.stage}
-          </span>
-        </div>
-
-        {/* Delete Button */}
+        {/* Delete */}
         <button
           onClick={onDelete}
-          className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600 shadow-lg"
-          title="Delete product"
+          className="absolute top-3 right-3 p-1.5 rounded-lg bg-red-900/70 text-red-300 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-800"
         >
-          <FiTrash2 className="w-4 h-4" />
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
         </button>
       </div>
 
-      {/* Product Content */}
-      <div className="p-6">
-        <div className="mb-4">
-          <h3 className="font-bold text-xl text-gray-900 line-clamp-2 mb-3">
-            {product.name}
-          </h3>
-          <p className="text-gray-600 leading-relaxed line-clamp-2">
-            {product.shortDescription}
-          </p>
+      {/* Content */}
+      <div className="p-4 flex flex-col gap-2 flex-1">
+        <div>
+          <h3 className="font-semibold text-sm text-zinc-100 line-clamp-1">{product.name}</h3>
+          <p className="text-xs text-zinc-500 line-clamp-2 mt-0.5 leading-relaxed">{product.shortDescription}</p>
         </div>
 
         {/* Tags */}
         {product.tags?.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {product.tags.slice(0, 3).map((tag, index) => (
-              <span key={index} className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
-                <FiTag className="w-3 h-3" />
-                {tag}
+          <div className="flex flex-wrap gap-1">
+            {product.tags.slice(0, 3).map(t => (
+              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 ring-1 ring-zinc-700">
+                {t}
               </span>
             ))}
             {product.tags.length > 3 && (
-              <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full">
-                +{product.tags.length - 3} more
-              </span>
+              <span className="text-[10px] text-zinc-600 self-center">+{product.tags.length - 3}</span>
             )}
           </div>
         )}
 
-        {/* Meta Information */}
-        <div className="flex items-center justify-between text-sm mb-4">
-          {product.industry && (
-            <span className="text-gray-500 font-medium bg-gray-100 px-3 py-1.5 rounded-lg">
-              {product.industry}
-            </span>
-          )}
-          {product.price && (
-            <span className="font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
-              ${product.price}
-            </span>
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-3">
-            <Link
-              to={`/products/${product._id}`}
-              className="text-indigo-600 hover:text-indigo-800 font-semibold text-sm flex items-center gap-2 transition-colors"
-            >
-              <FiEye className="w-4 h-4" />
-              View Details
-            </Link>
-            
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-zinc-800/60">
+          <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <span className="capitalize">{product.pricing || 'free'}</span>
             {product.website && (
-              <a
-                href={product.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Visit website"
-              >
-                <FiExternalLink className="w-4 h-4" />
+              <a href={product.website} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
               </a>
             )}
           </div>
-          
-          <button
-            onClick={onEdit}
-            className="text-gray-500 hover:text-indigo-600 p-2 rounded-lg hover:bg-indigo-50 transition-colors"
-            title="Edit product"
-          >
-            <FiEdit2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 text-xs text-zinc-600">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            {product.viewCount || 0}
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default ProductManagement;
+}

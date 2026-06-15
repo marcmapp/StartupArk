@@ -1,7 +1,7 @@
 [
-  { "to": "/dashboard", "name": "Hub", "icon": "chip", "type": "solid" },
-  { "to": "/startupark", "name": "Startup Ark", "icon": "briefcase", "type": "solid" },
-  { "to": "/settings", "name": "Settings", "icon": "cog", "type": "solid" },
-  { "to": "/pricing", "name": "Subscription", "icon": "credit-card", "type": "solid" },
-  { "to": "/profile", "name": "Profile", "icon": "user", "type": "solid" }
+  { "to": "/dashboard", "name": "Hub", "icon": "chip", "type": "solid", "tooltip": "Main dashboard & quick overview" },
+  { "to": "/startupark", "name": "StartupArk", "icon": "rocket", "type": "solid", "tooltip": "Enter the startup ecosystem" },
+  { "to": "/settings", "name": "Settings", "icon": "cog", "type": "solid", "tooltip": "Account preferences & security" },
+  { "to": "/pricing", "name": "Subscription", "icon": "credit-card", "type": "solid", "tooltip": "Plans & billing" },
+  { "to": "/profile", "name": "My Profile", "icon": "user-circle", "type": "solid", "tooltip": "View & edit your profile" }
 ]

@@ -1,6 +1,7 @@
 import React from 'react';
+import { getImageUrl } from '../../../../../utils/imageUrls';
 
-const CommonFieldsForm = ({ 
+const CommonFieldsForm = ({
   formData, 
   setFormData,
   setFilesToUpload,
@@ -52,8 +53,8 @@ const CommonFieldsForm = ({
   return (
     <div className="space-y-6">
       {/* Profile Picture/Logo Section */}
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100">
-        <label className="block text-sm font-semibold mb-4 text-gray-700">
+      <div className="glass-inset p-6">
+        <label className="block text-sm font-semibold mb-4 text-zinc-700 dark:text-zinc-300">
           {role === 'startup' ? 'Startup Logo' : 'Profile Picture'}
           <span className="text-red-500 ml-1">*</span>
         </label>
@@ -63,12 +64,10 @@ const CommonFieldsForm = ({
           <div className="relative">
             {(formData.logo || formData.profilePicture) ? (
               <div className="relative group">
-                <img 
-                  src={isBlobUrl(formData.logo || formData.profilePicture) 
-                    ? (formData.logo || formData.profilePicture) 
-                    : `${import.meta.env.VITE_API_BASE_URL}/startupark/api/s3/file/${formData.logo || formData.profilePicture}`}
-                  alt={role === 'startup' ? "Startup logo" : "Profile"} 
-                  className="h-32 w-32 rounded-full object-cover border-4 border-white shadow-lg"
+                <img
+                  src={getImageUrl(formData.logo || formData.profilePicture)}
+                  alt={role === 'startup' ? "Startup logo" : "Profile"}
+                  className="h-32 w-32 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-lg"
                 />
                 <button
                   type="button"
@@ -89,9 +88,9 @@ const CommonFieldsForm = ({
                 </button>
               </div>
             ) : (
-              <div className="h-32 w-32 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-4 border-dashed border-gray-300 flex items-center justify-center shadow-inner">
+              <div className="h-32 w-32 rounded-full bg-black/[0.04] dark:bg-white/[0.06] border-4 border-dashed border-black/15 dark:border-white/15 flex items-center justify-center shadow-inner">
                 <div className="text-center">
-                  <svg className="h-12 w-12 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-12 w-12 text-zinc-400 dark:text-zinc-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -113,7 +112,7 @@ const CommonFieldsForm = ({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current.click()}
-                  className="px-6 py-3 bg-white border-2 border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 hover:border-indigo-700 transition-all duration-300 shadow-sm"
+                  className="btn-ghost px-6 py-3"
                   disabled={isUploading}
                 >
                   <svg className="h-5 w-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,12 +122,12 @@ const CommonFieldsForm = ({
                 </button>
               </div>
               
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
                 <p>• Recommended size: 500x500px</p>
                 <p>• Max file size: 5MB</p>
                 <p>• Supported formats: JPG, PNG, GIF, WebP</p>
                 {filesToUpload.logo || filesToUpload.profilePicture ? (
-                  <p className="text-green-600 font-medium">
+                  <p className="text-emerald-600 dark:text-emerald-400 font-medium">
                     ✓ File ready for upload: {(filesToUpload.logo || filesToUpload.profilePicture)?.name}
                   </p>
                 ) : null}
@@ -140,13 +139,13 @@ const CommonFieldsForm = ({
         {/* Upload Progress */}
         {isUploading && (
           <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400 mb-1">
               <span>Uploading form data...</span>
               <span>{uploadProgress}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+            <div className="w-full bg-black/[0.06] dark:bg-white/10 rounded-full h-2">
+              <div
+                className="bg-zinc-900 dark:bg-white h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               ></div>
             </div>
@@ -157,7 +156,7 @@ const CommonFieldsForm = ({
       {/* Basic Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">
+          <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             {role === 'startup' ? 'Your Name' : 'Full Name'}
             <span className="text-red-500 ml-1">*</span>
           </label>
@@ -167,13 +166,13 @@ const CommonFieldsForm = ({
             required
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder-gray-400 text-black"
+            className="input-mono"
             placeholder="Enter your full name"
           />
         </div>
         
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">
+          <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Email Address
             <span className="text-red-500 ml-1">*</span>
           </label>
@@ -183,7 +182,7 @@ const CommonFieldsForm = ({
             required
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder-gray-400 text-black"
+            className="input-mono"
             placeholder="your.email@example.com"
           />
         </div>
@@ -192,7 +191,7 @@ const CommonFieldsForm = ({
       {/* Contact Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">
+          <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Phone Number
           </label>
           <input
@@ -200,13 +199,13 @@ const CommonFieldsForm = ({
             name="phone"
             value={formData.phone}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder-gray-400 text-black"
+            className="input-mono"
             placeholder="+1 (123) 456-7890"
           />
         </div>
         
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">
+          <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Location
           </label>
           <input
@@ -214,7 +213,7 @@ const CommonFieldsForm = ({
             name="location"
             value={formData.location}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder-gray-400 text-black"
+            className="input-mono"
             placeholder="City, Country"
           />
         </div>
@@ -222,7 +221,7 @@ const CommonFieldsForm = ({
 
       {/* Bio */}
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-gray-700">
+        <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300">
           {role === 'startup' ? 'Startup Bio' : 'Bio'}
           <span className="text-red-500 ml-1">*</span>
         </label>
@@ -232,7 +231,7 @@ const CommonFieldsForm = ({
           value={formData.bio}
           onChange={handleChange}
           rows="4"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder-gray-400 resize-none text-black"
+          className="input-mono resize-none"
           placeholder={`Tell us about ${role === 'startup' ? 'your startup' : 'yourself'}...`}
         ></textarea>
       </div>

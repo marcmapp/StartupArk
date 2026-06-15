@@ -138,25 +138,25 @@ const BookingModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform animate-scale-in">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-200 dark:border-zinc-700/60">
         {/* Header */}
-        <div className="bg-white p-6 text-black">
+        <div className="bg-white dark:bg-zinc-900 p-6 text-gray-900 dark:text-white border-b border-gray-100 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">
                 {bookingSuccess ? '🎉 Booking Confirmed!' : 'Schedule a Meeting'}
               </h2>
-              <p className="mt-1">
-                {bookingSuccess 
-                  ? `Your meeting with ${startup.startupName} has been scheduled!` 
-                  : `Book a meeting with ${startup.startupName}`
+              <p className="mt-1 text-gray-600 dark:text-gray-400 text-sm">
+                {bookingSuccess
+                  ? `Your meeting with ${startup.companyName || startup.startupName} has been scheduled!`
+                  : `Book a meeting with ${startup.companyName || startup.startupName}`
                 }
               </p>
             </div>
             {!bookingSuccess && (
               <button
                 onClick={handleClose}
-                className="text-black hover:text-gray-700 transition-colors p-2 rounded-full hover:bg-gray-200"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/[0.06]"
                 aria-label="Close modal"
               >
                 <FiX size={24} />
@@ -168,7 +168,7 @@ const BookingModal = ({
         {/* Content */}
         <div className="p-6 max-h-[70vh] overflow-y-auto">
           {bookingError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-start">
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl text-red-700 dark:text-red-300 flex items-start">
               <div className="bg-red-100 p-2 rounded-lg mr-3">
                 <FiClock className="text-red-600" />
               </div>
@@ -181,25 +181,25 @@ const BookingModal = ({
 
           {bookingSuccess ? (
             <div className="text-center py-8">
-              <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
-                <FiCheck className="h-10 w-10 text-green-600" />
+              <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-6">
+                <FiCheck className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
                 Meeting Scheduled Successfully!
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-zinc-500 dark:text-zinc-400 mb-4">
                 {selectedDate} at {formatTimeDisplay(selectedTime)}
               </p>
-              <div className="bg-gray-50 rounded-xl p-4 text-left">
-                <p className="font-medium text-gray-900">Meeting Purpose:</p>
-                <p className="text-gray-600 mt-1">{meetingPurpose}</p>
+              <div className="bg-gray-50 dark:bg-zinc-800 rounded-xl p-4 text-left">
+                <p className="font-medium text-gray-900 dark:text-white">Meeting Purpose:</p>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">{meetingPurpose}</p>
               </div>
             </div>
           ) : (
             <div className="space-y-6">
               {/* Meeting Purpose */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
                   Meeting Purpose <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -207,7 +207,7 @@ const BookingModal = ({
                   onChange={(e) => setMeetingPurpose(e.target.value)}
                   placeholder="Briefly describe what you'd like to discuss..."
                   rows={3}
-                  className="text-black w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all resize-none"
+                  className="input-mono resize-none"
                 />
                 <p className="text-xs text-gray-500 mt-2">
                   Let the startup know what you'd like to discuss
@@ -216,13 +216,13 @@ const BookingModal = ({
 
               {/* Meeting Type */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
                   Meeting Type
                 </label>
                 <select
                   value={meetingType}
                   onChange={(e) => setMeetingType(e.target.value)}
-                  className="text-black w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none appearance-none"
+                  className="input-mono appearance-none"
                 >
                   <option value="general">General Discussion</option>
                   <option value="funding">Funding Opportunity</option>
@@ -235,7 +235,7 @@ const BookingModal = ({
 
               {/* Date Selection */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
                   Select Date <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -245,7 +245,7 @@ const BookingModal = ({
                     value={selectedDate}
                     onChange={(e) => handleDateChange(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="text-black w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                    className="input-mono pl-12"
                   />
                 </div>
                 {selectedDate && !isDateAvailable(selectedDate) && (
@@ -257,7 +257,7 @@ const BookingModal = ({
 
               {/* Time Selection */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
                   Select Time <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -266,7 +266,7 @@ const BookingModal = ({
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
                     disabled={!selectedDate || !isDateAvailable(selectedDate)}
-                    className="text-black w-full pl-12 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none appearance-none disabled:bg-gray-50 disabled:text-gray-400 transition-all"
+                    className="input-mono pl-12 pr-10 appearance-none disabled:opacity-50"
                   >
                     <option value="">Choose a time slot</option>
                     {generateTimeSlots().map((time) => (
@@ -285,29 +285,31 @@ const BookingModal = ({
               </div>
 
               {/* Availability Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <div className="flex items-start">
-                  <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                    <FiClock className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-blue-900">Availability</p>
-                    <p className="text-sm text-blue-700 mt-1">
-                      {startup.availability.days.join(', ')} • {formatTimeDisplay(startup.availability.timeRange.start)} - {formatTimeDisplay(startup.availability.timeRange.end)}
-                    </p>
+              {startup.availability?.days?.length > 0 && startup.availability?.timeRange && (
+                <div className="bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-300/70 dark:border-cyan-500/40 rounded-xl p-4 shadow-[0_0_12px_-4px_rgba(34,211,238,0.4)]">
+                  <div className="flex items-start">
+                    <div className="bg-cyan-100 dark:bg-cyan-500/20 p-2 rounded-lg mr-3">
+                      <FiClock className="text-cyan-600 dark:text-cyan-300" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-cyan-800 dark:text-cyan-200 text-sm">Availability</p>
+                      <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">
+                        {startup.availability.days.join(', ')} · {formatTimeDisplay(startup.availability.timeRange.start)} – {formatTimeDisplay(startup.availability.timeRange.end)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
         {!bookingSuccess ? (
-          <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+          <div className="bg-gray-50 dark:bg-zinc-800/50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200 dark:border-zinc-700">
             <button
               onClick={handleClose}
-              className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition-all font-medium text-sm disabled:opacity-50"
+              className="px-6 py-3 border border-gray-300 dark:border-zinc-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all font-medium text-sm disabled:opacity-50"
               disabled={bookingLoading}
             >
               Cancel
@@ -318,7 +320,7 @@ const BookingModal = ({
               className={`px-6 py-3 rounded-xl font-medium text-sm flex items-center justify-center transition-all ${
                 bookingLoading || !selectedDate || !selectedTime || !isDateAvailable(selectedDate) || !meetingPurpose.trim()
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                  : 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-md'
               }`}
             >
               {bookingLoading ? (
@@ -332,10 +334,10 @@ const BookingModal = ({
             </button>
           </div>
         ) : (
-          <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
+          <div className="bg-gray-50 dark:bg-zinc-800/50 px-6 py-4 flex justify-end border-t border-gray-200 dark:border-zinc-700">
             <button
               onClick={handleClose}
-              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium text-sm transition-all"
+              className="px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-xl font-medium text-sm transition-all"
             >
               Done
             </button>

@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Loader from '../components/Loader';
-import "boxicons";
+import { getImageUrl } from '../utils/imageUrls';
+import 'boxicons';
+
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -12,7 +15,6 @@ const Profile = () => {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   const showMessage = (text, type = 'error') => {
     setMessage({ text, type });
@@ -22,60 +24,43 @@ const Profile = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
+      if (!token) { navigate('/login'); return; }
       try {
         setIsLoading(true);
-        const [userRes, subscriptionRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/mappuser/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get(`${baseUrl}/api/mappuser/subscription`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+        const [userRes, subRes] = await Promise.allSettled([
+          axios.get(`${baseUrl}/api/mappuser/me`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${baseUrl}/api/mappuser/subscription`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-
-        setUser(userRes.data);
-        setSubscription(subscriptionRes.data);
-        setEditForm({
-          username: userRes.data.username,
-          email: userRes.data.email,
-          whatsappNumber: userRes.data.whatsappNumber
-        });
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+        if (userRes.status === 'fulfilled') {
+          setUser(userRes.value.data);
+          setEditForm({
+            username: userRes.value.data.username,
+            email: userRes.value.data.email,
+            whatsappNumber: userRes.value.data.whatsappNumber,
+          });
+        }
+        setSubscription(subRes.status === 'fulfilled' ? subRes.value.data : null);
+      } catch (e) {
+        console.error(e);
         showMessage('Failed to load profile data');
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchUserData();
   }, [navigate]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${baseUrl}/api/mappuser/profile`,
-        editForm,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      setUser(response.data.user);
+      const r = await axios.put(`${baseUrl}/api/mappuser/profile`, editForm, { headers: { Authorization: `Bearer ${token}` } });
+      setUser(r.data.user);
       setIsEditing(false);
       showMessage('Profile updated successfully!', 'success');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      showMessage(error.response?.data?.message || 'Failed to update profile');
+    } catch (e) {
+      showMessage(e.response?.data?.message || 'Failed to update profile');
     } finally {
       setIsLoading(false);
     }
@@ -88,295 +73,184 @@ const Profile = () => {
     navigate('/login');
   };
 
-  const getSubscriptionBadgeColor = (plan) => {
-    switch (plan?.toLowerCase()) {
-      case 'premium':
-        return 'bg-purple-100 text-purple-800 border-purple-300';
-      case 'pro':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'basic':
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
+  const isSubscriptionActive = () => subscription?.expiryDate && new Date(subscription.expiryDate) > new Date();
 
-  const getRoleBadgeColor = (role) => {
-    switch (role) {
-      case 'startup':
-        return 'bg-green-100 text-green-800 border-green-300';
-      case 'student':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'user':
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
+  if (isLoading && !user) return <Loader />;
+  if (!user) return null;
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const isSubscriptionActive = () => {
-    if (!subscription?.expiryDate) return false;
-    return new Date(subscription.expiryDate) > new Date();
-  };
-
-  if (isLoading && !user) {
-    return <Loader />;
-  }
- 
-  if (!user) {
-    return null;
-  }
+  const name = user.username || 'User';
+  const avatarUrl = user.profilePicture ? getImageUrl(user.profilePicture, baseUrl) : null;
+  const Pill = ({ children }) => (
+    <span className="px-3 py-1 rounded-full text-xs font-medium glass-inset text-zinc-700 dark:text-zinc-200 capitalize">{children}</span>
+  );
+  const Row = ({ label, value }) => (
+    <div>
+      <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">{label}</p>
+      <p className="text-zinc-900 dark:text-white text-lg font-semibold mt-0.5">{value || '—'}</p>
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="border-2 border-white rounded-xl p-6 mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+      {/* Header banner */}
+      <div className="glass-panel p-6 sm:p-8 mb-6">
+        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06] pointer-events-none">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-zinc-900 dark:bg-white blur-3xl" />
+        </div>
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name} className="w-16 h-16 rounded-2xl object-cover border border-black/10 dark:border-white/15 flex-shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center text-2xl font-bold flex-shrink-0">
+                {name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-green-500 mb-2">
-                PROFILE
-              </h1>
-              <p className="text-gray-400">Manage your account settings and preferences</p>
+              <p className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-0.5">My Profile</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">{name}</h1>
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm">{user.email}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-6 py-3 bg-red-600 hover:bg-red-700  font-semibold rounded-lg transition duration-300"
-            >
-              Logout
-            </button>
+          </div>
+          <button onClick={handleLogout} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+            <box-icon name="log-out-circle" size="16px" color="currentColor" /> Logout
+          </button>
+        </div>
+      </div>
+
+      {message.text && (
+        <div className={`mb-6 p-4 rounded-xl text-center border ${
+          message.type === 'success'
+            ? 'bg-emerald-50 dark:bg-emerald-900/15 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+            : 'bg-red-50 dark:bg-red-900/15 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
+        }`}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Basic info */}
+          <div className="glass-card p-6">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Basic Information</h2>
+              <button onClick={() => setIsEditing(!isEditing)} className={isEditing ? 'btn-ghost' : 'btn-mono'}>
+                {isEditing ? 'Cancel' : 'Edit'}
+              </button>
+            </div>
+
+            {!isEditing ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Row label="Username" value={user.username} />
+                  <Row label="Email" value={user.email} />
+                  <Row label="WhatsApp Number" value={user.whatsappNumber} />
+                  <Row label="Member Since" value={formatDate(user.createdAt)} />
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Pill>{user.startuparkRole || 'User'}</Pill>
+                  <Pill>{user.subscriptionPlan || 'Basic'} plan</Pill>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Username</label>
+                    <input type="text" value={editForm.username || ''} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} className="input-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Email</label>
+                    <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="input-mono" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">WhatsApp Number</label>
+                  <input type="text" value={editForm.whatsappNumber || ''} onChange={(e) => setEditForm({ ...editForm, whatsappNumber: e.target.value })} className="input-mono" />
+                </div>
+                <button type="submit" disabled={isLoading} className="btn-mono w-full py-3 disabled:opacity-50">
+                  {isLoading ? 'Updating…' : 'Update Profile'}
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Agreement status */}
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Agreement Status</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { ok: user.hasAgreedTostartuparkUser, label: 'StartupArk User', show: true },
+                { ok: user.hasAgreedTostartuparkStartup, label: 'StartupArk Startup', show: user.startuparkRole === 'startup' },
+                { ok: user.hasAgreedTostartuparkStudent, label: 'StartupArk Student', show: user.startuparkRole === 'student' },
+              ].filter(a => a.show).map(({ ok, label }) => (
+                <div key={label} className="flex items-center gap-2 glass-inset rounded-xl px-3 py-2.5">
+                  <box-icon name={ok ? 'check-circle' : 'x-circle'} color={ok ? '#10B981' : '#EF4444'} size="18px" />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-200">{label}: <span className="font-medium">{ok ? 'Agreed' : 'Not Agreed'}</span></span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {message.text && (
-          <div
-            className={`mb-6 p-4 rounded-lg text-center ${
-              message.type === 'success' 
-                ? 'bg-green-800 text-green-300 border border-green-600' 
-                : 'bg-red-800 text-red-300 border border-red-600'
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Profile Info */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Basic Information Card */}
-            <div className="border-2 border-white rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-green-500">Basic Information</h2>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="px-4 py-2 bg-white text-black hover:bg-gray-200 font-semibold rounded-lg transition duration-300"
-                >
-                  {isEditing ? 'Cancel' : 'Edit Profile'}
-                </button>
+        {/* Right */}
+        <div className="space-y-6">
+          {/* Subscription */}
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Subscription</h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-500 dark:text-zinc-400">Current Plan</span>
+                <Pill>{subscription?.plan || 'Basic'}</Pill>
               </div>
-
-              {!isEditing ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-400 text-sm">Username</label>
-                      <p className=" text-lg font-semibold">{user.username}</p>
-                    </div>
-                    <div>
-                      <label className="text-gray-400 text-sm">Email</label>
-                      <p className=" text-lg">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-400 text-sm">WhatsApp Number</label>
-                      <p className=" text-lg">{user.whatsappNumber}</p>
-                    </div>
-                    <div>
-                      <label className="text-gray-400 text-sm">Member Since</label>
-                      <p className=" text-lg">{formatDate(user.createdAt)}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getRoleBadgeColor(user.startuparkRole)}`}>
-                      {user.startuparkRole || 'User'}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getSubscriptionBadgeColor(user.subscriptionPlan)}`}>
-                      {user.subscriptionPlan || 'Basic'}
-                    </span>
-                  </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-500 dark:text-zinc-400">Status</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                  isSubscriptionActive()
+                    ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                    : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
+                }`}>
+                  {isSubscriptionActive() ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {subscription?.expiryDate && (
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500 dark:text-zinc-400">Expires</span>
+                  <span className="text-zinc-900 dark:text-white font-medium">{formatDate(subscription.expiryDate)}</span>
                 </div>
-              ) : (
-                <form onSubmit={handleUpdateProfile} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-400 text-sm">Username</label>
-                      <input
-                        type="text"
-                        value={editForm.username || ''}
-                        onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                        className="w-full p-3 bg-black border border-gray-600  rounded focus:ring-4 focus:ring-white transition duration-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-400 text-sm">Email</label>
-                      <input
-                        type="email"
-                        value={editForm.email || ''}
-                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                        className="w-full p-3 bg-black border border-gray-600  rounded focus:ring-4 focus:ring-white transition duration-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">WhatsApp Number</label>
-                    <input
-                      type="text"
-                      value={editForm.whatsappNumber || ''}
-                      onChange={(e) => setEditForm({ ...editForm, whatsappNumber: e.target.value })}
-                      className="w-full p-3 bg-black border border-gray-600  rounded focus:ring-4 focus:ring-white transition duration-300"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full p-3 bg-white hover:bg-black hover: hover:border-white text-black border-2 border-black font-semibold rounded-lg shadow-md focus:ring-4 focus:ring-white transition duration-300 disabled:opacity-50"
-                  >
-                    {isLoading ? 'Updating...' : 'Update Profile'}
-                  </button>
-                </form>
               )}
-            </div>
-
-            {/* Agreement Status */}
-            <div className="border-2 border-white rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-green-500 mb-6">Agreement Status</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                <div className="flex items-center">
-                  <box-icon 
-                    name={user.hasAgreedTostartuparkUser ? 'check-circle' : 'x-circle'} 
-                    color={user.hasAgreedTostartuparkUser ? '#10B981' : '#EF4444'}
-                    className="mr-3"
-                  ></box-icon>
-                  <span>startupark User: {user.hasAgreedTostartuparkUser ? 'Agreed' : 'Not Agreed'}</span>
-                </div>
-                {user.startuparkRole === 'startup' && (
-                  <div className="flex items-center">
-                    <box-icon 
-                      name={user.hasAgreedTostartuparkStartup ? 'check-circle' : 'x-circle'} 
-                      color={user.hasAgreedTostartuparkStartup ? '#10B981' : '#EF4444'}
-                      className="mr-3"
-                    ></box-icon>
-                    <span>startupark Startup: {user.hasAgreedTostartuparkStartup ? 'Agreed' : 'Not Agreed'}</span>
-                  </div>
-                )}
-                {user.startuparkRole === 'student' && (
-                  <div className="flex items-center">
-                    <box-icon 
-                      name={user.hasAgreedTostartuparkStudent ? 'check-circle' : 'x-circle'} 
-                      color={user.hasAgreedTostartuparkStudent ? '#10B981' : '#EF4444'}
-                      className="mr-3"
-                    ></box-icon>
-                    <span>startupark Student: {user.hasAgreedTostartuparkStudent ? 'Agreed' : 'Not Agreed'}</span>
-                  </div>
-                )}
-              </div>
+              <button onClick={() => navigate('/subscription')} className="btn-mono w-full py-2.5 mt-2">Upgrade Plan</button>
             </div>
           </div>
 
-          {/* Right Column - Subscription & Quick Actions */}
-          <div className="space-y-8">
-            {/* Subscription Status */}
-            <div className="border-2 border-white rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-green-500 mb-6">Subscription</h2>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Current Plan:</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getSubscriptionBadgeColor(subscription?.plan)}`}>
-                    {subscription?.plan || 'Basic'}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    isSubscriptionActive() 
-                      ? 'bg-green-100 text-green-800 border border-green-300' 
-                      : 'bg-red-100 text-red-800 border border-red-300'
-                  }`}>
-                    {isSubscriptionActive() ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-
-                {subscription?.expiryDate && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Expires:</span>
-                    <span className="">{formatDate(subscription.expiryDate)}</span>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => navigate('/subscription')}
-                  className="w-full py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition duration-300 mt-4"
-                >
-                  Upgrade Plan
-                </button>
-              </div>
+          {/* Quick actions */}
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Quick Actions</h2>
+            <div className="space-y-2">
+              {[
+                { label: 'Go to Dashboard', to: '/dashboard' },
+                { label: 'Explore StartupArk', to: '/startupark' },
+                { label: 'My Favorites', to: '/startupark/favorites' },
+              ].map(({ label, to }) => (
+                <button key={to} onClick={() => navigate(to)} className="btn-ghost w-full justify-start">{label}</button>
+              ))}
             </div>
+          </div>
 
-            {/* Quick Actions */}
-            <div className="border-2 border-white rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-green-500 mb-6">Quick Actions</h2>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full py-3 dark:bg-black hover:text-white hover:bg-black border-2 dark:border-white border-black font-semibold rounded-lg dark:hover:bg-white dark:hover:text-red-600 transition duration-300"
-                >
-                  Go to Dashboard
-                </button>
-                
-                <button
-                  onClick={() => navigate('/startupark')}
-                  className="w-full py-3 dark:bg-black hover:text-white hover:bg-black border-2 dark:border-white border-black font-semibold rounded-lg dark:hover:bg-white dark:hover:text-red-600 transition duration-300"
-                >
-                  Explore startupark Features
-                </button>
-
-                <button
-                  onClick={() => navigate('/favorites')}
-                  className="w-full py-3 dark:bg-black hover:text-white hover:bg-black border-2 dark:border-white border-black font-semibold rounded-lg dark:hover:bg-white dark:hover:text-red-600 transition duration-300"
-                >
-                  My Favorites
-                </button>
+          {/* Stats */}
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Account Stats</h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-500 dark:text-zinc-400">Favorites</span>
+                <span className="text-zinc-900 dark:text-white font-medium">{user.favorites?.length || 0}</span>
               </div>
-            </div>
-
-            {/* Account Stats */}
-            <div className="border-2 border-white rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-green-500 mb-6">Account Stats</h2>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Favorites:</span>
-                  <span className="">{user.favorites?.length || 0}</span>
-                </div>
-                
-                
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Last Active:</span>
-                  <span className="">{formatDate(user.updatedAt)}</span>
-                </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-500 dark:text-zinc-400">Last Active</span>
+                <span className="text-zinc-900 dark:text-white font-medium">{formatDate(user.updatedAt)}</span>
               </div>
             </div>
           </div>

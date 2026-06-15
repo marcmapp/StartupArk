@@ -37,18 +37,30 @@ const JobPostings = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      
-      const [statsRes, opportunitiesRes] = await Promise.all([
-        axios.get(`${baseUrl}/smart/api/opportunities/dashboard/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${baseUrl}/smart/api/opportunities/my-opportunities`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      ]);
 
-      setDashboardStats(statsRes.data);
-      setOpportunities(opportunitiesRes.data);
+      // Get own startup profile to get startupId
+      const profileRes = await axios.get(`${baseUrl}/startupark/api/profile/startup`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const startupId = profileRes.data?.profile?._id;
+
+      const opportunitiesRes = await axios.get(`${baseUrl}/startupark/api/opportunities`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: startupId ? { startupId } : {}
+      });
+
+      const opps = opportunitiesRes.data.opportunities || [];
+      setOpportunities(opps);
+
+      // Compute stats from list
+      setDashboardStats({
+        totalHirings: opps.length,
+        activeHirings: opps.filter(o => o.status === 'active').length,
+        closedOffers: opps.filter(o => o.status === 'closed').length,
+        shortlisted: 0,
+        applications: opps.reduce((sum, o) => sum + (o.applicationCount || 0), 0),
+        interviewStage: 0
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch dashboard data');
       console.error('Dashboard fetch error:', err);
@@ -62,7 +74,7 @@ const JobPostings = () => {
       setLoading(true);
       const token = getAuthToken();
       
-      const response = await axios.post(`${baseUrl}/smart/api/opportunities`, formData, {
+      const response = await axios.post(`${baseUrl}/startupark/api/opportunities`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -85,7 +97,7 @@ const JobPostings = () => {
       setLoading(true);
       const token = getAuthToken();
       
-      const response = await axios.put(`${baseUrl}/smart/api/opportunities/${id}`, updateData, {
+      const response = await axios.put(`${baseUrl}/startupark/api/opportunities/${id}`, updateData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -107,7 +119,7 @@ const JobPostings = () => {
       setLoading(true);
       const token = getAuthToken();
       
-      await axios.delete(`${baseUrl}/smart/api/opportunities/${id}`, {
+      await axios.delete(`${baseUrl}/startupark/api/opportunities/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -125,7 +137,7 @@ const JobPostings = () => {
 
   // Navigate to applications management
   const handleStatClick = (status) => {
-    navigate('/smart/startup/applications', { state: { filter: status } });
+    navigate('/startupark/startup-applications', { state: { filter: status } });
   };
 
   const DashboardView = () => (
@@ -133,13 +145,13 @@ const JobPostings = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Talent Dashboard</h1>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Talent Dashboard</h1>
           <p className=" mt-2">Manage your hiring pipeline and opportunities</p>
         </div>
         <div className="flex gap-4">
           <button 
-            onClick={() => navigate('/smart/startup/applications')}
-            className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            onClick={() => navigate('/startupark/startup-applications')}
+            className="px-6 py-3 border border-gray-300 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:bg-zinc-900 transition-colors font-medium"
           >
             View Applications
           </button>
@@ -170,42 +182,42 @@ const JobPostings = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
         <div 
-          className="p-6 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="p-6 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => handleStatClick('all')}
         >
           <div className="text-2xl font-semibold ">{dashboardStats.totalHirings}</div>
           <div className="text-sm  mt-1">Total Hirings</div>
         </div>
         <div 
-          className="p-6 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="p-6 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => handleStatClick('active')}
         >
           <div className="text-2xl font-semibold text-green-600">{dashboardStats.activeHirings}</div>
           <div className="text-sm  mt-1">Active</div>
         </div>
         <div 
-          className="p-6 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="p-6 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => handleStatClick('closed')}
         >
           <div className="text-2xl font-semibold ">{dashboardStats.closedOffers}</div>
           <div className="text-sm  mt-1">Closed</div>
         </div>
         <div 
-          className="p-6 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="p-6 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => handleStatClick('shortlisted')}
         >
           <div className="text-2xl font-semibold text-blue-600">{dashboardStats.shortlisted}</div>
           <div className="text-sm  mt-1">Shortlisted</div>
         </div>
         <div 
-          className="p-6 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="p-6 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => handleStatClick('pending')}
         >
           <div className="text-2xl font-semibold text-purple-600">{dashboardStats.applications}</div>
           <div className="text-sm  mt-1">Applications</div>
         </div>
         <div 
-          className="p-6 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="p-6 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => handleStatClick('interview')}
         >
           <div className="text-2xl font-semibold text-orange-600">{dashboardStats.interviewStage}</div>
@@ -214,9 +226,9 @@ const JobPostings = () => {
       </div>
 
       {/* Recent Opportunities */}
-      <div className="rounded-lg border border-gray-200 shadow-sm">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Recent Opportunities</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-white/10 shadow-sm">
+        <div className="p-6 border-b border-gray-200 dark:border-white/10">
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Recent Opportunities</h2>
         </div>
         <div className="p-6">
           {loading ? (
@@ -244,20 +256,20 @@ const JobPostings = () => {
                     setEditingPost(opportunity);
                     setActiveView('detail');
                   }}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                  className="border border-gray-200 dark:border-white/10 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-medium text-gray-900">{opportunity.title}</h3>
+                    <h3 className="font-medium text-zinc-900 dark:text-white">{opportunity.title}</h3>
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       opportunity.status === 'active' ? 'bg-green-100 text-green-800' :
                       opportunity.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
+                      'bg-gray-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
                     }`}>
                       {opportunity.status}
                     </span>
                   </div>
                   <p className="text-sm  mb-2 capitalize">{opportunity.type} • {opportunity.location}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Created {new Date(opportunity.createdAt).toLocaleDateString()} • 
                     {opportunity.applicationCount || 0} applications
                   </p>
@@ -276,11 +288,11 @@ const JobPostings = () => {
       <div className="flex items-center mb-8">
         <button 
           onClick={() => setActiveView('dashboard')}
-          className="flex items-center  hover:text-gray-900 mr-4"
+          className="flex items-center  hover:text-zinc-900 dark:text-white mr-4"
         >
           ← Back to Dashboard
         </button>
-        <h1 className="text-2xl font-light text-gray-900">Create New Opportunity</h1>
+        <h1 className="text-2xl font-light text-zinc-900 dark:text-white">Create New Opportunity</h1>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -293,10 +305,10 @@ const JobPostings = () => {
           <div
             key={item.type}
             onClick={() => setSelectedPostType(item.type)}
-            className="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
+            className="border-2 border-gray-200 dark:border-white/10 rounded-xl p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
           >
             <div className="text-3xl mb-4">{item.icon}</div>
-            <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
+            <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">{item.title}</h3>
             <p className="text-sm ">{item.desc}</p>
           </div>
         ))}
@@ -369,11 +381,11 @@ const JobPostings = () => {
         <div className="flex items-center mb-8">
           <button 
             onClick={() => setSelectedPostType(null)}
-            className="flex items-center  hover:text-gray-900 mr-4"
+            className="flex items-center  hover:text-zinc-900 dark:text-white mr-4"
           >
             ← Back to Selection
           </button>
-          <h1 className="text-2xl font-light text-gray-900">
+          <h1 className="text-2xl font-light text-zinc-900 dark:text-white">
             Create {selectedPostType === 'job' ? 'Job Position' : 
                    selectedPostType === 'internship' ? 'Internship' :
                    selectedPostType === 'course' ? 'Course' : 'Freelance Project'}
@@ -395,10 +407,10 @@ const JobPostings = () => {
           </div>
         )}
 
-        <form onSubmit={handlePublish} className="max-w-4xl rounded-lg border border-gray-200 p-8 shadow-sm">
+        <form onSubmit={handlePublish} className="max-w-4xl rounded-lg border border-gray-200 dark:border-white/10 p-8 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Title *
                 <span className="text-red-500 ml-1">*</span>
               </label>
@@ -407,7 +419,7 @@ const JobPostings = () => {
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter position title..."
                 disabled={submitting}
               />
@@ -415,14 +427,14 @@ const JobPostings = () => {
             
             {selectedPostType === 'internship' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                   Internship Type *
                   <span className="text-red-500 ml-1">*</span>
                 </label>
                 <select 
                   value={formData.internshipType}
                   onChange={(e) => setFormData({...formData, internshipType: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                   disabled={submitting}
                 >
@@ -435,7 +447,7 @@ const JobPostings = () => {
             
             {selectedPostType === 'course' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                   Price ($) *
                   <span className="text-red-500 ml-1">*</span>
                 </label>
@@ -444,7 +456,7 @@ const JobPostings = () => {
                   required
                   value={formData.price}
                   onChange={(e) => setFormData({...formData, price: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter course price..."
                   disabled={submitting}
                   min="0"
@@ -454,14 +466,14 @@ const JobPostings = () => {
             )}
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Category *
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <select 
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
                 disabled={submitting}
               >
@@ -475,14 +487,14 @@ const JobPostings = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Location *
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <select 
                 value={formData.location}
                 onChange={(e) => setFormData({...formData, location: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
                 disabled={submitting}
               >
@@ -495,7 +507,7 @@ const JobPostings = () => {
           </div>
           
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
               Description *
               <span className="text-red-500 ml-1">*</span>
             </label>
@@ -504,26 +516,26 @@ const JobPostings = () => {
               required
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Enter detailed description..."
               disabled={submitting}
             />
           </div>
           
           <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Requirements</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Requirements</label>
             <textarea 
               rows="3"
               value={formData.requirements}
               onChange={(e) => setFormData({...formData, requirements: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="List the requirements..."
               disabled={submitting}
             />
           </div>
           
           <div className="flex gap-4 justify-between">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-zinc-500 dark:text-zinc-400">
               <p>Fields marked with <span className="text-red-500">*</span> are required for publishing</p>
             </div>
             <div className="flex gap-4">
@@ -531,7 +543,7 @@ const JobPostings = () => {
                 type="button"
                 onClick={handleSaveDraft}
                 disabled={submitting}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 border border-gray-300 dark:border-white/10 text-zinc-700 dark:text-zinc-300 rounded-lg font-medium hover:bg-gray-50 dark:bg-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Saving...' : 'Save Draft'}
               </button>
@@ -588,17 +600,17 @@ const JobPostings = () => {
           <div className="flex items-center">
             <button 
               onClick={() => setActiveView('dashboard')}
-              className="flex items-center  hover:text-gray-900 mr-6"
+              className="flex items-center  hover:text-zinc-900 dark:text-white mr-6"
             >
               ← Back to Dashboard
             </button>
-            <h1 className="text-2xl font-light text-gray-900">Opportunity Details</h1>
+            <h1 className="text-2xl font-light text-zinc-900 dark:text-white">Opportunity Details</h1>
           </div>
           {!isEditing && (
             <div className="flex gap-2">
               <button 
                 onClick={() => setIsEditing(true)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 dark:border-white/10 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-gray-50 dark:bg-zinc-900 transition-colors"
               >
                 Edit
               </button>
@@ -627,26 +639,26 @@ const JobPostings = () => {
           </div>
         )}
 
-        <div className="max-w-4xl rounded-lg border border-gray-200 p-8 shadow-sm">
+        <div className="max-w-4xl rounded-lg border border-gray-200 dark:border-white/10 p-8 shadow-sm">
           {isEditing ? (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Title</label>
                   <input 
                     type="text" 
                     value={editData.title}
                     onChange={(e) => setEditData({...editData, title: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500"
                     disabled={updating}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Status</label>
                   <select 
                     value={editData.status}
                     onChange={(e) => setEditData({...editData, status: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500"
                     disabled={updating}
                   >
                     <option value="active">Active</option>
@@ -657,12 +669,12 @@ const JobPostings = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Description</label>
                 <textarea 
                   rows="4"
                   value={editData.description}
                   onChange={(e) => setEditData({...editData, description: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
                   disabled={updating}
                 />
               </div>
@@ -678,7 +690,7 @@ const JobPostings = () => {
                 <button 
                   onClick={() => setIsEditing(false)}
                   disabled={updating}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 border border-gray-300 dark:border-white/10 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-gray-50 dark:bg-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -688,7 +700,7 @@ const JobPostings = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">{editingPost.title}</h2>
+                  <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2">{editingPost.title}</h2>
                   <div className="flex items-center gap-4 text-sm ">
                     <span className="capitalize">{editingPost.type}</span>
                     <span>•</span>
@@ -712,25 +724,25 @@ const JobPostings = () => {
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   editingPost.status === 'active' ? 'bg-green-100 text-green-800' :
                   editingPost.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
+                  'bg-gray-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
                 }`}>
                   {editingPost.status}
                 </span>
               </div>
 
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{editingPost.description}</p>
+              <div className="border-t border-gray-200 dark:border-white/10 pt-6">
+                <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">Description</h3>
+                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">{editingPost.description}</p>
               </div>
 
               {editingPost.requirements && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Requirements</h3>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{editingPost.requirements}</p>
+                <div className="border-t border-gray-200 dark:border-white/10 pt-6">
+                  <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">Requirements</h3>
+                  <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">{editingPost.requirements}</p>
                 </div>
               )}
 
-              <div className="border-t border-gray-200 pt-6">
+              <div className="border-t border-gray-200 dark:border-white/10 pt-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <div className="">Type</div>

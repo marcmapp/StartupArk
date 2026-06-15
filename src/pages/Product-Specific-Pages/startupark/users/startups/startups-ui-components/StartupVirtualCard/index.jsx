@@ -27,7 +27,7 @@ const StartupVirtualCard = ({ startupData, baseUrl, isPublicView = false }) => {
     if (vcElement) {
       html2canvas(vcElement).then(canvas => {
         const link = document.createElement('a');
-        link.download = `${startupData.startupName}-virtual-card.png`;
+        link.download = `${startupData.companyName || startupData.startupName}-virtual-card.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       });
@@ -37,7 +37,7 @@ const StartupVirtualCard = ({ startupData, baseUrl, isPublicView = false }) => {
   if (loading) {
     return (
       <div className="p-6 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900 dark:border-white mx-auto"></div>
         <p className="mt-2 text-gray-600">Loading virtual card...</p>
       </div>
     );
@@ -63,7 +63,7 @@ const StartupVirtualCard = ({ startupData, baseUrl, isPublicView = false }) => {
           <div className="mt-6">
             <button
               onClick={createVirtualCard}
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              className="inline-flex items-center px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-md hover:bg-zinc-800 dark:hover:bg-zinc-200"
             >
               Create Virtual Card
             </button>
@@ -96,7 +96,7 @@ const StartupVirtualCard = ({ startupData, baseUrl, isPublicView = false }) => {
             <h2 className="text-lg font-semibold text-gray-900">Your Virtual Card</h2>
             <button
               onClick={() => setShareModalOpen(true)}
-              className="flex items-center px-3 py-1 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm sm:text-base"
+              className="flex items-center px-3 py-1 sm:px-4 sm:py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-md hover:bg-zinc-800 dark:hover:bg-zinc-200 text-sm sm:text-base"
             >
               <FiShare2 className="mr-1 sm:mr-2" />
               Share
@@ -112,7 +112,7 @@ const StartupVirtualCard = ({ startupData, baseUrl, isPublicView = false }) => {
           <div className="p-4 sm:p-6">
             <div className="flex justify-between items-start">
               <div className="max-w-[70%]">
-                <h3 className="text-lg sm:text-xl font-bold text-highlight truncate">{startupData.startupName}</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-highlight truncate">{startupData.companyName || startupData.startupName}</h3>
                 <p className="text-gray-600 text-sm sm:text-base truncate">{startupData.tagline}</p>
               </div>
               {startupData.logo && (
@@ -131,7 +131,11 @@ const StartupVirtualCard = ({ startupData, baseUrl, isPublicView = false }) => {
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-gray-500">Location</p>
-                <p className="font-medium text-sm sm:text-base text-secondary">{startupData.location || 'N/A'}</p>
+                <p className="font-medium text-sm sm:text-base text-secondary">
+                  {(typeof startupData.location === 'object'
+                    ? [startupData.location?.city, startupData.location?.state].filter(Boolean).join(', ')
+                    : startupData.location) || 'N/A'}
+                </p>
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-gray-500">Founded</p>
@@ -151,7 +155,7 @@ const StartupVirtualCard = ({ startupData, baseUrl, isPublicView = false }) => {
                   href={startupData.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-600 hover:underline text-xs sm:text-sm truncate block"
+                  className="text-zinc-900 dark:text-white hover:underline text-xs sm:text-sm truncate block"
                 >
                   {startupData.website.replace(/^https?:\/\//, '')}
                 </a>

@@ -115,18 +115,18 @@ const StartupEventsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 dark:bg-zinc-950 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Virtual Events</h1>
-              <p className="text-gray-600 mt-2">Create and manage virtual events for networking</p>
+              <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Virtual Events</h1>
+              <p className="text-zinc-600 dark:text-zinc-400 mt-2">Create and manage virtual events for networking</p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
+              className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -149,8 +149,8 @@ const StartupEventsPage = () => {
         )}
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow mb-6">
+          <div className="border-b border-gray-200 dark:border-white/10">
             <nav className="flex -mb-px">
               {['upcoming', 'live', 'completed', 'all'].map((tab) => (
                 <button
@@ -159,7 +159,7 @@ const StartupEventsPage = () => {
                   className={`py-4 px-6 text-center border-b-2 font-medium text-sm capitalize ${
                     activeTab === tab
                       ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:border-gray-300 dark:border-white/10'
                   }`}
                 >
                   {tab}
@@ -183,15 +183,15 @@ const StartupEventsPage = () => {
         </div>
 
         {filteredEvents.length === 0 && !error && (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
+          <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-lg shadow">
             <svg className="w-24 h-24 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
-            <p className="text-gray-500 mb-4">Create your first virtual event to get started.</p>
+            <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">No events found</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">Create your first virtual event to get started.</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
+              className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 px-6 py-2 rounded-lg font-medium"
             >
               Create Event
             </button>

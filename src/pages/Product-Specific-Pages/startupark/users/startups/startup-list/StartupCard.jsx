@@ -1,182 +1,109 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiHeart, FiMapPin, FiTrendingUp, FiUsers, FiStar } from 'react-icons/fi';
-import { MdRocketLaunch, MdWorkspacePremium } from 'react-icons/md';
+import { FiHeart, FiMapPin, FiArrowUpRight } from 'react-icons/fi';
 import DefaultLogo from '../../../../../../assets/MP-white-bg.png';
 import { getImageUrl } from '../../../../../../utils/imageUrls';
 
-const StartupCard = ({ startup, isFavorite, onToggleFavorite, isCurrentUser, isHovered }) => {
+const StartupCard = ({ startup, isFavorite, onToggleFavorite }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const logoUrl = getImageUrl(startup.logo, baseUrl);
+  const bannerUrl = getImageUrl(startup.banner, baseUrl);
+  const hasLogo = logoUrl && logoUrl !== DefaultLogo;
+  const bgImage = bannerUrl || (hasLogo ? logoUrl : null);
+  const name = startup.companyName || startup.startupName || 'Startup';
+  const initial = name.charAt(0).toUpperCase();
 
   const handleFavoriteClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    try {
-      await onToggleFavorite(startup._id, !isFavorite);
-    } catch (err) {
-      console.error('Error toggling favorite:', err);
-    }
-  };
-
-  // Get industry color
-  const getIndustryColor = (industry) => {
-    const colors = {
-      'Technology': 'from-blue-500 to-cyan-500',
-      'Finance': 'from-emerald-500 to-teal-500',
-      'Healthcare': 'from-rose-500 to-pink-500',
-      'Education': 'from-violet-500 to-purple-500',
-      'E-commerce': 'from-amber-500 to-orange-500',
-      'Default': 'from-gray-500 to-slate-500'
-    };
-    return colors[industry] || colors['Default'];
+    try { await onToggleFavorite(startup._id, !isFavorite); }
+    catch (err) { console.error('Error toggling favorite:', err); }
   };
 
   return (
-    <Link 
-      to={`/startupark/startups/${startup._id}`} 
-      className="block group relative"
-    >
-      {/* Glow effect on hover */}
-      <div className={`absolute -inset-0.5 bg-gradient-to-r ${getIndustryColor(startup.industry)} rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-500 ${isHovered ? 'opacity-30' : ''}`}></div>
-      
-      <div className="relative bg-gradient-to-b from-white to-gray-50/50 rounded-2xl border border-gray-200/50 overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 h-full backdrop-blur-sm">
-        {/* Card Header with gradient */}
-        <div className={`relative h-40 bg-gradient-to-br ${getIndustryColor(startup.industry)} p-6`}>
-          {/* Favorite button */}
-          <button 
-            onClick={handleFavoriteClick}
-            className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-all duration-300 group/favorite"
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <FiHeart 
-              className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-500 group-hover/favorite:text-red-400'}`} 
-              strokeWidth={isFavorite ? 2 : 1.5}
-            />
-          </button>
+    <Link to={`/startupark/startups/${startup._id}`} className="block group">
+      <div className="relative h-56 rounded-2xl overflow-hidden border border-black/[0.06] dark:border-white/10 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
 
-          {/* Trending badge */}
-          {startup.trending && (
-            <div className="absolute top-4 left-4 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-amber-600">
-              <FiTrendingUp className="h-3 w-3" />
-              Trending
-            </div>
-          )}
+        {/* Mono base layer (shows when no image / while loading) */}
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900" />
 
-          {/* Match score */}
-          <div className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-sm rounded-full p-2">
-            <div className="text-xs font-bold text-white">{startup.matchScore}%</div>
+        {/* Background image */}
+        {bgImage && (
+          <img
+            src={bgImage}
+            alt={name}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        )}
+
+        {/* Scrim for legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
+
+        {/* Favorite */}
+        <button
+          onClick={handleFavoriteClick}
+          className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/30 backdrop-blur-md border border-white/15 hover:bg-black/50 transition-all"
+          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <FiHeart className={`h-4 w-4 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : 'text-white'}`} strokeWidth={isFavorite ? 2 : 1.5} />
+        </button>
+
+        {/* Availability badge */}
+        {startup.availability?.days?.length > 0 && (
+          <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/30 backdrop-blur-md border border-white/15 px-2.5 py-1 rounded-full">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-semibold text-white">Available</span>
           </div>
+        )}
 
-          {/* Logo */}
-          <div className="absolute -bottom-8 left-6">
-            <div className="relative">
-              <div className="absolute -inset-2 bg-white/30 rounded-xl blur-md"></div>
-              <div className="relative h-20 w-20 rounded-xl bg-white shadow-2xl border-2 border-white/30 overflow-hidden flex items-center justify-center">
-                <img
-                  src={logoUrl}
-                  alt={`${startup.startupName} logo`}
-                  className={`h-16 w-16 ${logoUrl === DefaultLogo ? 'object-contain p-3' : 'object-cover'}`}
-                  onError={(e) => {
-                    e.target.src = DefaultLogo;
-                    e.target.className = 'h-16 w-16 object-contain p-3';
-                  }}
-                  loading="lazy"
-                />
+        {/* Content overlay */}
+        <div className="absolute inset-x-0 bottom-0 p-4 z-10">
+          <div className="flex items-end gap-3">
+            {/* Logo chip */}
+            <div className="h-11 w-11 rounded-xl overflow-hidden border border-white/20 bg-white flex items-center justify-center flex-shrink-0 shadow-lg">
+              {hasLogo ? (
+                <img src={logoUrl} alt={`${name} logo`} className="h-full w-full object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+              ) : null}
+              <div className={`h-full w-full ${hasLogo ? 'hidden' : 'flex'} items-center justify-center bg-zinc-900 text-white font-bold`}>
+                {initial}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Card Content */}
-        <div className="pt-12 px-6 pb-6">
-          {/* Startup name and tagline */}
-          <div className="mb-4">
-            <div className="flex items-start justify-between">
-              <h3 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors truncate pr-2">
-                {startup.startupName}
-              </h3>
-              {startup.matchScore > 85 && (
-                <span className="flex items-center gap-1 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 text-xs px-2 py-1 rounded-full">
-                  <FiStar className="h-3 w-3" />
-                  Top Match
-                </span>
-              )}
+            <div className="min-w-0 flex-1">
+              <h3 className="text-white font-bold text-base leading-tight truncate">{name}</h3>
+              <p className="text-white/70 text-xs truncate">{startup.tagline || startup.industry || ''}</p>
             </div>
-            <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-              {startup.tagline}
-            </p>
+
+            <div className="flex-shrink-0 text-white/60 group-hover:text-white transition-colors">
+              <FiArrowUpRight className="h-5 w-5" />
+            </div>
           </div>
 
-          {/* Short description */}
-          <p className="text-gray-500 text-sm mb-5 line-clamp-3 leading-relaxed">
-            {startup.description}
-          </p>
-
-          {/* Stats row */}
-          <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-            {startup.teamSize && (
-              <div className="flex items-center gap-1">
-                <FiUsers className="h-4 w-4" />
-                <span>{startup.teamSize} team</span>
-              </div>
-            )}
-            {startup.fundingStage && (
-              <div className="flex items-center gap-1">
-                <MdRocketLaunch className="h-4 w-4" />
-                <span>{startup.fundingStage}</span>
-              </div>
-            )}
-            {startup.location && (
-              <div className="flex items-center gap-1">
-                <FiMapPin className="h-4 w-4" />
-                <span>{startup.location}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Industry and tags */}
-          <div className="mb-5">
-            <div className="flex flex-wrap gap-2">
-              <span className={`bg-gradient-to-r ${getIndustryColor(startup.industry)} text-white text-xs font-semibold px-3 py-1.5 rounded-full`}>
+          {/* Meta row */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            {startup.industry && (
+              <span className="text-[10px] font-medium text-white bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/10">
                 {startup.industry}
               </span>
-              {startup.fundingStage && startup.fundingStage !== startup.industry && (
-                <span className="bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 text-xs font-medium px-3 py-1.5 rounded-full">
-                  {startup.fundingStage}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Availability indicator */}
-          {startup.availability?.days?.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                <span>Available for meetings</span>
-              </div>
-            </div>
-          )}
-
-          {/* Footer with CTA */}
-          <div className="pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                View details
-              </div>
-              <div className={`flex items-center gap-1 text-sm font-semibold ${isFavorite ? 'text-red-500' : 'text-indigo-500'}`}>
-                {isFavorite ? 'Saved' : 'Explore'}
-                <svg className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </div>
-            </div>
+            )}
+            {startup.fundingStage && (
+              <span className="text-[10px] font-medium text-white/80 bg-white/10 px-2 py-0.5 rounded-full">
+                {startup.fundingStage}
+              </span>
+            )}
+            {startup.location && (
+              <span className="text-[10px] text-white/70 flex items-center gap-0.5">
+                <FiMapPin className="h-3 w-3" />
+                {typeof startup.location === 'object'
+                  ? [startup.location?.city, startup.location?.state].filter(Boolean).join(', ')
+                  : startup.location}
+              </span>
+            )}
           </div>
         </div>
-
-        {/* Hover effect border */}
-        <div className={`absolute inset-0 rounded-2xl pointer-events-none border-2 border-transparent group-hover:border-indigo-200/50 transition-all duration-500 ${isHovered ? 'border-indigo-300/50' : ''}`}></div>
       </div>
     </Link>
   );

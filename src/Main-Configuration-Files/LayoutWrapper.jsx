@@ -52,11 +52,12 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
   // Convert sidebar options to include JSX icons for AppSidebar
   const transformedSidebarOptions = finalSidebarOptions?.map((item) => ({
     ...item,
+    tooltip: item.tooltip || item.name,
     icon: (
       <box-icon
         name={item.icon}
-        type={item.type || "regular"}
-        color={darkMode ? "white" : "gray"}
+        type={item.type || "solid"}
+        color="currentColor"
       ></box-icon>
     ),
   }));

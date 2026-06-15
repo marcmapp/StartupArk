@@ -6,26 +6,229 @@
 
 @layer base {
   body {
-    /* Light Theme (Corporate Growth) */
-    @apply bg-gray-50 text-gray-900;
-
-    /* Dark Theme (Cyber/Tech) */
-    @apply dark:bg-zinc-900 dark:text-gray-100;
+    /* Light: clean paper. Dark: deep neutral (near-black for richness). */
+    @apply bg-gray-50 text-zinc-900;
+    @apply dark:bg-zinc-950 dark:text-zinc-100;
   }
 
-  /* Text Colors for Dark Theme */
-  .text-primary {
-    @apply text-purple-600 dark:text-purple-400;
-  }
-  .text-secondary {
-    @apply text-cyan-600 dark:text-cyan-300;
-  }
-  .text-highlight {
-    @apply text-amber-600 dark:text-amber-300;
-  }
-
-  /* Optional: Heading Styles */
+  /* Headings inherit neutral text — NO forced accent color.
+     (Previously forced purple app-wide, which leaked color everywhere.) */
   h1, h2, h3 {
-    @apply text-primary font-bold;
+    @apply font-bold text-zinc-900 dark:text-white;
+  }
+
+  /* Legacy semantic text helpers — neutralized to mono so existing
+     markup keeps working without leaking accent color. */
+  .text-primary   { @apply text-zinc-900 dark:text-white; }
+  .text-secondary { @apply text-zinc-600 dark:text-zinc-300; }
+  .text-highlight { @apply text-zinc-900 dark:text-white; }
+}
+
+@layer components {
+  /* ───────── MONO GLASS (main app) ───────── */
+
+  /* Frosted glass card — the core surface of the whole app. */
+  .glass-card {
+    @apply bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl
+           border border-black/[0.06] dark:border-white/10
+           rounded-2xl shadow-sm;
+  }
+
+  /* Slightly stronger glass for banners / hero surfaces. */
+  .glass-panel {
+    @apply relative overflow-hidden
+           bg-white/80 dark:bg-white/[0.05] backdrop-blur-2xl
+           border border-black/[0.06] dark:border-white/10
+           rounded-2xl shadow-sm;
+  }
+
+  /* Inset / nested glass (rows inside a card). */
+  .glass-inset {
+    @apply bg-black/[0.03] dark:bg-white/[0.03]
+           border border-black/[0.04] dark:border-white/[0.06]
+           rounded-xl;
+  }
+
+  /* Primary action: black-on-light, white-on-dark. */
+  .btn-mono {
+    @apply inline-flex items-center justify-center gap-2 font-semibold
+           bg-zinc-900 text-white hover:bg-zinc-800
+           dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200
+           rounded-xl px-4 py-2.5 text-sm transition-colors
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Secondary / ghost action. */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 font-semibold
+           bg-transparent text-zinc-700 dark:text-zinc-300
+           border border-black/10 dark:border-white/15
+           hover:bg-black/[0.04] dark:hover:bg-white/[0.06]
+           rounded-xl px-4 py-2.5 text-sm transition-colors;
+  }
+
+  /* Mono input field. */
+  .input-mono {
+    @apply w-full bg-black/[0.03] dark:bg-white/[0.04]
+           border border-black/10 dark:border-white/10
+           rounded-xl px-4 py-2.5 text-sm
+           text-zinc-900 dark:text-white
+           placeholder-zinc-400 dark:placeholder-zinc-500
+           outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20
+           focus:border-transparent transition-all;
+  }
+
+  /* ───────── TRON (onboarding only) ───────── */
+
+  /* Tron surface: near-black with glowing cyan hairline. */
+  .tron-card {
+    @apply relative bg-zinc-950/80 backdrop-blur-xl
+           border border-cyan-400/30 rounded-2xl
+           shadow-[0_0_25px_-5px_rgba(34,211,238,0.25)];
+  }
+
+  .tron-border {
+    @apply border border-cyan-400/40
+           shadow-[0_0_15px_-3px_rgba(34,211,238,0.35)];
+  }
+
+  /* Glowing cyan CTA. */
+  .btn-tron {
+    @apply inline-flex items-center justify-center gap-2 font-semibold
+           bg-cyan-400/10 text-cyan-200
+           border border-cyan-400/50 rounded-xl px-5 py-2.5 text-sm
+           shadow-[0_0_18px_-4px_rgba(34,211,238,0.5)]
+           hover:bg-cyan-400/20 hover:shadow-[0_0_26px_-2px_rgba(34,211,238,0.7)]
+           transition-all duration-300;
+  }
+
+  .tron-text {
+    @apply text-cyan-300;
+  }
+}
+
+/* ───────── Tron onboarding: theme nested legacy form/agreement markup ─────────
+   Agreement & FormComponent keep their own classes; these overrides force them
+   onto the dark Tron surface (light text, glass inputs, cyan accents). */
+.tron-onboarding,
+.tron-onboarding p,
+.tron-onboarding span,
+.tron-onboarding li,
+.tron-onboarding label,
+.tron-onboarding h1,
+.tron-onboarding h2,
+.tron-onboarding h3,
+.tron-onboarding h4 { color: #e4e4e7; }
+.tron-onboarding .text-gray-400,
+.tron-onboarding .text-gray-500,
+.tron-onboarding .text-gray-600 { color: #a1a1aa !important; }
+.tron-onboarding input,
+.tron-onboarding textarea,
+.tron-onboarding select {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(34, 211, 238, 0.25) !important;
+  color: #fff !important;
+}
+.tron-onboarding input::placeholder,
+.tron-onboarding textarea::placeholder { color: #71717a !important; }
+.tron-onboarding input:focus,
+.tron-onboarding textarea:focus,
+.tron-onboarding select:focus {
+  border-color: rgba(34, 211, 238, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15) !important;
+}
+/* Neutralize white/light card panels nested in the flow → transparent glass. */
+.tron-onboarding .bg-white,
+.tron-onboarding .bg-gray-50,
+.tron-onboarding .bg-gray-100,
+.tron-onboarding [class*="dark:bg-gray-8"],
+.tron-onboarding [class*="dark:bg-zinc-8"] {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+/* Recolor primary action buttons inside the flow to the Tron CTA. */
+.tron-onboarding button[class*="bg-indigo"],
+.tron-onboarding button[class*="bg-purple"],
+.tron-onboarding button[class*="bg-blue"],
+.tron-onboarding button[class*="bg-emerald"],
+.tron-onboarding button[class*="bg-green"] {
+  background-image: none !important;
+  background-color: rgba(34, 211, 238, 0.12) !important;
+  color: #a5f3fc !important;
+  border: 1px solid rgba(34, 211, 238, 0.5) !important;
+  box-shadow: 0 0 18px -4px rgba(34, 211, 238, 0.5) !important;
+}
+
+/* ───────── react-big-calendar dark mode ───────── */
+.dark .rbc-mono,
+.dark .rbc-mono .rbc-time-view,
+.dark .rbc-mono .rbc-month-view {
+  background-color: #18181b; /* zinc-900 */
+  color: #e4e4e7;
+}
+.dark .rbc-mono .rbc-header,
+.dark .rbc-mono .rbc-time-header-content,
+.dark .rbc-mono .rbc-time-content,
+.dark .rbc-mono .rbc-time-header.rbc-overflowing,
+.dark .rbc-mono .rbc-month-row,
+.dark .rbc-mono .rbc-day-bg,
+.dark .rbc-mono .rbc-time-gutter,
+.dark .rbc-mono .rbc-timeslot-group,
+.dark .rbc-mono .rbc-day-slot,
+.dark .rbc-mono .rbc-time-slot {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.dark .rbc-mono .rbc-off-range-bg { background-color: rgba(255, 255, 255, 0.02); }
+.dark .rbc-mono .rbc-today { background-color: rgba(255, 255, 255, 0.06); }
+.dark .rbc-mono .rbc-header,
+.dark .rbc-mono .rbc-button-link,
+.dark .rbc-mono .rbc-label,
+.dark .rbc-mono .rbc-date-cell { color: #d4d4d8; }
+.dark .rbc-mono .rbc-show-more { color: #fff; background: transparent; }
+.rbc-today-mono { background-color: rgba(0, 0, 0, 0.04); }
+.dark .rbc-today-mono { background-color: rgba(255, 255, 255, 0.06); }
+
+@layer utilities {
+  /* Pulsing glow for Tron accents. */
+  @keyframes tron-pulse {
+    0%, 100% { box-shadow: 0 0 14px -4px rgba(34, 211, 238, 0.45); }
+    50%      { box-shadow: 0 0 26px -2px rgba(34, 211, 238, 0.75); }
+  }
+  .animate-tron-pulse {
+    animation: tron-pulse 2.8s ease-in-out infinite;
+  }
+
+  /* Sweep line for the Tron grid/scan effect. */
+  @keyframes tron-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .animate-tron-sweep {
+    animation: tron-sweep 3.5s linear infinite;
+  }
+
+  /* Subtle float for hero elements. */
+  @keyframes float-soft {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  .animate-float-soft {
+    animation: float-soft 5s ease-in-out infinite;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
+
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .animate-scale-in {
+    animation: scale-in 0.25s ease-out both;
   }
 }

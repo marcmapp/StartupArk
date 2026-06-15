@@ -34,8 +34,9 @@ const CareerLaunchPage = () => {
   const fetchOpportunities = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${baseUrl}/smart/api/opportunities/`, {
-        params: { type: activeTab === 'jobs' ? 'job' : activeTab }
+      const response = await axios.get(`${baseUrl}/startupark/api/opportunities`, {
+        params: { type: activeTab === 'jobs' ? 'job' : activeTab },
+        headers: { Authorization: `Bearer ${token}` }
       });
       setOpportunities(response.data.opportunities || []);
     } catch (error) {
@@ -46,13 +47,13 @@ const CareerLaunchPage = () => {
     }
   };
 
-  // Fetch applied opportunities - make this available globally
+  // Fetch applied opportunities
   const fetchAppliedOpportunities = async () => {
     try {
-      const response = await axios.get(`${baseUrl}/smart/api/student/my-applications`, {
+      const response = await axios.get(`${baseUrl}/startupark/api/applications?as=student`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setAppliedOpportunities(response.data || []);
+      setAppliedOpportunities(response.data.applications || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
       setAppliedOpportunities([]);
@@ -76,7 +77,9 @@ const CareerLaunchPage = () => {
 
   // Check if user has already applied to an opportunity
   const checkIfAlreadyApplied = (opportunityId) => {
-    return appliedOpportunities.some(app => app.opportunityId === opportunityId);
+    return appliedOpportunities.some(app =>
+      String(app.opportunityId?._id || app.opportunityId) === String(opportunityId)
+    );
   };
 
   // Handle resume upload to S3
@@ -84,19 +87,14 @@ const CareerLaunchPage = () => {
     try {
       setUploadingResume(true);
       
-      // Get signed URL for resume upload
-      const urlResponse = await axios.get(
-        `${baseUrl}/smart/api/student/upload-resume-url`,
-        {
-          params: {
-            filename: file.name,
-            filetype: file.type
-          },
-          headers: { Authorization: `Bearer ${token}` }
-        }
+      // Get presigned PUT URL for resume upload
+      const urlResponse = await axios.post(
+        `${baseUrl}/startupark/api/student/upload`,
+        { field: 'resume', filename: file.name, contentType: file.type },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const { url, key } = urlResponse.data;
+      const { uploadUrl: url, key } = urlResponse.data;
 
       // Upload file to S3
       await axios.put(url, file, {
@@ -178,10 +176,10 @@ const CareerLaunchPage = () => {
 
       // Submit application
       await axios.post(
-        `${baseUrl}/smart/api/student/apply/${selectedOpportunity._id}`,
+        `${baseUrl}/startupark/api/opportunities/${selectedOpportunity._id}/apply`,
         {
           coverLetter: applicationData.coverLetter,
-          resumeKey: resumeKey
+          resume: resumeKey
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -217,10 +215,10 @@ const CareerLaunchPage = () => {
     const hasApplied = checkIfAlreadyApplied(opportunity._id);
     
     return (
-      <div className=" rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all duration-300 group">
+      <div className=" rounded-lg border border-gray-200 dark:border-white/10 p-6 hover:shadow-md transition-all duration-300 group">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2 transition-colors">
+            <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2 transition-colors">
               {opportunity.title}
             </h3>
             <div className="flex items-center gap-4 text-sm  mb-3">
@@ -232,7 +230,7 @@ const CareerLaunchPage = () => {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium capitalize">
+            <div className="bg-gray-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1 rounded-full text-sm font-medium capitalize">
               {opportunity.type}
             </div>
             {hasApplied && (
@@ -251,12 +249,12 @@ const CareerLaunchPage = () => {
           <div className="mb-4">
             <div className="flex flex-wrap gap-2">
               {opportunity.requirements.split(',').slice(0, 3).map((req, index) => (
-                <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                <span key={index} className="px-2 py-1 bg-gray-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-xs">
                   {req.trim()}
                 </span>
               ))}
               {opportunity.requirements.split(',').length > 3 && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                <span className="px-2 py-1 bg-gray-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-xs">
                   +{opportunity.requirements.split(',').length - 3} more
                 </span>
               )}
@@ -265,7 +263,7 @@ const CareerLaunchPage = () => {
         )}
 
         <div className="flex justify-between items-center">
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
             {opportunity.applicationCount || 0} applicants
           </div>
           <button
@@ -279,7 +277,7 @@ const CareerLaunchPage = () => {
             }}
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${
               hasApplied 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                ? 'bg-gray-300 text-zinc-500 dark:text-zinc-400 cursor-not-allowed' 
                 : 'bg-black text-white hover:bg-gray-800'
             }`}
             disabled={loading || hasApplied}
@@ -313,10 +311,10 @@ const StatusBadge = ({ status }) => {
 
 // Update the AppliedCard component to show new statuses
 const AppliedCard = ({ application }) => (
-  <div className=" rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all duration-300">
+  <div className=" rounded-lg border border-gray-200 dark:border-white/10 p-6 hover:shadow-md transition-all duration-300">
     <div className="flex justify-between items-start mb-4">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">{application.title}</h3>
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">{application.title}</h3>
         <p className="text-sm  mb-2">{application.company} • {application.type}</p>
       </div>
       <StatusBadge status={application.status} />
@@ -395,11 +393,11 @@ const AppliedCard = ({ application }) => (
     useEffect(() => {
       const fetchUserData = async () => {
         try {
-          const response = await axios.get(`${baseUrl}/smart/api/student/profile`, {
+          const response = await axios.get(`${baseUrl}/startupark/api/profile/student`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          
-          const userData = response.data.user;
+
+          const userData = response.data.profile || response.data.user;
           const savedFormData = sessionStorage.getItem('applicationFormData');
           const currentFormData = savedFormData ? JSON.parse(savedFormData) : {};
           
@@ -472,8 +470,8 @@ const AppliedCard = ({ application }) => (
           </div>
         )}
 
-        <div className=" rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
+        <div className=" rounded-lg shadow-sm border border-gray-200 dark:border-white/10">
+          <div className="p-6 border-b border-gray-200 dark:border-white/10">
             <div className="flex items-center gap-4 mb-4">
               <button 
                 onClick={() => {
@@ -483,12 +481,12 @@ const AppliedCard = ({ application }) => (
                   setErrorMessage('');
                   setSuccessMessage('');
                 }}
-                className=" hover:text-gray-800 transition-colors"
+                className=" hover:text-zinc-800 dark:text-zinc-200 transition-colors"
               >
                 ← Back
               </button>
               <div>
-                <h2 className="text-2xl font-semibold text-gray-900">Apply for {selectedOpportunity?.title}</h2>
+                <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white">Apply for {selectedOpportunity?.title}</h2>
                 <p className="">{selectedOpportunity?.startupName}</p>
               </div>
             </div>
@@ -497,25 +495,25 @@ const AppliedCard = ({ application }) => (
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">First Name</label>
                 <input 
                   type="text"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
                   placeholder="John"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Last Name</label>
                 <input 
                   type="text"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
                   placeholder="Doe"
                   required
                 />
@@ -524,25 +522,25 @@ const AppliedCard = ({ application }) => (
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Email Address</label>
                 <input 
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
                   placeholder="john.doe@example.com"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Phone Number</label>
                 <input 
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
                   placeholder="+1 (555) 000-0000"
                   required
                 />
@@ -550,21 +548,21 @@ const AppliedCard = ({ application }) => (
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Cover Letter</label>
               <textarea 
                 rows="6"
                 name="coverLetter"
                 value={formData.coverLetter}
                 onChange={handleFormChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent resize-none"
                 placeholder="Tell us why you're interested in this opportunity and why you'd be a great fit..."
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Resume</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Upload Resume</label>
+              <div className="border-2 border-dashed border-gray-300 dark:border-white/10 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer">
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -595,7 +593,7 @@ const AppliedCard = ({ application }) => (
               )}
             </div>
 
-            <div className="flex gap-4 pt-4 border-t border-gray-200">
+            <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-white/10">
               <button 
                 type="button"
                 onClick={() => {
@@ -605,7 +603,7 @@ const AppliedCard = ({ application }) => (
                   setErrorMessage('');
                   setSuccessMessage('');
                 }}
-                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 px-6 py-3 border border-gray-300 dark:border-white/10 text-zinc-700 dark:text-zinc-300 rounded-lg font-medium hover:bg-gray-50 dark:bg-zinc-900 transition-colors"
                 disabled={uploadingResume}
               >
                 Cancel
@@ -630,17 +628,17 @@ const AppliedCard = ({ application }) => (
 
     return (
       <div className="max-w-4xl mx-auto">
-        <div className=" rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
+        <div className=" rounded-lg shadow-sm border border-gray-200 dark:border-white/10">
+          <div className="p-6 border-b border-gray-200 dark:border-white/10">
             <div className="flex items-center gap-4 mb-4">
               <button 
                 onClick={() => setView('applied')}
-                className=" hover:text-gray-800 transition-colors"
+                className=" hover:text-zinc-800 dark:text-zinc-200 transition-colors"
               >
                 ← Back
               </button>
               <div>
-                <h2 className="text-2xl font-semibold text-gray-900">{selectedApplication.title}</h2>
+                <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white">{selectedApplication.title}</h2>
                 <p className="">{selectedApplication.company}</p>
               </div>
             </div>
@@ -674,8 +672,8 @@ const AppliedCard = ({ application }) => (
                 <label className="block text-sm font-medium mb-2">Resume</label>
                 <div className="flex items-center gap-4">
                   <span className="">Resume uploaded</span>
-                  <a 
-                    href={`${baseUrl}/smart/api/student/file/${encodeURIComponent(selectedApplication.resume)}`}
+                  <a
+                    href={`${baseUrl}/startupark/api/s3/private-file/${encodeURIComponent(selectedApplication.resume)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-cyan-500 hover:text-cyan-800 font-medium"
@@ -705,13 +703,13 @@ const AppliedCard = ({ application }) => (
   );
 
   const ViewToggle = () => (
-    <div className="flex  rounded-lg p-1 shadow-sm border border-gray-200">
+    <div className="flex  rounded-lg p-1 shadow-sm border border-gray-200 dark:border-white/10">
       <button
         onClick={() => setView('browse')}
         className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
           view === 'browse' 
-            ? 'bg-gray-100 text-black' 
-            : ' hover:text-gray-800'
+            ? 'bg-gray-100 dark:bg-zinc-800 text-black' 
+            : ' hover:text-zinc-800 dark:text-zinc-200'
         }`}
       >
         Browse
@@ -720,8 +718,8 @@ const AppliedCard = ({ application }) => (
         onClick={() => setView('applied')}
         className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
           view === 'applied' 
-            ? 'bg-gray-100 text-black' 
-            : ' hover:text-gray-800'
+            ? 'bg-gray-100 dark:bg-zinc-800 text-black' 
+            : ' hover:text-zinc-800 dark:text-zinc-200'
         }`}
       >
         My Applications
@@ -735,7 +733,7 @@ const AppliedCard = ({ application }) => (
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 mb-2">
+            <h1 className="text-3xl font-semibold text-zinc-900 dark:text-white mb-2">
               Career Launch Pad
             </h1>
             <p className="">
@@ -774,7 +772,7 @@ const AppliedCard = ({ application }) => (
             )}
 
             {/* Opportunity Type Tabs */}
-            <div className="flex gap-8 mb-8 border-b border-gray-200">
+            <div className="flex gap-8 mb-8 border-b border-gray-200 dark:border-white/10">
               <TabButton
                 type="jobs"
                 label="Jobs"
@@ -826,7 +824,7 @@ const AppliedCard = ({ application }) => (
                   </svg>
                 </div>
                 <h3 className="text-lg font-medium  mb-2">No opportunities found</h3>
-                <p className="text-gray-500">Check back later for new {activeTab} opportunities.</p>
+                <p className="text-zinc-500 dark:text-zinc-400">Check back later for new {activeTab} opportunities.</p>
               </div>
             )}
           </>
@@ -834,8 +832,8 @@ const AppliedCard = ({ application }) => (
 
         {view === 'applied' && (
           <div className="max-w-4xl mx-auto">
-            <div className=" rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">My Applications</h2>
+            <div className=" rounded-lg shadow-sm border border-gray-200 dark:border-white/10 p-6">
+              <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-6">My Applications</h2>
               
               {appliedOpportunities.length > 0 ? (
                 <div className="space-y-4">
@@ -851,7 +849,7 @@ const AppliedCard = ({ application }) => (
                     </svg>
                   </div>
                   <h3 className="text-lg font-medium  mb-2">No applications yet</h3>
-                  <p className="text-gray-500 mb-6">Start applying to opportunities to see them here.</p>
+                  <p className="text-zinc-500 dark:text-zinc-400 mb-6">Start applying to opportunities to see them here.</p>
                   <button
                     onClick={() => setView('browse')}
                     className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"

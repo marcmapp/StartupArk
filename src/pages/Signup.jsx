@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { authService, storageService } from '../services/auth';
+import AuthBrandPanel from '../components/AuthBrandPanel';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -147,122 +148,135 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4 sm:p-8 lg:p-12">
-      <form
-        onSubmit={isOtpSent ? handleVerifyOtp : handleSendOtp}
-        className="bg-black p-6 sm:p-8 lg:p-10 rounded-lg shadow-xl w-full max-w-md border-2 border-white relative"
-      >
-        <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-green-500 text-center">
-          {isOtpSent ? 'Verify OTP' : 'SIGN UP'}
-        </h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 p-4 sm:p-8">
+      <div className="glass-card shadow-xl w-full max-w-4xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
 
-        {message.text && (
-          <div
-            className={`mb-4 p-3 rounded text-center ${
-              message.type === 'success' 
-                ? 'bg-green-800 text-green-300' 
-                : 'bg-red-800 text-red-300'
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
+        {/* Left brand panel */}
+        <AuthBrandPanel
+          eyebrow={isOtpSent ? 'Verify Access' : 'Create Account'}
+          title="Join MAPP ARKS"
+          subtitle="Create your account to discover startups, connect with founders, and grow."
+        />
 
-        {!isOtpSent ? (
-          <>
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => updateFormData('email', e.target.value)}
-              className="w-full p-3 mb-4 bg-black border border-gray-600 text-white rounded focus:ring-4 focus:ring-white transition duration-300"
-              required
-              disabled={isLoading}
-            />
-            <input
-              type="text"
-              placeholder="Username"
-              value={formData.username}
-              onChange={(e) => updateFormData('username', e.target.value)}
-              className="w-full p-3 mb-4 bg-black border border-gray-600 text-white rounded focus:ring-4 focus:ring-white transition duration-300"
-              required
-              disabled={isLoading}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={(e) => updateFormData('password', e.target.value)}
-              className="w-full p-3 mb-4 bg-black border border-gray-600 text-white rounded focus:ring-4 focus:ring-white transition duration-300"
-              required
-              disabled={isLoading}
-            />
-            <div className="flex mb-4">
-              <select
-                value={formData.countryCode}
-                onChange={(e) => updateFormData('countryCode', e.target.value)}
-                className="w-1/4 p-3 bg-black border border-gray-600 text-white rounded-l focus:ring-4 focus:ring-white transition duration-300"
-                disabled={isLoading}
-              >
-                <option value="+91">+91</option>
-                <option value="+1">+1</option>
-                <option value="+44">+44</option>
-                <option value="+81">+81</option>
-                <option value="+61">+61</option>
-              </select>
+        {/* Right form panel */}
+        <form
+          onSubmit={isOtpSent ? handleVerifyOtp : handleSendOtp}
+          className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center"
+        >
+          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-1">
+            {isOtpSent ? 'Verify OTP' : 'Sign Up'}
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+            {isOtpSent ? 'Enter the code we sent to your email.' : 'A few details to get you started.'}
+          </p>
+
+          {message.text && (
+            <div
+              className={`mb-4 p-3 rounded-lg text-center text-sm border ${
+                message.type === 'success'
+                  ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/40'
+                  : 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/40'
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+
+          {!isOtpSent ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
-                type="tel"
-                placeholder="WhatsApp Number"
-                value={formData.whatsappNumber}
-                onChange={(e) => updateFormData('whatsappNumber', e.target.value)}
-                className="w-3/4 p-3 bg-black border border-gray-600 text-white rounded-r focus:ring-4 focus:ring-white transition duration-300"
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) => updateFormData('email', e.target.value)}
+                className="input-mono sm:col-span-2"
                 required
                 disabled={isLoading}
               />
+              <input
+                type="text"
+                placeholder="Username"
+                value={formData.username}
+                onChange={(e) => updateFormData('username', e.target.value)}
+                className="input-mono"
+                required
+                disabled={isLoading}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => updateFormData('password', e.target.value)}
+                className="input-mono"
+                required
+                disabled={isLoading}
+              />
+              <div className="flex sm:col-span-2">
+                <select
+                  value={formData.countryCode}
+                  onChange={(e) => updateFormData('countryCode', e.target.value)}
+                  className="input-mono w-1/4 rounded-r-none"
+                  disabled={isLoading}
+                >
+                  <option value="+91">+91</option>
+                  <option value="+1">+1</option>
+                  <option value="+44">+44</option>
+                  <option value="+81">+81</option>
+                  <option value="+61">+61</option>
+                </select>
+                <input
+                  type="tel"
+                  placeholder="WhatsApp Number"
+                  value={formData.whatsappNumber}
+                  onChange={(e) => updateFormData('whatsappNumber', e.target.value)}
+                  className="input-mono w-3/4 rounded-l-none border-l-0"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
             </div>
-          </>
-        ) : (
-          <input
-            type="text"
-            placeholder="Enter OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            className="w-full p-3 mb-4 bg-black border border-gray-600 text-white rounded focus:ring-4 focus:ring-white transition duration-300"
-            required
-            disabled={isLoading}
-          />
-        )}
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full p-3 mt-4 bg-white hover:bg-black hover:text-white hover:border-white text-black border-2 border-black font-semibold rounded-lg shadow-md focus:ring-4 focus:ring-white transition duration-300 disabled:opacity-50"
-        >
-          {isLoading ? 'Processing...' : (isOtpSent ? 'Verify OTP' : 'Send OTP')}
-        </button>
-
-        <p className="mt-4 text-center text-gray-400">
-          Already have an account?{' '}
-          <Link to="/login" className="text-cyan-500 font-bold text-lg hover:underline">
-            Login
-          </Link>
-        </p>
-
-        {isOtpSent && (
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setIsOtpSent(false)}
-              className="text-red-500 hover:underline"
+          ) : (
+            <input
+              type="text"
+              placeholder="Enter OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="input-mono mb-4"
+              required
               disabled={isLoading}
-            >
-              Go back to Signup
-            </button>
-          </div>
-        )}
+            />
+          )}
 
-        <div className="my-4 text-center text-gray-400">OR</div>
-        <hr className="my-4 border-t-2 border-gray-600" />
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="btn-mono w-full p-3 mt-5 disabled:opacity-50"
+          >
+            {isLoading ? 'Processing…' : (isOtpSent ? 'Verify OTP' : 'Send OTP')}
+          </button>
+
+          <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            Already have an account?{' '}
+            <Link to="/login" className="text-zinc-900 dark:text-white font-bold hover:underline">
+              Login
+            </Link>
+          </p>
+
+          {isOtpSent && (
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={() => setIsOtpSent(false)}
+                className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:underline"
+                disabled={isLoading}
+              >
+                ← Go back to Signup
+              </button>
+            </div>
+          )}
+
+        <div className="my-4 text-center text-zinc-500">OR</div>
+        <hr className="my-4 border-t border-white/10" />
 
         <GoogleOAuthProvider clientId={ssoid}>
           <div className="flex justify-center">
@@ -273,7 +287,8 @@ const Signup = () => {
             />
           </div>
         </GoogleOAuthProvider>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

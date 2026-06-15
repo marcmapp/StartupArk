@@ -8,10 +8,10 @@ const FilterDropdown = ({ options, selected, setSelected, label }) => {
         <div className="w-full md:w-48">
           <Listbox.Label className="sr-only">{label}</Listbox.Label>
           <div className="relative">
-            <Listbox.Button className="relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <Listbox.Button className="input-mono relative text-left cursor-default pr-10">
               <span className="block truncate">{selected}</span>
               <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <svg className="h-5 w-5 text-gray-900" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-5 w-5 text-zinc-400 dark:text-zinc-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </span>
@@ -24,12 +24,12 @@ const FilterDropdown = ({ options, selected, setSelected, label }) => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Listbox.Options className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-gray-900 ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+              <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 shadow-lg max-h-60 rounded-xl py-1 text-zinc-900 dark:text-white ring-1 ring-black/5 dark:ring-white/10 overflow-auto focus:outline-none sm:text-sm">
                 {options.map((option) => (
                   <Listbox.Option
                     key={option}
                     className={({ active }) =>
-                      `${active ? 'text-white bg-indigo-600' : 'text-gray-900'}
+                      `${active ? 'text-white dark:text-zinc-900 bg-zinc-900 dark:bg-white' : 'text-zinc-900 dark:text-white'}
                       cursor-default select-none relative py-2 pl-3 pr-9`
                     }
                     value={option}
@@ -41,7 +41,7 @@ const FilterDropdown = ({ options, selected, setSelected, label }) => {
                         </span>
                         {selected ? (
                           <span
-                            className={`${active ? 'text-white' : 'text-indigo-600'}
+                            className={`${active ? 'text-white dark:text-zinc-900' : 'text-zinc-900 dark:text-white'}
                               absolute inset-y-0 right-0 flex items-center pr-4`}
                           >
                             <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">

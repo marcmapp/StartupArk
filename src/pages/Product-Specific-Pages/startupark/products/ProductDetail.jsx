@@ -1,317 +1,295 @@
 import React, { useState, useEffect } from 'react';
-import { LOGO_LIGHT, LOGO_DARK } from "../../../../Main-Configuration-Files/constants";
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FiArrowLeft, FiExternalLink, FiLinkedin, FiTwitter, FiFacebook, FiGlobe, FiCalendar, FiTag } from 'react-icons/fi';
-import { MdRocketLaunch, MdVerified } from 'react-icons/md';
-import Loader from '../../../../components/Loader';
-import ProductImageCarousel from './ProductImageCarousel';
 
-const ProductDetail = () => {
+const BASE = import.meta.env.VITE_API_BASE_URL;
+const R2 = 'https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev';
+
+function r2Url(key) {
+  if (!key) return null;
+  if (key.startsWith('http') || key.startsWith('blob:')) return key;
+  return `${R2}/${key}`;
+}
+
+const STAGE_STYLES = {
+  launched: 'bg-green-900/40 text-green-400 ring-green-800',
+  beta:     'bg-blue-900/40 text-blue-400 ring-blue-800',
+  scaling:  'bg-amber-900/40 text-amber-400 ring-amber-800',
+  concept:  'bg-zinc-800 text-zinc-400 ring-zinc-700',
+};
+const STAGE_LABEL = { concept: 'Concept', beta: 'Beta', launched: 'Launched', scaling: 'Scaling' };
+const PRICING_LABEL = { free: 'Free', freemium: 'Freemium', paid: 'Paid', 'contact-us': 'Contact Us' };
+
+export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [baseUrl] = useState(import.meta.env.VITE_API_BASE_URL);
+  const [activeImg, setActiveImg] = useState(0);
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${baseUrl}/startupark/api/products/${id}`);
-        setProduct(response.data);
-      } catch (err) {
-        console.error('Error fetching product:', err);
+    axios.get(`${BASE}/startupark/api/products/${id}`)
+      .then(res => {
+        // Backend returns { product: {...} }
+        setProduct(res.data.product || res.data);
+      })
+      .catch(err => {
         setError(err.response?.data?.error || 'Failed to load product');
-        if (err.response?.status === 404) {
-          navigate('/not-found', { replace: true });
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProduct();
-  }, [id, baseUrl, navigate]);
-
-  // UPDATED: Helper function to get image URL
-  const getImageUrl = (key) => {
-    if (!key) return LOGO_LIGHT;
-    if (key.startsWith('http')) return key;
-    if (key.startsWith('blob:')) return key;
-    
-    // Check if it's already a full URL
-    if (key.includes(baseUrl)) return key;
-    
-    // Assume it's an S3 key
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
-  };
-
-  // Get display images for carousel
-  const getDisplayImages = () => {
-    if (!product) return [];
-    
-    if (product.images && product.images.length > 0) {
-      return product.images.map(img => ({
-        ...img,
-        url: getImageUrl(img.url)
-      }));
-    }
-    
-    if (product.featuredImage) {
-      return [{ url: getImageUrl(product.featuredImage), type: 'image', isFeatured: true }];
-    }
-    
-    return [];
-  };
+        if (err.response?.status === 404) navigate('/products', { replace: true });
+      })
+      .finally(() => setLoading(false));
+  }, [id, navigate]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
-        <Loader />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FiExternalLink className="w-8 h-8 text-red-500" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Error Loading Product</h3>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={() => navigate(-1)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-            >
-              Go Back
-            </button>
-          </div>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-zinc-300 animate-spin mx-auto" />
+          <p className="text-sm text-zinc-500">Loading product…</p>
         </div>
       </div>
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MdRocketLaunch className="w-8 h-8 text-gray-500" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Product Not Found</h3>
-            <p className="text-gray-600 mb-6">The product you're looking for doesn't exist.</p>
-            <button
-              onClick={() => navigate('/products')}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-            >
-              Browse Products
-            </button>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-6">
+        <div className="glass-card p-10 text-center max-w-md space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-red-900/30 flex items-center justify-center mx-auto">
+            <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <p className="text-zinc-300">{error || 'Product not found'}</p>
+          <button onClick={() => navigate(-1)} className="btn-ghost text-sm px-5 py-2">← Go Back</button>
         </div>
       </div>
     );
   }
 
-  const displayImages = getDisplayImages();
-  const startup = product.startupId || product.startup; // Handle both field names
+  // Build images list from gallery field
+  const images = (product.gallery?.length > 0
+    ? product.gallery
+    : product.featuredImage
+      ? [{ url: product.featuredImage, type: 'image' }]
+      : []
+  ).map(img => ({ ...img, url: r2Url(img.url) })).filter(img => img.url);
+
+  const startup = product.startupId;
+  const stage = product.stage || 'concept';
+  const stageStyle = STAGE_STYLES[stage] || STAGE_STYLES.concept;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold mb-8 group transition-colors"
-        >
-          <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-          Back to Products
-        </button>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Top nav */}
+      <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10 px-4 md:px-6 py-3">
+        <div className="max-w-6xl mx-auto flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          <span className="text-xs text-zinc-600">/</span>
+          <span className="text-xs text-zinc-400 truncate">{product.name}</span>
+        </div>
+      </div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-            {/* Product Images with Carousel */}
-            <div className="space-y-4">
-              <ProductImageCarousel 
-                images={displayImages}
-                productName={product.name}
-                className="h-96"
-                enableZoom={true}
-              />
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-6">
+
+        {/* Main grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* ── Left: Images ───────────────────────────────────── */}
+          <div className="space-y-3">
+            {/* Main image */}
+            <div className="glass-card overflow-hidden aspect-video flex items-center justify-center bg-zinc-900">
+              {images.length > 0 ? (
+                <img
+                  src={images[activeImg]?.url}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3 text-zinc-700">
+                  <svg className="w-14 h-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm">No images</span>
+                </div>
+              )}
             </div>
 
-            {/* Product Details */}
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-                    {product.stage === 'Launched' && (
-                      <MdVerified className="w-6 h-6 text-green-500" title="Launched Product" />
-                    )}
-                  </div>
-                  
-                  {product.website && (
-                    <a
-                      href={product.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
-                    >
-                      Visit Live Website
-                      <FiExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
-                </div>
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-0.5">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImg(i)}
+                    className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden ring-1 transition-all ${
+                      i === activeImg ? 'ring-zinc-300' : 'ring-zinc-800 opacity-50 hover:opacity-80'
+                    }`}
+                  >
+                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
+            )}
+          </div>
 
-              {/* Tags */}
-              {product.tags?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {product.tags.map((tag, index) => (
-                    <span key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-                      <FiTag className="w-3 h-3" />
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+          {/* ── Right: Details ─────────────────────────────────── */}
+          <div className="space-y-5">
+            {/* Name + stage */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ${stageStyle}`}>
+                  {STAGE_LABEL[stage] || stage}
+                </span>
+                {product.category && (
+                  <span className="text-[10px] text-zinc-500 capitalize">{product.category}</span>
+                )}
+              </div>
+              <h1 className="text-2xl font-bold text-zinc-100 leading-tight">{product.name}</h1>
+              {product.shortDescription && (
+                <p className="text-sm text-zinc-400 mt-1.5 leading-relaxed">{product.shortDescription}</p>
               )}
+            </div>
 
-              {/* Description */}
-              <div className="prose max-w-none">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <MdRocketLaunch className="w-5 h-5 text-blue-500" />
-                  About This Product
-                </h3>
-                <p className="text-gray-700 leading-relaxed text-lg">
-                  {product.description}
-                </p>
+            {/* Tags */}
+            {product.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {product.tags.map(t => (
+                  <span key={t} className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 ring-1 ring-zinc-700">
+                    {t}
+                  </span>
+                ))}
               </div>
+            )}
 
-              {/* Key Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100">
-                  <div className="flex items-center gap-3 mb-2">
-                    <FiGlobe className="w-5 h-5 text-blue-500" />
-                    <h3 className="text-sm font-medium text-gray-700">Category</h3>
+            {/* CTAs */}
+            <div className="flex flex-wrap gap-3">
+              {product.website && (
+                <a
+                  href={product.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-mono text-sm px-5 py-2 flex items-center gap-2"
+                >
+                  Visit Website
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+              {product.demoUrl && (
+                <a
+                  href={product.demoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-ghost text-sm px-5 py-2 flex items-center gap-2"
+                >
+                  Live Demo
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </a>
+              )}
+            </div>
+
+            {/* Meta grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Category', value: product.category, icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z' },
+                { label: 'Stage', value: STAGE_LABEL[product.stage] || product.stage, icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+                { label: 'Pricing', value: PRICING_LABEL[product.pricing] || product.pricing, icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                { label: 'Industry', value: product.industry, icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+              ].map(item => (
+                <div key={item.label} className="glass-inset p-3 rounded-xl space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-zinc-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+                    </svg>
+                    <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">{item.label}</span>
                   </div>
-                  <p className="text-gray-900 font-semibold">{product.category || 'Not specified'}</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-100">
-                  <div className="flex items-center gap-3 mb-2">
-                    <MdRocketLaunch className="w-5 h-5 text-green-500" />
-                    <h3 className="text-sm font-medium text-gray-700">Stage</h3>
-                  </div>
-                  <p className="text-gray-900 font-semibold">{product.stage || 'Not specified'}</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
-                  <div className="flex items-center gap-3 mb-2">
-                    <FiCalendar className="w-5 h-5 text-purple-500" />
-                    <h3 className="text-sm font-medium text-gray-700">Pricing</h3>
-                  </div>
-                  <p className="text-gray-900 font-semibold">
-                    {product.pricing || 'Free'}
+                  <p className="text-sm font-semibold text-zinc-200 capitalize">
+                    {item.value || <span className="text-zinc-600 font-normal">—</span>}
                   </p>
                 </div>
-                
-                <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
-                  <div className="flex items-center gap-3 mb-2">
-                    <FiTag className="w-5 h-5 text-orange-500" />
-                    <h3 className="text-sm font-medium text-gray-700">Industry</h3>
-                  </div>
-                  <p className="text-gray-900 font-semibold">
-                    {product.industry || 'Not specified'}
-                  </p>
-                </div>
-              </div>
+              ))}
+            </div>
 
-              {/* Startup Info */}
-              {startup && (
-                <div className="border-t pt-6 mt-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <MdVerified className="w-5 h-5 text-blue-500" />
-                    From the Startup
-                  </h3>
-                  <div className="bg-gradient-to-br from-gray-50 to-slate-100 rounded-2xl p-6 border border-gray-200">
-                    <div className="flex items-center space-x-4">
-                      {startup.formData?.logo || startup.logo ? (
-                        <img
-                          src={getImageUrl(startup.formData?.logo || startup.logo)}
-                          alt={`${startup.formData?.startupName || startup.name} logo`}
-                          className="h-20 w-20 rounded-2xl object-cover border-2 border-white shadow-lg"
-                          onError={(e) => {
-                            console.error('Logo load error:', startup.logo);
-                            e.target.src = LOGO_LIGHT;
-                          }}
-                        />
-                      ) : (
-                        <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                          <span className="text-xl font-bold text-white">
-                            {(startup.formData?.startupName || startup.name)?.charAt(0) || 'S'}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-lg">{startup.formData?.startupName || startup.name}</h4>
-                        <p className="text-gray-600 mb-3">{startup.formData?.tagline || startup.tagline}</p>
-                        <div className="flex space-x-4">
-                          {startup.formData?.linkedin || startup.linkedin ? (
-                            <a
-                              href={startup.formData?.linkedin || startup.linkedin}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-blue-600 transition-colors p-2 bg-white rounded-lg shadow-sm"
-                            >
-                              <FiLinkedin className="h-5 w-5" />
-                            </a>
-                          ) : null}
-                          {startup.formData?.twitter || startup.twitter ? (
-                            <a
-                              href={startup.formData?.twitter || startup.twitter}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-blue-400 transition-colors p-2 bg-white rounded-lg shadow-sm"
-                            >
-                              <FiTwitter className="h-5 w-5" />
-                            </a>
-                          ) : null}
-                          {startup.formData?.facebook || startup.facebook ? (
-                            <a
-                              href={startup.formData?.facebook || startup.facebook}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-blue-500 transition-colors p-2 bg-white rounded-lg shadow-sm"
-                            >
-                              <FiFacebook className="h-5 w-5" />
-                            </a>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                    <Link
-                      to={`/startups/${startup._id}`}
-                      className="inline-flex items-center gap-2 mt-4 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
-                    >
-                      View full startup profile
-                      <FiExternalLink className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </div>
-              )}
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-xs text-zinc-600 pt-1">
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                {product.viewCount || 0} views
+              </span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
+                </svg>
+                {product.clickCount || 0} clicks
+              </span>
             </div>
           </div>
         </div>
+
+        {/* Description */}
+        {product.description && (
+          <div className="glass-card p-5 space-y-2">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">About</h2>
+            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{product.description}</p>
+          </div>
+        )}
+
+        {/* Startup card */}
+        {startup && (
+          <div className="glass-card p-5">
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-4">Built by</h2>
+            <div className="flex items-center gap-4">
+              {/* Logo */}
+              {startup.logo ? (
+                <img
+                  src={r2Url(startup.logo)}
+                  alt={startup.companyName}
+                  className="w-14 h-14 rounded-xl object-cover ring-1 ring-zinc-700 shrink-0"
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-zinc-800 ring-1 ring-zinc-700 flex items-center justify-center shrink-0 text-lg font-bold text-zinc-400">
+                  {startup.companyName?.[0] || 'S'}
+                </div>
+              )}
+
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-zinc-100 truncate">{startup.companyName || startup.name}</h3>
+                {startup.tagline && (
+                  <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{startup.tagline}</p>
+                )}
+                {startup.industry && (
+                  <span className="text-[10px] text-zinc-600 mt-1 inline-block capitalize">{startup.industry}</span>
+                )}
+              </div>
+
+              <Link
+                to={`/startupark/startups/${startup._id}`}
+                className="btn-ghost text-xs px-3 py-1.5 shrink-0"
+              >
+                View Profile →
+              </Link>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
-};
-
-export default ProductDetail;
+}

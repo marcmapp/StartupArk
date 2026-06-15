@@ -56,7 +56,7 @@ export const useStartupData = (startupId = null) => {
       })) || [],
       team: data.team?.map(member => ({
         ...member,
-        avatar: getImageUrl(member.avatar)
+        profilePhoto: getImageUrl(member.profilePhoto)
       })) || [],
       pitchDeck: getImageUrl(data.pitchDeck),
       products: processProductImages(data.products || [])
@@ -67,10 +67,10 @@ export const useStartupData = (startupId = null) => {
     try {
       const token = getAuthToken();
       const response = await axios.get(
-        `${baseUrl}/startupark/api/products/startup/${startupId}`,
+        `${baseUrl}/startupark/api/products?startupId=${startupId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      return response.data || [];
+      return response.data?.products || [];
     } catch (error) {
       console.error('Error fetching startup products:', error);
       return [];
@@ -92,11 +92,11 @@ export const useStartupData = (startupId = null) => {
       let startupWithProducts;
 
       if (id) {
-        response = await axios.get(`${baseUrl}/startupark/api/startupark/startups-by-id/${id}`, {
+        response = await axios.get(`${baseUrl}/startupark/api/profile/startups/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        startupWithProducts = response.data;
+        startupWithProducts = response.data?.startup || response.data;
 
         try {
           const products = await fetchStartupProducts(id);
@@ -107,31 +107,22 @@ export const useStartupData = (startupId = null) => {
         }
 
       } else {
-        response = await axios.get(`${baseUrl}/startupark/api/startupark/dashboard`, {
+        response = await axios.get(`${baseUrl}/startupark/api/profile/startup`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (response.data && response.data.length > 0) {
-          const startupForm = response.data.find(form => form.role === 'startup');
-          if (startupForm) {
-            startupWithProducts = startupForm.formData;
+        if (response.data?.profile) {
+          startupWithProducts = response.data.profile;
 
-            if (startupForm._id) {
-              try {
-                const products = await fetchStartupProducts(startupForm._id);
-                startupWithProducts.products = products;
-              } catch (productsError) {
-                console.warn('Could not fetch products for current startup:', productsError);
-                startupWithProducts.products = startupWithProducts.products || [];
-              }
-            }
-          } else {
-            setError('No startup data found');
-            setLoading(false);
-            return;
+          try {
+            const products = await fetchStartupProducts(startupWithProducts._id);
+            startupWithProducts.products = products;
+          } catch (productsError) {
+            console.warn('Could not fetch products for current startup:', productsError);
+            startupWithProducts.products = startupWithProducts.products || [];
           }
         } else {
-          setError('No form data submitted yet');
+          setError('No startup profile found');
           setLoading(false);
           return;
         }

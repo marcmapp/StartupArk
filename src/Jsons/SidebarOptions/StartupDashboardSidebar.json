@@ -1,68 +1,12 @@
 [
-  {
-    "to": "/startupark/startup-dashboard",
-    "name": "Dashboard",
-    "icon": "home",
-    "type": "solid"
-  },
-  {
-    "to": "/startupark/startupsList",
-    "name": "Startup List",
-    "icon": "calendar",
-    "type": "solid",
-    "note": "Click a card to view startup's description"
-  },
-  {
-    "to": "/products",
-    "name": "Products",
-    "icon": "box",
-    "type": "solid",
-    "children": [
-      {
-        "to": "/products/showcase",
-        "name": "Showcase"
-      },
-      {
-        "to": "/products/launchpad",
-        "name": "Launchpad"
-      }
-    ]
-  },
-  {
-    "to": "/startupark/manage-bookings",
-    "name": "Bookings",
-    "icon": "briefcase",
-    "type": "solid",
-    "note": "Projects"
-  },
-  {
-    "to": "/startupark/jobposting",
-    "name": "Resource",
-    "icon": "bell",
-    "type": "solid"
-  },
-  {
-    "to": "/startupark/favorites",
-    "name": "Favorite Startups",
-    "icon": "star",
-    "type": "solid",
-    "note": "To Go Startups"
-  },
-  {
-    "to": "/startupark/startupcalender",
-    "name": "Calender",
-    "icon": "briefcase",
-    "type": "solid",
-    "note": "calender"
-  },
-  {
-    "to": "/startupark/chat",
-    "name": "Chat",
-    "icon": "chat",
-    "type": "solid",
-    "features": [
-      "video"
-    ]
-  },
-   { "to": "/startupark/startup/events", "name": "Events", "icon": "calendar" }
+  { "to": "/startupark/startup-dashboard", "name": "Dashboard", "icon": "home", "type": "solid", "tooltip": "Startup overview & analytics" },
+  { "to": "/startupark/startup-profile", "name": "My Startup", "icon": "rocket", "type": "solid", "tooltip": "Your startup profile" },
+  { "to": "/startupark/startupsList", "name": "Browse Startups", "icon": "compass", "type": "solid", "tooltip": "Discover other startups" },
+  { "to": "/startupark/nearby", "name": "Nearby", "icon": "map-pin", "type": "solid", "tooltip": "Find potential clients near you" },
+  { "to": "/startupark/projectark", "name": "Project Ark", "icon": "briefcase-alt-2", "type": "solid", "tooltip": "Post projects, find talent & grow your startup" },
+  { "to": "/products", "name": "Showcase", "icon": "box", "type": "solid", "tooltip": "Startup product showcase" },
+  { "to": "/manage-products", "name": "My Products", "icon": "store", "type": "solid", "tooltip": "Manage your product listings" },
+  { "to": "/startupark/jobposting", "name": "Job Postings", "icon": "briefcase", "type": "solid", "tooltip": "Post roles & find talent" },
+  { "to": "/startupark/startup/applications", "name": "Applications", "icon": "file", "type": "solid", "tooltip": "Review incoming applications" },
+  { "to": "/startupark/startup/events", "name": "Events", "icon": "calendar-event", "type": "solid", "tooltip": "Manage & join startup events" }
 ]

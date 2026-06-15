@@ -20,8 +20,8 @@ const ProductImageCarousel = ({
     // Check if it's already a full URL
     if (key.includes(baseUrl)) return key;
     
-    // Assume it's an S3 key
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
+    // Serve directly from R2 CDN
+    return `https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev/${key}`;
   };
 
   if (!images || images.length === 0) {

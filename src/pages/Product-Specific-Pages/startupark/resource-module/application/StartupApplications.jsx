@@ -52,17 +52,18 @@ const [stats, setStats] = useState({
       setLoading(true);
       const token = getAuthToken();
       
-      const response = await axios.get(`${baseUrl}/startupark/api/startup/applications`, {
+      const response = await axios.get(`${baseUrl}/startupark/api/applications`, {
         headers: { Authorization: `Bearer ${token}` },
         params: {
-          status: filter === 'all' ? null : filter,
+          as: 'startup',
+          status: filter === 'all' ? undefined : filter,
           page: currentPage,
           limit: 10
         }
       });
 
-      setApplications(response.data.applications);
-      setTotalPages(response.data.pagination.totalPages);
+      setApplications(response.data.applications || []);
+      setTotalPages(response.data.totalPages || response.data.pagination?.totalPages || 1);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch applications');
       console.error('Applications fetch error:', err);
@@ -74,7 +75,7 @@ const [stats, setStats] = useState({
 const fetchStats = async () => {
   try {
     const token = getAuthToken();
-    const response = await axios.get(`${baseUrl}/startupark/api/startup/applications/stats`, {
+    const response = await axios.get(`${baseUrl}/startupark/api/applications/stats`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     
@@ -102,7 +103,7 @@ const fetchStats = async () => {
       const token = getAuthToken();
 
       await axios.put(
-        `${baseUrl}/startupark/api/startup/applications/${applicationId}/status`,
+        `${baseUrl}/startupark/api/applications/${applicationId}`,
         { status, notes: notes || undefined },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -126,7 +127,7 @@ const fetchStats = async () => {
     try {
       const token = getAuthToken();
       const response = await axios.get(
-        `${baseUrl}/startupark/api/startup/applications/${applicationId}`,
+        `${baseUrl}/startupark/api/applications/${applicationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSelectedApplication(response.data);
@@ -137,7 +138,7 @@ const fetchStats = async () => {
 
   const downloadResume = (resumeKey) => {
     if (resumeKey) {
-      window.open(`${baseUrl}/startupark/api/student/file/${encodeURIComponent(resumeKey)}`, '_blank');
+      window.open(`${baseUrl}/startupark/api/s3/private-file/${encodeURIComponent(resumeKey)}`, '_blank');
     }
   };
 

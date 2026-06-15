@@ -30,7 +30,7 @@ export const processStartupData = (data, baseUrl) => {
     if (!key) return null;
     if (key.startsWith('http')) return key;
     if (key.startsWith('blob:')) return key;
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
+    return `https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev/${key}`;
   };
 
   return {
@@ -42,7 +42,7 @@ export const processStartupData = (data, baseUrl) => {
     })) || [],
     team: data.team?.map(member => ({
       ...member,
-      avatar: getImageUrl(member.avatar)
+      profilePhoto: getImageUrl(member.profilePhoto)
     })) || [],
     pitchDeck: getImageUrl(data.pitchDeck)
   };

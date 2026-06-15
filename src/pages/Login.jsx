@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService, storageService } from '../services/auth';
+import AuthBrandPanel from '../components/AuthBrandPanel';
 import axios from 'axios';
 
 const LoginPage = () => {
@@ -170,95 +171,80 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 lg:p-12">
-      <form
-        onSubmit={handleLogin}
-        className="p-6 sm:p-8 lg:p-10 rounded-lg shadow-xl w-full max-w-md border-2 dark:border-white border-black relative"
-      >
-        <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-center">LOGIN</h2>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8">
+      <div className="glass-card shadow-xl w-full max-w-4xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
 
-        {message && (
-          <div className={`mb-4 p-3 rounded text-center ${
-            isError 
-              ? 'bg-red-100 border border-red-400 text-red-700 dark:bg-red-900 dark:text-red-300' 
-              : 'bg-green-100 border border-green-400 text-green-700 dark:bg-green-900 dark:text-green-300'
-          }`}>
-            {message}
-            
-          </div>
-        )}
+        {/* Left brand panel */}
+        <AuthBrandPanel
+          eyebrow="Welcome back"
+          title="Log in to MAPP ARKS"
+          subtitle="Your hub for startup discovery, connections, and growth."
+        />
 
-        <div className="mb-4">
+        {/* Right form panel */}
+        <form onSubmit={handleLogin} className="relative p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-1 text-zinc-900 dark:text-white">Login</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Enter your credentials to continue.</p>
+
+          {message && (
+            <div className={`mb-4 p-3 rounded-lg text-center text-sm border ${
+              isError
+                ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/40 text-red-700 dark:text-red-300'
+                : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+            }`}>
+              {message}
+            </div>
+          )}
+
           <input
             type="text"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-3 border border-gray-600 text-white rounded focus:ring-4 focus:ring-white transition duration-300"
+            className="input-mono mb-4"
             required
             disabled={isLoading}
           />
-        </div>
 
-        <div className="mb-4">
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 border border-gray-600 text-white rounded focus:ring-4 focus:ring-white transition duration-300"
+            className="input-mono"
             required
             disabled={isLoading}
           />
-          <div className="text-right mt-1">
-            <Link 
-              to="/forgot-password" 
-              className="text-sm text-cyan-500 hover:underline"
-            >
+          <div className="text-right mt-1.5 mb-5">
+            <Link to="/forgot-password" className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:underline">
               Forgot password?
             </Link>
           </div>
-        </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full py-3 bg-white border-2 border-black text-black font-bold rounded-lg focus:ring-4 focus:ring-cyan-500 transition duration-300 shadow-md ${
-            isLoading 
-              ? 'opacity-50 cursor-not-allowed' 
-              : 'hover:bg-black hover:text-white hover:border-white'
-          }`}
-        >
-          {isLoading ? 'Logging in...' : 'Login'}
-        </button>
+          <button type="submit" disabled={isLoading} className="btn-mono w-full py-3">
+            {isLoading ? 'Logging in…' : 'Login'}
+          </button>
 
-        <p className="mt-4 text-center">
-          Don&apos;t have an account?{' '}
-          <Link 
-            to="/signup" 
-            className="text-cyan-500 font-bold text-lg hover:underline"
-          >
-            Sign Up
-          </Link>
-        </p>
+          <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            Don&apos;t have an account?{' '}
+            <Link to="/signup" className="text-zinc-900 dark:text-white font-bold hover:underline">Sign Up</Link>
+          </p>
 
-        <div className="my-4 text-center text-gray-400">OR</div>
-        <hr className="my-4 border-t-2 border-gray-600" />
-        
-        <div className="mt-6 flex justify-center">
-          <div 
-            id="google-signin-btn" 
-            className={isLoading ? 'opacity-50 pointer-events-none' : ''}
-          ></div>
-        </div>
-
-        {/* Loading overlay */}
-        {isLoading && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
-            <div className="text-white">Processing...</div>
+          <div className="my-4 flex items-center gap-3 text-zinc-400 dark:text-zinc-600 text-xs">
+            <div className="flex-1 h-px bg-black/10 dark:bg-white/10" /> OR <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />
           </div>
-        )}
-      </form>
+
+          <div className="flex justify-center">
+            <div id="google-signin-btn" className={isLoading ? 'opacity-50 pointer-events-none' : ''}></div>
+          </div>
+
+          {isLoading && (
+            <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+              <div className="text-zinc-900 dark:text-white font-medium">Processing…</div>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 };

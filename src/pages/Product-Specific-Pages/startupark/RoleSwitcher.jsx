@@ -13,57 +13,34 @@ const RoleSwitcher = ({ currentRole }) => {
 // components/RoleSwitcher.jsx - Fix the navigation
 // components/RoleSwitcher.jsx - Simplified version
 const handleStartupRegistration = async () => {
-  console.log('1. Registration started. Current role:', currentRole);
-  
   if (currentRole === 'startup') {
     navigate('/startupark/startup-dashboard');
     return;
   }
-  
+
   setLoading(true);
   const token = localStorage.getItem('token');
-  
+
   try {
-    console.log('2. Checking if can register...');
-    const checkRes = await axios.get(`${baseUrl}/startupark/api/startupark/can-register-startup`, {
+    const roleRes = await axios.get(`${baseUrl}/startupark/api/role`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    
-    console.log('3. Check response:', checkRes.data);
-    
-    if (!checkRes.data.canRegister && checkRes.data.redirectTo) {
-      navigate(checkRes.data.redirectTo);
-      return;
-    }
-    
-    if (checkRes.data.hasCompleteForm) {
-      // Has complete startup form - switch role and go to dashboard
-      console.log('4. Has complete form, switching role...');
+
+    if (roleRes.data.profiles?.startup) {
+      // Already has startup profile — set role and go to dashboard
       await axios.post(
-        `${baseUrl}/startupark/api/startupark/switch-to-startup`,
+        `${baseUrl}/startupark/api/role`,
         { role: 'startup' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       navigate('/startupark/startup-dashboard');
     } else {
-      // No form or incomplete form - go to setup
-      console.log('5. No/incomplete form, going to setup...');
-      navigate('/startupark', { 
-        state: { 
-          role: 'startup',
-          forceSetup: true 
-        }
-      });
+      // No startup profile yet — go to setup
+      navigate('/startupark', { state: { role: 'startup', forceSetup: true } });
     }
   } catch (error) {
     console.error('Registration error:', error);
-    // On error, go to setup
-    navigate('/startupark', { 
-      state: { 
-        role: 'startup',
-        forceSetup: true 
-      }
-    });
+    navigate('/startupark', { state: { role: 'startup', forceSetup: true } });
   } finally {
     setLoading(false);
   }

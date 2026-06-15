@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FiEdit2, FiUpload, FiX, FiPlus, FiMinus, FiExternalLink } from 'react-icons/fi';
+import { FiEdit2, FiUpload, FiX, FiPlus, FiMinus, FiExternalLink, FiNavigation } from 'react-icons/fi';
 
 const EditStartupProfile = () => {
   const navigate = useNavigate();
@@ -22,6 +22,9 @@ const EditStartupProfile = () => {
     businessModel: '',
     fundingStage: '',
     location: '',
+    locationCity: '',
+    locationState: '',
+    _gpsCoords: null,
     phone: '',
     linkedin: '',
     twitter: '',
@@ -33,6 +36,7 @@ const EditStartupProfile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState(null);
   
@@ -54,12 +58,16 @@ const [filesToUpload, setFilesToUpload] = useState({
     return url && typeof url === 'string' && url.startsWith('blob:');
   };
 
-  // Image URL helper with error handling
+  // Image URL helper → serve public files directly from the R2 CDN (the old
+  // /startupark/api/s3/file proxy path no longer resolves, which broke previews).
+  const R2_PUBLIC_BASE = 'https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev';
   const getImageUrl = (key) => {
     if (!key) return null;
-    if (key.startsWith('http')) return key;
-    if (key.startsWith('blob:')) return key;
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
+    if (key.startsWith('http') || key.startsWith('blob:')) return key;
+    if (key.startsWith('/startupark/api/s3/file/')) {
+      return `${R2_PUBLIC_BASE}/${decodeURIComponent(key.replace('/startupark/api/s3/file/', ''))}`;
+    }
+    return `${R2_PUBLIC_BASE}/${key}`;
   };
 
   // Data processor with error handling
@@ -75,7 +83,7 @@ const [filesToUpload, setFilesToUpload] = useState({
       })) || [],
       team: data.team?.map(member => ({
         ...member,
-        avatar: getImageUrl(member.avatar)
+        profilePhoto: getImageUrl(member.profilePhoto)
       })) || [],
       pitchDeck: getImageUrl(data.pitchDeck)
     };
@@ -101,15 +109,20 @@ const [filesToUpload, setFilesToUpload] = useState({
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${baseUrl}/startupark/api/startupark/dashboard`, {
+        const response = await axios.get(`${baseUrl}/startupark/api/profile/startup`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (response.data && response.data.length > 0) {
-          const startupForm = response.data.find(form => form.role === 'startup');
-          if (startupForm) {
-            setFormData(processStartupData(startupForm.formData));
-          }
+        if (response.data?.profile) {
+          const profile = response.data.profile;
+          const processed = processStartupData({ ...profile, startupName: profile.companyName || profile.startupName });
+          setFormData({
+            ...processed,
+            location: '',
+            locationCity: profile.location?.city || '',
+            locationState: profile.location?.state || '',
+            _gpsCoords: null,
+          });
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -140,6 +153,19 @@ useEffect(() => {
       ...prev,
       [name]: value.split(',').map(item => item.trim()).filter(item => item)
     }));
+  };
+
+  const handleGPSCapture = () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData(prev => ({ ...prev, _gpsCoords: { lat: pos.coords.latitude, lng: pos.coords.longitude } }));
+        setGpsLoading(false);
+      },
+      () => setGpsLoading(false),
+      { timeout: 10000, enableHighAccuracy: true }
+    );
   };
 
   // UPDATED: Logo upload handler - simplified for single request
@@ -277,7 +303,7 @@ setFilesToUpload(prev => {
       }));
 
       // Update team member avatar preview
-      updateTeamMember(index, 'avatar', previewUrl);
+      updateTeamMember(index, 'profilePhoto', previewUrl);
       
       // Clear success state
       setUploadError(null);
@@ -348,7 +374,7 @@ setFilesToUpload(prev => {
   const addTeamMember = () => {
     setFormData(prev => ({
       ...prev,
-      team: [...prev.team, { name: '', position: '', bio: '', avatar: null }]
+      team: [...prev.team, { name: '', position: '', bio: '', profilePhoto: null }]
     }));
   };
 
@@ -368,8 +394,8 @@ setFilesToUpload(prev => {
     const memberToRemove = formData.team[index];
     
     // Revoke blob URL if it exists
-    if (memberToRemove.avatar && isBlobUrl(memberToRemove.avatar)) {
-      URL.revokeObjectURL(memberToRemove.avatar);
+    if (memberToRemove.profilePhoto && isBlobUrl(memberToRemove.profilePhoto)) {
+      URL.revokeObjectURL(memberToRemove.profilePhoto);
     }
     
     // Remove from filesToUpload if exists
@@ -487,14 +513,14 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
             name: member.name,
             position: member.position,
             bio: member.bio,
-            avatar: key
+            profilePhoto: key
           };
         }
         return {
           name: member.name,
           position: member.position,
           bio: member.bio,
-          avatar: member.avatar && !isBlobUrl(member.avatar) ? member.avatar : null
+          profilePhoto: member.profilePhoto && !isBlobUrl(member.profilePhoto) ? member.profilePhoto : null
         };
       })
     );
@@ -517,9 +543,38 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
       }
     });
 
-    const response = await axios.post(
-      `${baseUrl}/startupark/api/startupark/form/startup`,
-      submissionData, // plain JSON — no FormData
+    // Map startupName → companyName for backend model
+    if (submissionData.startupName !== undefined) {
+      submissionData.companyName = submissionData.startupName;
+      delete submissionData.startupName;
+    }
+
+    // Drop any string location value (legacy field)
+    if (typeof submissionData.location === 'string') {
+      delete submissionData.location;
+    }
+
+    // Build structured location from form fields
+    const locationCity = submissionData.locationCity?.trim();
+    const locationState = submissionData.locationState?.trim();
+    const gpsCoords = submissionData._gpsCoords;
+    delete submissionData.locationCity;
+    delete submissionData.locationState;
+    delete submissionData._gpsCoords;
+
+    if (locationCity || locationState || gpsCoords) {
+      submissionData.location = {
+        ...(locationCity ? { city: locationCity } : {}),
+        ...(locationState ? { state: locationState } : {}),
+        country: 'India',
+        locationType: gpsCoords ? 'precise' : 'manual',
+        ...(gpsCoords ? { coordinates: [gpsCoords.lng, gpsCoords.lat] } : {}),
+      };
+    }
+
+    const response = await axios.put(
+      `${baseUrl}/startupark/api/profile/startup`,
+      submissionData,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -530,7 +585,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
 
     setUploadProgress(100);
 
-    if (response.data.success) {
+    if (response.data.profile) {
       // Clean up all blob URLs after successful save
       if (formData.logo && isBlobUrl(formData.logo)) URL.revokeObjectURL(formData.logo);
       if (formData.pitchDeck && isBlobUrl(formData.pitchDeck)) URL.revokeObjectURL(formData.pitchDeck);
@@ -538,7 +593,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
         if (item.url && isBlobUrl(item.url)) URL.revokeObjectURL(item.url);
       });
       formData.team.forEach(member => {
-        if (member.avatar && isBlobUrl(member.avatar)) URL.revokeObjectURL(member.avatar);
+        if (member.profilePhoto && isBlobUrl(member.profilePhoto)) URL.revokeObjectURL(member.profilePhoto);
       });
 
       setFilesToUpload({ logo: null, gallery: {}, pitchDeck: null, teamAvatars: {} });
@@ -593,7 +648,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black/10 dark:border-white/15"></div>
       </div>
     );
   }
@@ -603,7 +658,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
       <h1 className="text-2xl font-bold mb-6">Edit Startup Profile</h1>
       
       {uploadError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
           {uploadError}
         </div>
       )}
@@ -618,7 +673,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                 <ImageWithFallback
                   src={isBlobUrl(formData.logo) ? formData.logo : getImageUrl(formData.logo)}
                   alt="Startup logo"
-                  className="h-20 w-20 rounded-lg object-cover border border-gray-200"
+                  className="h-20 w-20 rounded-lg object-cover border border-black/[0.06] dark:border-white/10"
                   fallbackSrc="/default-startup-logo.png"
                 />
                 <button
@@ -637,8 +692,8 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                 </button>
               </div>
             ) : (
-              <div className="h-20 w-20 rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
-                <FiUpload className="h-8 w-8 text-gray-400" />
+              <div className="h-20 w-20 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border-2 border-dashed border-black/10 dark:border-white/15 flex items-center justify-center">
+                <FiUpload className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
               </div>
             )}
             <div>
@@ -653,14 +708,14 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               <button
                 type="button"
                 onClick={() => logoInputRef.current.click()}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 bg-black/[0.04] dark:bg-white/[0.06] text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/[0.1]"
                 disabled={isSubmitting}
               >
                 {formData.logo ? 'Change Logo' : 'Upload Logo'}
               </button>
-              <p className="text-xs text-gray-500 mt-1">Recommended size: 500x500px (max 5MB)</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Recommended size: 500x500px (max 5MB)</p>
               {filesToUpload.logo && (
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                   ✓ Ready: {filesToUpload.logo.name}
                 </p>
               )}
@@ -678,7 +733,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               required
               value={formData.startupName}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             />
           </div>
@@ -690,7 +745,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               required
               value={formData.tagline}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             />
           </div>
@@ -705,7 +760,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               required
               value={formData.description}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono h-32"
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -717,7 +772,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               required
               value={formData.bio}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono h-32"
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -728,7 +783,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="mission"
               value={formData.mission}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono h-24"
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -739,7 +794,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="vision"
               value={formData.vision}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono h-24"
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -747,7 +802,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
 
         {/* Solution Details */}
         <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-gray-900">Solution Details</h3>
+          <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">Solution Details</h3>
           
           <div>
             <label className="block text-sm font-semibold mb-2">Problem Statement</label>
@@ -755,7 +810,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="problemStatement"
               value={formData.problemStatement}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono h-32"
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -766,7 +821,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="uniqueProposition"
               value={formData.uniqueProposition}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono h-32"
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -778,12 +833,12 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="technologyStack"
               value={formData.technologyStack.join(', ')}
               onChange={handleArrayChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             />
             <div className="flex flex-wrap gap-2 mt-2">
               {formData.technologyStack.map((tech, index) => (
-                <span key={index} className="bg-gray-100 text-gray-800 text-xs px-3 py-1 rounded-full">
+                <span key={index} className="bg-black/[0.04] dark:bg-white/[0.06] text-zinc-800 dark:text-zinc-100 text-xs px-3 py-1 rounded-full">
                   {tech}
                 </span>
               ))}
@@ -801,7 +856,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               required
               value={formData.industry}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             />
           </div>
@@ -812,20 +867,43 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="businessModel"
               value={formData.businessModel}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             />
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2">Location</label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={isSubmitting}
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                placeholder="City"
+                value={formData.locationCity}
+                onChange={(e) => setFormData(prev => ({ ...prev, locationCity: e.target.value }))}
+                className="input-mono"
+                disabled={isSubmitting}
+              />
+              <input
+                type="text"
+                placeholder="State"
+                value={formData.locationState}
+                onChange={(e) => setFormData(prev => ({ ...prev, locationState: e.target.value }))}
+                className="input-mono"
+                disabled={isSubmitting}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleGPSCapture}
+              disabled={isSubmitting || gpsLoading}
+              className="btn-ghost mt-2 w-full flex items-center justify-center gap-2 text-sm"
+            >
+              <FiNavigation className={gpsLoading ? 'animate-spin' : ''} />
+              {gpsLoading
+                ? 'Getting GPS…'
+                : formData._gpsCoords
+                  ? `GPS: ${formData._gpsCoords.lat.toFixed(4)}, ${formData._gpsCoords.lng.toFixed(4)}`
+                  : 'Capture GPS Location'}
+            </button>
           </div>
         </div>
 
@@ -839,7 +917,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               max={new Date().getFullYear()}
               value={formData.foundedYear}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             />
           </div>
@@ -849,7 +927,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="teamSize"
               value={formData.teamSize}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             >
               <option value="">Select</option>
@@ -865,7 +943,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="fundingStage"
               value={formData.fundingStage}
               onChange={handleChange}
-              className="w-full border border-gray-300 bg-transparent rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             >
               <option value="">Select</option>
@@ -887,7 +965,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="website"
               value={formData.website}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               placeholder="https://"
               disabled={isSubmitting}
             />
@@ -899,7 +977,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               disabled={isSubmitting}
             />
           </div>
@@ -914,7 +992,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="linkedin"
               value={formData.linkedin}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               placeholder="https://linkedin.com/company/your-startup"
               disabled={isSubmitting}
             />
@@ -926,7 +1004,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="twitter"
               value={formData.twitter}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               placeholder="https://twitter.com/your-startup"
               disabled={isSubmitting}
             />
@@ -938,7 +1016,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               name="facebook"
               value={formData.facebook}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input-mono"
               placeholder="https://facebook.com/your-startup"
               disabled={isSubmitting}
             />
@@ -951,8 +1029,8 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
           <div className="flex items-center space-x-4">
             {formData.pitchDeck ? (
               <div className="flex items-center">
-                <div className="bg-gray-100 p-3 rounded-lg">
-                  <svg className="h-10 w-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-black/[0.04] dark:bg-white/[0.06] p-3 rounded-lg">
+                  <svg className="h-10 w-10 text-zinc-700 dark:text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
@@ -974,12 +1052,12 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               </div>
             ) : (
               <div className="flex items-center">
-                <div className="bg-gray-100 p-3 rounded-lg">
-                  <svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-black/[0.04] dark:bg-white/[0.06] p-3 rounded-lg">
+                  <svg className="h-10 w-10 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <span className="ml-2 text-sm text-gray-500">No file selected</span>
+                <span className="ml-2 text-sm text-zinc-500 dark:text-zinc-400">No file selected</span>
               </div>
             )}
             <div>
@@ -994,14 +1072,14 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
               <button
                 type="button"
                 onClick={() => pitchDeckInputRef.current.click()}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 bg-black/[0.04] dark:bg-white/[0.06] text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/[0.1]"
                 disabled={isSubmitting}
               >
                 {formData.pitchDeck ? 'Change File' : 'Upload Pitch Deck'}
               </button>
-              <p className="text-xs text-gray-500 mt-1">PDF or PowerPoint (max 10MB)</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">PDF or PowerPoint (max 10MB)</p>
               {filesToUpload.pitchDeck && (
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                   ✓ Ready: {filesToUpload.pitchDeck.name}
                 </p>
               )}
@@ -1024,14 +1102,14 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
           <button
             type="button"
             onClick={() => galleryInputRef.current.click()}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 mb-4"
+            className="px-4 py-2 bg-black/[0.04] dark:bg-white/[0.06] text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/[0.1] mb-4"
             disabled={isSubmitting}
           >
             Add Images
           </button>
-          <p className="text-xs text-gray-500 mb-4">Upload product screenshots, team photos, etc. (max 5MB each)</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Upload product screenshots, team photos, etc. (max 5MB each)</p>
           {Object.keys(filesToUpload.gallery).length > 0 && (
-  <p className="text-xs text-green-600 mb-2">
+  <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-2">
     ✓ {Object.keys(filesToUpload.gallery).length} image(s) ready for upload
   </p>
 )}
@@ -1051,7 +1129,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                     value={image.caption}
                     onChange={(e) => updateGalleryCaption(index, e.target.value)}
                     placeholder="Add caption"
-                    className="w-full mt-1 text-xs border border-gray-300 rounded px-2 py-1 bg-transparent"
+                    className="w-full mt-1 text-xs border border-black/10 dark:border-white/15 rounded px-2 py-1 bg-transparent"
                     disabled={isSubmitting}
                   />
                   <button
@@ -1075,7 +1153,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
             <button
               type="button"
               onClick={addTeamMember}
-              className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700"
+              className="px-3 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200"
               disabled={isSubmitting}
             >
               <FiPlus className="inline mr-1" /> Add Team Member
@@ -1083,16 +1161,16 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
           </div>
 
           {formData.team.length === 0 ? (
-            <p className="text-sm text-gray-500">No team members added yet</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">No team members added yet</p>
           ) : (
             <div className="space-y-4">
               {formData.team.map((member, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                <div key={index} className="border border-black/[0.06] dark:border-white/10 rounded-lg p-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="flex items-center space-x-3 md:col-span-1">
-                      {member.avatar ? (
-                        <img 
-                          src={isBlobUrl(member.avatar) ? member.avatar : getImageUrl(member.avatar)}
+                      {member.profilePhoto ? (
+                        <img
+                          src={isBlobUrl(member.profilePhoto) ? member.profilePhoto : getImageUrl(member.profilePhoto)}
                           alt={`${member.name}'s avatar`}
                           className="h-12 w-12 rounded-full object-cover"
                           onError={(e) => {
@@ -1101,8 +1179,8 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                           }}
                         />
                       ) : (
-                        <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-                          <span className="text-lg font-medium text-gray-400">
+                        <div className="h-12 w-12 rounded-full bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center">
+                          <span className="text-lg font-medium text-zinc-400 dark:text-zinc-500">
                             {member.name ? member.name.charAt(0).toUpperCase() : '?'}
                           </span>
                         </div>
@@ -1129,14 +1207,14 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                               document.getElementById(`team-avatar-${index}`).click();
                             }
                           }}
-                          className="text-xs text-indigo-600 hover:text-indigo-800"
+                          className="text-xs text-zinc-700 dark:text-zinc-300 hover:text-zinc-700 dark:text-zinc-300"
                           disabled={isSubmitting}
                         >
-                          {member.avatar ? 'Change' : 'Add Photo'}
+                          {member.profilePhoto ? 'Change' : 'Add Photo'}
                         </button>
-                        <span className="text-xs text-gray-500 mt-1">Max 2MB</span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Max 2MB</span>
                         {filesToUpload.teamAvatars[index] && (
-                          <span className="text-xs text-green-600 mt-1">
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                             ✓ Ready
                           </span>
                         )}
@@ -1145,34 +1223,34 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                     <div className="md:col-span-3 space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Name</label>
+                          <label className="block text-xs text-zinc-500 dark:text-zinc-400 mb-1">Name</label>
                           <input
                             type="text"
                             value={member.name}
                             onChange={(e) => updateTeamMember(index, 'name', e.target.value)}
-                            className="w-full border border-gray-300 rounded px-3 py-1 text-sm bg-transparent"
+                            className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm bg-transparent"
                             placeholder="Full name"
                             disabled={isSubmitting}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Position</label>
+                          <label className="block text-xs text-zinc-500 dark:text-zinc-400 mb-1">Position</label>
                           <input
                             type="text"
                             value={member.position}
                             onChange={(e) => updateTeamMember(index, 'position', e.target.value)}
-                            className="w-full border border-gray-300 rounded px-3 py-1 text-sm bg-transparent"
+                            className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm bg-transparent"
                             placeholder="Role/Title"
                             disabled={isSubmitting}
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">Bio</label>
+                        <label className="block text-xs text-zinc-500 dark:text-zinc-400 mb-1">Bio</label>
                         <textarea
                           value={member.bio}
                           onChange={(e) => updateTeamMember(index, 'bio', e.target.value)}
-                          className="w-full border border-gray-300 rounded px-3 py-1 text-sm h-16"
+                          className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm h-16"
                           placeholder="Brief background"
                           disabled={isSubmitting}
                         ></textarea>
@@ -1197,14 +1275,14 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
 
         {/* Upload Progress */}
         {isSubmitting && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
+          <div className="mt-4 p-4 bg-black/[0.03] dark:bg-white/[0.04] rounded-lg border border-black/[0.06] dark:border-white/10">
+            <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400 mb-1">
               <span>Uploading profile data...</span>
               <span>{uploadProgress}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+            <div className="w-full bg-black/[0.06] dark:bg-white/10 rounded-full h-2">
+              <div
+                className="bg-zinc-900 dark:bg-white h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               ></div>
             </div>
@@ -1216,7 +1294,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </button>

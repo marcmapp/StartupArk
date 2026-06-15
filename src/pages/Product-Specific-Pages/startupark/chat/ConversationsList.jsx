@@ -74,7 +74,7 @@ const ConversationsList = () => {
     // For regular users, show the startup info
     const startup = conversation.startupId;
     return {
-      name: startup?.formData?.startupName || 'Unknown Startup',
+      name: startup?.companyName || startup?.formData?.startupName || 'Unknown Startup',
       image: startup?.formData?.logo,
       isStartup: true
     };
@@ -110,7 +110,7 @@ const ConversationsList = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
   }
@@ -118,14 +118,14 @@ const ConversationsList = () => {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <div className="w-full md:w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+      <div className="w-full md:w-96 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Messages</h1>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
           <div className="relative">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -133,7 +133,7 @@ const ConversationsList = () => {
               placeholder="Search conversations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-zinc-700 dark:text-white"
             />
           </div>
         </div>
@@ -154,7 +154,7 @@ const ConversationsList = () => {
                 <Link
                   key={conversation._id}
                   to={`/startupark/chat/${conversation.startupId?._id || conversation._id}`}
-                  className="flex items-center p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center p-4 border-b border-gray-100 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   {/* Avatar */}
                   <div className="flex-shrink-0 mr-4">
@@ -165,8 +165,8 @@ const ConversationsList = () => {
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center">
-                        <FiMessageSquare className="text-indigo-600 dark:text-indigo-300" size={20} />
+                      <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                        <FiMessageSquare className="text-purple-600 dark:text-purple-400" size={20} />
                       </div>
                     )}
                   </div>
@@ -196,7 +196,7 @@ const ConversationsList = () => {
                   {/* Unread indicator */}
                   {conversation.unreadCount > 0 && (
                     <div className="flex-shrink-0 ml-3">
-                      <span className="bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      <span className="bg-purple-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                         {conversation.unreadCount}
                       </span>
                     </div>

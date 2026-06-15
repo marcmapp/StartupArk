@@ -30,16 +30,16 @@ const StartupProducts = ({ startupId, isEditable = false, baseUrl }) => {
     if (!key) return '/default-product.png';
     if (key.startsWith('http')) return key;
     if (key.startsWith('blob:')) return key;
-    return `${baseUrl}/startupark/api/s3/file/${encodeURIComponent(key)}`;
+    return `https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev/${key}`;
   };
 
   if (loading) {
     return (
       <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div className="h-8 glass-inset rounded w-1/3 mb-4"></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-gray-200 rounded-xl h-64"></div>
+            <div key={i} className="glass-inset h-64"></div>
           ))}
         </div>
       </div>
@@ -59,17 +59,14 @@ const StartupProducts = ({ startupId, isEditable = false, baseUrl }) => {
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Products Portfolio</h2>
-            <p className="text-gray-600 text-sm mt-1">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Products Portfolio</h2>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
               {products.length} product{products.length !== 1 ? 's' : ''} in catalog
             </p>
           </div>
-          
+
           {isEditable && (
-            <Link
-              to="/manage-products"
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm hover:shadow-md"
-            >
+            <Link to="/manage-products" className="btn-mono">
               <FiEdit2 className="w-4 h-4" />
               Manage Products
             </Link>
@@ -77,22 +74,19 @@ const StartupProducts = ({ startupId, isEditable = false, baseUrl }) => {
         </div>
 
         {products.length === 0 ? (
-          <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl border border-gray-100">
-            <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4">
-              <FiPackage className="w-8 h-8 text-gray-400" />
+          <div className="text-center py-12 glass-inset">
+            <div className="w-20 h-20 bg-white dark:bg-zinc-800 rounded-full shadow-sm flex items-center justify-center mx-auto mb-4">
+              <FiPackage className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No products yet</h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              {isEditable 
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">No products yet</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 mb-6 max-w-md mx-auto">
+              {isEditable
                 ? "Start building your product portfolio to showcase your innovation"
                 : "This startup hasn't added any products yet"
               }
             </p>
             {isEditable && (
-              <Link
-                to="/manage-products"
-                className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-              >
+              <Link to="/manage-products" className="btn-mono">
                 <FiPlus className="w-4 h-4" />
                 Add Your First Product
               </Link>

@@ -8,9 +8,9 @@ const StartupTeam = ({ team = [] }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {team.map((member, index) => (
             <div key={index} className="flex items-start space-x-3 sm:space-x-4 p-2 sm:p-3 border border-gray-100 rounded-lg">
-              {member.avatar ? (
+              {member.profilePhoto ? (
                 <img
-                  src={member.avatar}
+                  src={member.profilePhoto}
                   alt={`${member.name}'s avatar`}
                   className="h-12 w-12 sm:h-16 sm:w-16 rounded-full object-cover"
                   onError={(e) => {
