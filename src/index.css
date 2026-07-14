@@ -6,8 +6,8 @@
 
 @layer base {
   body {
-    /* Light: clean paper. Dark: deep neutral (near-black for richness). */
-    @apply bg-gray-50 text-zinc-900;
+    /* Light: visible neutral so white cards lift off the surface. Dark: deep near-black. */
+    @apply bg-zinc-200 text-zinc-900;
     @apply dark:bg-zinc-950 dark:text-zinc-100;
   }
 
@@ -29,17 +29,17 @@
 
   /* Frosted glass card — the core surface of the whole app. */
   .glass-card {
-    @apply bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl
-           border border-black/[0.06] dark:border-white/10
-           rounded-2xl shadow-sm;
+    @apply bg-white dark:bg-white/[0.04] backdrop-blur-xl
+           border border-zinc-200 dark:border-white/10
+           rounded-2xl shadow-md dark:shadow-none;
   }
 
   /* Slightly stronger glass for banners / hero surfaces. */
   .glass-panel {
     @apply relative overflow-hidden
-           bg-white/80 dark:bg-white/[0.05] backdrop-blur-2xl
-           border border-black/[0.06] dark:border-white/10
-           rounded-2xl shadow-sm;
+           bg-white dark:bg-white/[0.05] backdrop-blur-2xl
+           border border-zinc-200 dark:border-white/10
+           rounded-2xl shadow-md dark:shadow-none;
   }
 
   /* Inset / nested glass (rows inside a card). */
@@ -69,13 +69,13 @@
 
   /* Mono input field. */
   .input-mono {
-    @apply w-full bg-black/[0.03] dark:bg-white/[0.04]
-           border border-black/10 dark:border-white/10
+    @apply w-full bg-zinc-100 dark:bg-white/[0.04]
+           border border-zinc-200 dark:border-white/10
            rounded-xl px-4 py-2.5 text-sm
            text-zinc-900 dark:text-white
            placeholder-zinc-400 dark:placeholder-zinc-500
            outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20
-           focus:border-transparent transition-all;
+           focus:border-zinc-400 dark:focus:border-transparent transition-all;
   }
 
   /* ───────── TRON (onboarding only) ───────── */

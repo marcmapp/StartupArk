@@ -1,66 +1,20 @@
 // components/LayoutWrapper.jsx
+// Sidebar has been retired as of the unified-dock migration.
+// AppSidebar and the three role-specific JSON configs are no longer rendered here;
+// they remain on disk as a rollback safety net (see Sidebar.jsx and SidebarOptions/).
 import { useTheme } from "../components/ThemeContext";
-import AppSidebar from "../components/Sidebar";
 import Loader from "../components/Loader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { cn } from "../lib/utils";
-import RoleBasedFloatingDock from "../components/FloatingDock"; // Updated import
+import RoleBasedFloatingDock from "../components/FloatingDock";
 
-// Import all sidebars
-import UserDashboardSidebar from '../Jsons/SidebarOptions/UserDashboardSidebar.json';
-import StartupDashboardSidebar from '../Jsons/SidebarOptions/StartupDashboardSidebar.json';
-import StudentDashboardSidebar from '../Jsons/SidebarOptions/StudentDashboardSidebar.json';
-import MainDashboard from "../Jsons/SidebarOptions/MainDashboardSidebar.json";
-import Pricingpagesidebar from "../Jsons/SidebarOptions/PricingPageSidebar.json";
-
-const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => {
+const LayoutWrapper = ({ children }) => {
   const { darkMode, toggleTheme } = useTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
-
-  // Enhanced function to determine which sidebar to use
-  const getSidebarOptions = () => {
-    // If specific sidebar options are provided, use them (highest priority)
-    if (sidebarOptions) return sidebarOptions;
-    
-    // If dynamicSidebar is true, determine sidebar based on user role
-    if (dynamicSidebar && user) {
-      // Enhanced role detection
-      const userRole = user.startuparkRole || user.role || (user.isStartup ? 'startup' : 'user');
-      
-      switch (userRole) {
-        case 'startup':
-          return StartupDashboardSidebar;
-        case 'student':
-          return StudentDashboardSidebar;
-        case 'user':
-        default:
-          return UserDashboardSidebar;
-      }
-    }
-    
-    // If no specific options and not dynamic, return null (no sidebar)
-    return null;
-  };
-
-  const finalSidebarOptions = getSidebarOptions();
-
-  // Convert sidebar options to include JSX icons for AppSidebar
-  const transformedSidebarOptions = finalSidebarOptions?.map((item) => ({
-    ...item,
-    tooltip: item.tooltip || item.name,
-    icon: (
-      <box-icon
-        name={item.icon}
-        type={item.type || "solid"}
-        color="currentColor"
-      ></box-icon>
-    ),
-  }));
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -92,16 +46,8 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
 
   return (
     <div className="flex min-h-screen">
-      {transformedSidebarOptions && (
-        <AppSidebar 
-          user={user} 
-          navigationData={transformedSidebarOptions} 
-          className="fixed h-screen"
-        />
-      )}
-
-      <main className={`flex-1 p-6 ${transformedSidebarOptions ? 'ml-0 md:ml-12' : ''} pb-24`}>
-        {/* Theme toggle button */}
+      <main className="flex-1 p-6" style={{ paddingBottom: 'var(--dock-clearance, 120px)' }}>
+        {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           className="fixed top-4 right-4 z-50 flex items-center justify-center w-10 h-10 lg:w-12 lg:h-12 p-2 rounded-full shadow-lg
@@ -144,10 +90,10 @@ const LayoutWrapper = ({ children, sidebarOptions, dynamicSidebar = false }) => 
           )}
         </button>
 
-        {/* Main Content */}
+        {/* Page content */}
         {children}
 
-        {/* Use RoleBasedFloatingDock component */}
+        {/* Unified bottom dock */}
         <RoleBasedFloatingDock user={user} />
       </main>
     </div>

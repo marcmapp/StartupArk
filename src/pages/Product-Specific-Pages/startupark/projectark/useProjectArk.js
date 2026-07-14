@@ -53,6 +53,11 @@ export function useProjectArk() {
     }
   }, []);
 
+  const fetchPost = useCallback(async (id) => {
+    const { data } = await axios.get(`${PA}/posts/${id}`, { headers: authHeader() });
+    return data.data;
+  }, []);
+
   const createPost = useCallback(async (payload) => {
     const { data } = await axios.post(`${PA}/posts`, payload, { headers: authHeader() });
     return data.data;
@@ -95,9 +100,30 @@ export function useProjectArk() {
     return data.data || [];
   }, []);
 
+  const fetchEngagement = useCallback(async (id) => {
+    const { data } = await axios.get(`${PA}/engagements/${id}`, { headers: authHeader() });
+    return data.data;
+  }, []);
+
+  const updateMilestone = useCallback(async (engagementId, milestoneId, status, rejectionReason) => {
+    const payload = { status };
+    if (rejectionReason) payload.rejectionReason = rejectionReason;
+    const { data } = await axios.patch(
+      `${PA}/engagements/${engagementId}/milestone/${milestoneId}`,
+      payload,
+      { headers: authHeader() }
+    );
+    return data.data;
+  }, []);
+
   const markEngagementComplete = useCallback(async (id) => {
     const { data } = await axios.patch(`${PA}/engagements/${id}/complete`, {}, { headers: authHeader() });
     return data.data;
+  }, []);
+
+  const cancelEngagement = useCallback(async (id, reason) => {
+    const { data } = await axios.patch(`${PA}/engagements/${id}/cancel`, { reason }, { headers: authHeader() });
+    return data;
   }, []);
 
   const fetchTrustScore = useCallback(async (userId) => {
@@ -110,11 +136,28 @@ export function useProjectArk() {
     return data.data;
   }, []);
 
+  const fetchNotifications = useCallback(async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const { data } = await axios.get(`${PA}/notifications?${query}`, { headers: authHeader() });
+    return data;
+  }, []);
+
+  const markNotificationRead = useCallback(async (id) => {
+    const { data } = await axios.patch(`${PA}/notifications/${id}/read`, {}, { headers: authHeader() });
+    return data.data;
+  }, []);
+
+  const markAllNotificationsRead = useCallback(async () => {
+    const { data } = await axios.patch(`${PA}/notifications/read-all`, {}, { headers: authHeader() });
+    return data;
+  }, []);
+
   return {
     posts, pagination, myPosts, loading, error,
-    fetchPosts, fetchMyPosts, createPost, updatePost, cancelPost,
+    fetchPosts, fetchMyPosts, fetchPost, createPost, updatePost, cancelPost,
     submitProposal, fetchProposals, updateProposalStatus, withdrawProposal,
-    fetchEngagements, markEngagementComplete,
-    fetchTrustScore, submitRating
+    fetchEngagements, fetchEngagement, updateMilestone, markEngagementComplete, cancelEngagement,
+    fetchTrustScore, submitRating,
+    fetchNotifications, markNotificationRead, markAllNotificationsRead
   };
 }

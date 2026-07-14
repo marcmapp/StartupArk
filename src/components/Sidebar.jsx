@@ -1,3 +1,5 @@
+// SUPERSEDED by src/Jsons/NavItems/navRegistry.js + src/components/FloatingDock.tsx as of the
+// unified-dock migration. Kept one release cycle as a rollback safety net. Do not import.
 "use client";
 import React, { useState, useEffect } from "react";
 import { Sidebar, SidebarBody } from "./ui/sidebar";
