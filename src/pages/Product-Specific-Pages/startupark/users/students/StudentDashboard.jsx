@@ -91,7 +91,7 @@ export default function StudentDashboard() {
               </p>
             </div>
           </div>
-          <button onClick={() => navigate('/startupark/launchpad')} className="btn-mono shrink-0">
+          <button onClick={() => navigate('/startupark/projectark?mode=role')} className="btn-mono shrink-0">
             <box-icon name="briefcase" type="solid" size="16px" color="currentColor" />
             Career LaunchPad
           </button>
@@ -129,7 +129,7 @@ export default function StudentDashboard() {
             <h2 className="font-bold text-zinc-900 dark:text-white mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <ActionCard title="Browse Startups" desc="Find startups to apply to" icon="rocket" onClick={() => navigate('/startupark/startupsList')} />
-              <ActionCard title="Career LaunchPad" desc="Jobs, internships & opportunities" icon="briefcase" onClick={() => navigate('/startupark/launchpad')} />
+              <ActionCard title="Career LaunchPad" desc="Jobs, internships & opportunities" icon="briefcase" onClick={() => navigate('/startupark/projectark?mode=role')} />
               <ActionCard title="Explore Products" desc="Discover startup products" icon="box" onClick={() => navigate('/products')} />
               <ActionCard title="My Meetings" desc="Track your meeting requests" icon="calendar-check" onClick={() => navigate('/startupark/my-bookings')} />
               <ActionCard title="Messages" desc="Chat with founders & mentors" icon="chat" onClick={() => navigate('/startupark/chat')} />

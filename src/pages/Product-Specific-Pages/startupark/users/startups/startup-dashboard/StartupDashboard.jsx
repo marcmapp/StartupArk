@@ -124,7 +124,7 @@ export default function StartupDashboard() {
               <ActionCard title="View Startup Profile" desc="See your public-facing page" icon="show" onClick={() => navigate('/startupark/startup-profile')} />
               <ActionCard title="Manage Bookings" desc="Review meeting requests" icon="calendar-check" onClick={() => navigate('/startupark/manage-bookings')} />
               <ActionCard title="My Products" desc="Manage product listings" icon="box" onClick={() => navigate('/products')} />
-              <ActionCard title="Job Postings" desc="Post roles & find talent" icon="briefcase" onClick={() => navigate('/startupark/jobposting')} />
+              <ActionCard title="Job Postings" desc="Post roles & find talent" icon="briefcase" onClick={() => navigate('/startupark/projectark?mode=role')} />
               <ActionCard title="Messages" desc="Chats with users & investors" icon="chat" onClick={() => navigate('/startupark/chat')} />
               <ActionCard title="Events" desc="Manage & join startup events" icon="calendar-event" onClick={() => navigate('/startupark/startup/events')} />
             </div>
@@ -179,7 +179,7 @@ export default function StartupDashboard() {
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Manage</p>
             {[
               { label: 'My Calendar', icon: 'calendar', to: '/startupark/startupcalender' },
-              { label: 'Applications', icon: 'notepad', to: '/startupark/startup/applications' },
+              { label: 'Applications', icon: 'notepad', to: '/startupark/projectark?mode=role' },
               { label: 'Edit Profile', icon: 'edit', to: '/startupark/startup-edit-profile' },
             ].map(({ label, icon, to }) => (
               <button key={to} onClick={() => navigate(to)}

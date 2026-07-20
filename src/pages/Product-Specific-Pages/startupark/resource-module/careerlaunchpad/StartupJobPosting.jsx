@@ -137,7 +137,7 @@ const JobPostings = () => {
 
   // Navigate to applications management
   const handleStatClick = (status) => {
-    navigate('/startupark/startup-applications', { state: { filter: status } });
+    navigate('/startupark/startup/applications', { state: { filter: status } });
   };
 
   const DashboardView = () => (
@@ -150,7 +150,7 @@ const JobPostings = () => {
         </div>
         <div className="flex gap-4">
           <button 
-            onClick={() => navigate('/startupark/startup-applications')}
+            onClick={() => navigate('/startupark/startup/applications')}
             className="px-6 py-3 border border-gray-300 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:bg-zinc-900 transition-colors font-medium"
           >
             View Applications

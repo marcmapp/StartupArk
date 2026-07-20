@@ -6,7 +6,7 @@
 import React, { useRef, useEffect } from "react";
 import { FloatingDock } from "./ui/floating-dock";
 import type { NavItem } from "./ui/floating-dock";
-import { useNavPreferences, useDockMode } from "../hooks/useNavPreferences";
+import { useNavPreferences, useDockMode, useActiveProduct } from "../hooks/useNavPreferences";
 import { hubItems, navRegistry, globalItems } from "../Jsons/NavItems/navRegistry";
 import { DockTour } from "./DockTour";
 import {
@@ -28,6 +28,10 @@ import {
   IconCalendar,
   IconCalendarStats,
   IconHome,
+  IconMicrophone,
+  IconListCheck,
+  IconActivity,
+  IconFileText,
 } from "@tabler/icons-react";
 
 // ── Icon resolution ───────────────────────────────────────────────────────────
@@ -51,6 +55,10 @@ const ICON_MAP: Record<string, React.ElementType> = {
   IconCalendar,
   IconCalendarStats,
   IconHome,
+  IconMicrophone,
+  IconListCheck,
+  IconActivity,
+  IconFileText,
 };
 
 const iconCls = "h-full w-full text-zinc-600 dark:text-zinc-300";
@@ -76,6 +84,7 @@ function resolveItems(
 
 const RoleBasedFloatingDock = ({ user }: { user: any }) => {
   const mode = useDockMode();
+  const activeProduct = useActiveProduct();
   const { navItems, reorderItems, hasSeenDockTour, markTourSeen, isLoaded, role } =
     useNavPreferences(user);
 
@@ -100,21 +109,37 @@ const RoleBasedFloatingDock = ({ user }: { user: any }) => {
   const roleRegistry: any[] = (navRegistry as any)[safeRole] ?? [];
 
   // Hub mode: static fixed set (hub entry points + global), not reorderable.
-  // Product mode: full ordered registry items (user's saved order), reorderable.
-  const hubDockItems  = resolveItems([...roleHubItems, ...globalItems]);
-  const prodDockItems = resolveItems(navItems as any);
+  // Product mode: the current product's slice of the role's ordered registry
+  // (user's saved order), reorderable — scoped to activeProduct so being inside
+  // Flowboard doesn't surface StartupArk's items and vice versa.
+  const hubDockItems = resolveItems([...roleHubItems, ...globalItems]);
+  const visibleNavItems: any[] = activeProduct
+    ? (navItems as any[]).filter((item) => item.product === activeProduct)
+    : (navItems as any[]);
+  const prodDockItems = resolveItems(visibleNavItems);
 
   const dockItems   = mode === "hub" ? hubDockItems  : prodDockItems;
   const reorderable = mode !== "hub";
 
-  // Map resolved NavItems back to raw registry objects for reorderItems().
+  // Map the reordered (product-scoped) NavItems back to raw registry objects,
+  // then splice them back into their original slots in the full per-role
+  // navItems list — so reordering one product's dock never disturbs the saved
+  // order of other installed products.
   const handleReorder = reorderable
-    ? (newItems: NavItem[]) =>
-        reorderItems(
-          newItems
-            .map((n) => roleRegistry.find((r: any) => r.id === n.id))
-            .filter(Boolean),
-        )
+    ? (newItems: NavItem[]) => {
+        const reorderedRaw = newItems
+          .map((n) => roleRegistry.find((r: any) => r.id === n.id))
+          .filter(Boolean);
+        if (!activeProduct) {
+          reorderItems(reorderedRaw);
+          return;
+        }
+        const queue = [...reorderedRaw];
+        const merged = (navItems as any[]).map((item) =>
+          item.product === activeProduct ? queue.shift() : item,
+        );
+        reorderItems(merged);
+      }
     : () => {};
 
   return (
@@ -128,7 +153,7 @@ const RoleBasedFloatingDock = ({ user }: { user: any }) => {
           dockItems={dockItems}
           onReorder={handleReorder}
           reorderable={reorderable}
-          className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-black/[0.08] dark:border-white/[0.22] ring-1 ring-inset ring-black/[0.03] dark:ring-white/[0.08] shadow-lg shadow-black/10 dark:shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+          className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-teal-400/60 dark:border-teal-300/50 ring-1 ring-inset ring-black/[0.03] dark:ring-white/[0.08] shadow-[0_8px_24px_rgba(0,0,0,0.12),0_0_18px_rgba(45,212,191,0.35)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.7),0_0_20px_rgba(45,212,191,0.4)]"
         />
       </div>
 

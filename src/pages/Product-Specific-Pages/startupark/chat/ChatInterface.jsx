@@ -3,12 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   FiMessageSquare, FiSearch, FiSend, FiImage, FiPaperclip,
-  FiLoader, FiCheck, FiCheckCircle, FiVideo, FiMic,
+  FiLoader, FiCheck, FiCheckCircle, FiMic,
   FiMoreVertical, FiInfo, FiX, FiPlay, FiPause, FiChevronLeft
 } from 'react-icons/fi';
 import { IoCheckmarkDone, IoEllipsisHorizontal } from 'react-icons/io5';
-import { io } from 'socket.io-client';
 import { getImageUrl } from '../../../../utils/imageUrls';
+import { useSocket } from '../../../../contexts/SocketContext';
 
 const ChatInterface = () => {
   const { startupId } = useParams();
@@ -21,7 +21,7 @@ const ChatInterface = () => {
   const [otherUser, setOtherUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [conversationsLoading, setConversationsLoading] = useState(true);
-  const [socket, setSocket] = useState(null);
+  const socket = useSocket(); // shared connection from SocketContext (see LayoutWrapper)
   const [typingUsers, setTypingUsers] = useState([]);
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
@@ -146,66 +146,36 @@ const ChatInterface = () => {
     initializeUser();
   }, [baseUrl]);
 
-  // Socket connection
+  // Presence listeners on the shared socket. Identify/user_online is emitted once
+  // by SocketProvider; here we only track who's online for the presence dots.
   useEffect(() => {
-    const newSocket = io(baseUrl, {
-      transports: ['websocket', 'polling']
-    });
-
-    newSocket.on('connect', () => {
-      console.log('Connected to server with ID:', newSocket.id);
-      // Join personal room (server keys direct emits by userId) + online status.
-      if (currentUser?.id) {
-        newSocket.emit('identify', currentUser.id);
-        newSocket.emit('user_online', { userId: currentUser.id });
-      }
-    });
-
-    newSocket.on('disconnect', () => {
-      console.log('Disconnected from server');
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-    });
-
-    // Listen for online users updates
-    newSocket.on('online_users', (users) => {
-      console.log('Online users:', users);
-      setOnlineUsers(users);
-    });
-
-    // Listen for user online/offline events
-    newSocket.on('user_online', (userId) => {
-      console.log('User online:', userId);
-      setOnlineUsers(prev => [...prev, userId]);
-    });
-
-    newSocket.on('user_offline', (userId) => {
-      console.log('User offline:', userId);
+    if (!socket) return;
+    const onOnlineUsers = (users) => setOnlineUsers(users);
+    const onUserOnline = (userId) =>
+      setOnlineUsers(prev => (prev.includes(userId) ? prev : [...prev, userId]));
+    const onUserOffline = (userId) =>
       setOnlineUsers(prev => prev.filter(id => id !== userId));
-    });
 
-    setSocket(newSocket);
+    socket.on('online_users', onOnlineUsers);
+    socket.on('user_online', onUserOnline);
+    socket.on('user_offline', onUserOffline);
 
     return () => {
-      newSocket.close();
+      socket.off('online_users', onOnlineUsers);
+      socket.off('user_online', onUserOnline);
+      socket.off('user_offline', onUserOffline);
     };
-  }, [baseUrl]);
+  }, [socket]);
 
-  // Identify to the server (join personal room) whenever socket + user are ready,
-  // and re-identify on every reconnect so realtime delivery keeps working.
+  // Join the selected conversation room, and re-join on reconnect so realtime
+  // delivery keeps working after a socket drop.
   useEffect(() => {
-    if (!socket || !currentUser?.id) return;
-    const identify = () => {
-      socket.emit('identify', currentUser.id);
-      socket.emit('user_online', { userId: currentUser.id });
-      if (selectedConversation?._id) socket.emit('join_conversation', selectedConversation._id);
-    };
-    if (socket.connected) identify();
-    socket.on('connect', identify);
-    return () => socket.off('connect', identify);
-  }, [socket, currentUser, selectedConversation]);
+    if (!socket || !selectedConversation?._id) return;
+    const join = () => socket.emit('join_conversation', selectedConversation._id);
+    if (socket.connected) join();
+    socket.on('connect', join);
+    return () => socket.off('connect', join);
+  }, [socket, selectedConversation]);
 
   // Fetch conversations — and if startupId is in URL, auto-initiate/select that conversation
   useEffect(() => {
@@ -1085,12 +1055,7 @@ const ChatInterface = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300">
-                <FiVideo size={20} />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300">
-                <FiMic size={20} />
-              </button>
+              {/* TODO: chat→video handoff — deferred to chat community roadmap (requires WebRTC signaling for 1:1 rooms). */}
               <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300">
                 <FiInfo size={20} />
               </button>

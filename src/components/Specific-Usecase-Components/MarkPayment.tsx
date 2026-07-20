@@ -10,7 +10,8 @@ interface RazorpayResponse {
 interface MarkPaymentProps {
   amount: number;
   plan: string;
-  onSuccess: (plan: string) => void;
+  product: string;
+  onSuccess: (plan: string, subscriptions?: Record<string, unknown>) => void;
   onError: (message: string) => void;
   disabled: boolean;
   user: {
@@ -19,17 +20,39 @@ interface MarkPaymentProps {
     email: string;
     contact?: string; // Optional: Add if contact is available
   };
+  buttonText?: string;
+  className?: string;
 }
 
-const MarkPayment: React.FC<MarkPaymentProps> = ({ amount, plan, onSuccess, onError, disabled, user }) => {
+const MarkPayment: React.FC<MarkPaymentProps> = ({ amount, plan, product, onSuccess, onError, disabled, user, buttonText, className }) => {
   const [loading, setLoading] = useState(false);
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const paymentapi = import.meta.env.VITE_API_paymentapi;
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  };
 
   const handlePayment = async () => {
     setLoading(true);
 
     try {
+      // Free plans don't go through Razorpay at all — activate directly.
+      if (amount === 0) {
+        const res = await fetch(`${baseUrl}/api/mappuser/update-plan`, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({ product, plan }),
+        });
+        const result = await res.json();
+        if (res.ok) {
+          onSuccess(plan, result.subscriptions);
+        } else {
+          onError(result.message || "Failed to activate plan.");
+        }
+        return;
+      }
+
       const isRazorpayLoaded = await loadRazorpayScript();
       if (!isRazorpayLoaded) {
         onError("Failed to load Razorpay. Please check your internet connection.");
@@ -38,13 +61,13 @@ const MarkPayment: React.FC<MarkPaymentProps> = ({ amount, plan, onSuccess, onEr
 
       const res = await fetch(`${baseUrl}/api/payment/create-order`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, plan }),
+        headers: authHeaders,
+        body: JSON.stringify({ product, plan }),
       });
 
       const data = await res.json();
       if (!data.order_id) {
-        onError("Order creation failed. Please try again.");
+        onError(data.error || "Order creation failed. Please try again.");
         return;
       }
 
@@ -77,45 +100,35 @@ const MarkPayment: React.FC<MarkPaymentProps> = ({ amount, plan, onSuccess, onEr
 
   const verifyPayment = async (paymentData: RazorpayResponse) => {
     try {
-      console.log("Verifying payment with data:", {
-        plan,
-        razorpay_payment_id: paymentData.razorpay_payment_id,
-      });
-  
-      const res = await fetch(`${baseUrl}/api/mappuser/update-plan`, {
+      const res = await fetch(`${baseUrl}/api/payment/payment-verify`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: authHeaders,
         body: JSON.stringify({
-          plan,
           razorpay_payment_id: paymentData.razorpay_payment_id,
+          razorpay_order_id: paymentData.razorpay_order_id,
+          razorpay_signature: paymentData.razorpay_signature,
         }),
       });
-  
+
       const result = await res.json();
-      console.log("Backend response:", result);
-  
-      if (result.message === "Subscription updated successfully") {
-        onSuccess(plan); // Notify Pricing page of success
+
+      if (res.ok && result.status === "success") {
+        onSuccess(plan, result.subscriptions); // Notify parent page of success
       } else {
-        onError(result.message || "Subscription update failed. Please contact support.");
+        onError(result.message || "Payment verification failed. Please contact support.");
       }
     } catch (error) {
-      console.error("Error verifying payment:", error);
       onError("Error verifying payment. Please try again.");
     }
   };
   return (
-    <div className="p-4">
-      <h2 className="text-lg font-bold">Subscribe to {plan}</h2>
+    <div>
       <button
-        className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-md disabled:bg-gray-400"
+        className={className || "btn-mono w-full py-3"}
         onClick={handlePayment}
         disabled={loading || disabled}
       >
-        {loading ? "Processing..." : `Pay ₹${amount / 100}`}
+        {loading ? "Processing..." : buttonText || (amount > 0 ? `Pay ₹${amount / 100}` : "Get Started")}
       </button>
     </div>
   );

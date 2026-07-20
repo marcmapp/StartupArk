@@ -1,13 +1,17 @@
 // components/LayoutWrapper.jsx
 // Sidebar has been retired as of the unified-dock migration.
-// AppSidebar and the three role-specific JSON configs are no longer rendered here;
-// they remain on disk as a rollback safety net (see Sidebar.jsx and SidebarOptions/).
+// AppSidebar and the role-specific JSON configs are no longer rendered here;
+// moved to _rollback-unified-dock-migration/ at repo root as a rollback safety net.
 import { useTheme } from "../components/ThemeContext";
 import Loader from "../components/Loader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import RoleBasedFloatingDock from "../components/FloatingDock";
+import PageHeader from "../components/PageHeader";
+import NotificationBell from "../components/NotificationBell";
+import { useActiveProduct } from "../hooks/useNavPreferences";
+import { SocketProvider } from "../contexts/SocketContext";
 
 const LayoutWrapper = ({ children }) => {
   const { darkMode, toggleTheme } = useTheme();
@@ -15,6 +19,7 @@ const LayoutWrapper = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const activeProduct = useActiveProduct();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -90,11 +95,18 @@ const LayoutWrapper = ({ children }) => {
           )}
         </button>
 
-        {/* Page content */}
-        {children}
+        {/* One shared socket for NotificationBell + ChatInterface (page content). */}
+        <SocketProvider user={user}>
+          {activeProduct === 'startupark' && <NotificationBell user={user} />}
 
-        {/* Unified bottom dock */}
-        <RoleBasedFloatingDock user={user} />
+          <PageHeader />
+
+          {/* Page content */}
+          {children}
+
+          {/* Unified bottom dock */}
+          <RoleBasedFloatingDock user={user} />
+        </SocketProvider>
       </main>
     </div>
   );

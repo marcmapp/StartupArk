@@ -67,6 +67,16 @@
            rounded-xl px-4 py-2.5 text-sm transition-colors;
   }
 
+  /* Hides scrollbars while keeping the element scrollable — used on horizontal
+     pill/chip rows where a visible scrollbar looks broken rather than intentional. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Mono input field. */
   .input-mono {
     @apply w-full bg-zinc-100 dark:bg-white/[0.04]
@@ -76,6 +86,74 @@
            placeholder-zinc-400 dark:placeholder-zinc-500
            outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20
            focus:border-zinc-400 dark:focus:border-transparent transition-all;
+  }
+
+  /* ───────── FLOWBOARD (task studio product) ───────── */
+  /* Scoped `.fb-` prefix — Flowboard-only, mono glass tokens, red reserved for
+     the live-recording indicator (a transient status, same allowance as
+     booking/event status badges elsewhere in the design system). */
+
+  .fb-record-btn {
+    @apply w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0
+           border border-black/10 dark:border-white/15
+           bg-black/[0.03] dark:bg-white/[0.04]
+           text-zinc-600 dark:text-zinc-300
+           hover:border-black/20 dark:hover:border-white/25 hover:text-zinc-900 dark:hover:text-white
+           transition-all cursor-pointer;
+  }
+  .fb-record-btn.recording {
+    @apply bg-red-500 text-white border-transparent;
+    animation: fb-rec-pulse 1.6s ease-out infinite;
+  }
+  @keyframes fb-rec-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); }
+    70% { box-shadow: 0 0 0 14px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
+
+  .fb-waveform { @apply flex items-center gap-[3px] h-[22px]; }
+  .fb-waveform span { @apply w-[3px] rounded-sm bg-red-500; animation: fb-wave 1s ease-in-out infinite; }
+  .fb-waveform span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+  .fb-waveform span:nth-child(2) { height: 16px; animation-delay: .12s; }
+  .fb-waveform span:nth-child(3) { height: 22px; animation-delay: .24s; }
+  .fb-waveform span:nth-child(4) { height: 14px; animation-delay: .36s; }
+  .fb-waveform span:nth-child(5) { height: 9px;  animation-delay: .48s; }
+  @keyframes fb-wave {
+    0%, 100% { transform: scaleY(.45); }
+    50% { transform: scaleY(1); }
+  }
+
+  .fb-pipeline-node {
+    @apply w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0
+           border border-black/10 dark:border-white/15
+           bg-white dark:bg-zinc-900
+           text-zinc-500 dark:text-zinc-400 text-xs font-semibold
+           transition-all duration-300;
+  }
+  .fb-pipeline-node.active {
+    @apply border-transparent bg-zinc-900 text-white dark:bg-white dark:text-zinc-900
+           ring-4 ring-black/[0.06] dark:ring-white/10;
+  }
+  .fb-pipeline-node.done {
+    @apply border-transparent bg-emerald-500/15 text-emerald-600 dark:text-emerald-400;
+  }
+  .fb-pipeline-track {
+    @apply h-[2px] rounded-full bg-black/10 dark:bg-white/10 relative overflow-hidden flex-1;
+    min-width: 14px;
+  }
+  .fb-pipeline-fill {
+    @apply absolute inset-0 bg-zinc-900 dark:bg-white rounded-full transition-all duration-500;
+    width: 0%;
+  }
+
+  .fb-success-check {
+    @apply w-14 h-14 rounded-full flex items-center justify-center mx-auto
+           bg-emerald-500/15 text-emerald-600 dark:text-emerald-400;
+    animation: fb-pop .4s cubic-bezier(.2,.9,.3,1.4);
+  }
+  @keyframes fb-pop {
+    from { transform: scale(.6); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
   }
 
   /* ───────── TRON (onboarding only) ───────── */

@@ -51,7 +51,7 @@ const EventDetailPage = () => {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold mb-2">{event.title}</h1>
-                <p className="text-blue-100 text-lg">{event.startupId?.formData?.startupName}</p>
+                <p className="text-blue-100 text-lg">{event.startupId?.companyName}</p>
               </div>
               <div className="text-right">
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${

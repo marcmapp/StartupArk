@@ -1,6 +1,8 @@
 import { Navigate } from "react-router-dom";
+import { IconMicrophone, IconFileText } from "@tabler/icons-react";
 import LayoutWrapper from "./LayoutWrapper";
 import PrivateRoute from "../components/Specific-Usecase-Components/PrivateRoute";
+import ComingSoon from "../components/ComingSoon";
 //Main files
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
@@ -45,10 +47,6 @@ import StartupCalendarPage from "../pages/Product-Specific-Pages/startupark/cale
 
 import ChatInterface from "../pages/Product-Specific-Pages/startupark/chat/ChatInterface";
 
-//career
-import CareerLaunchPad from "../pages/Product-Specific-Pages/startupark/resource-module/careerlaunchpad/CareerLaunchPad";
-import StartupJobPosting from "../pages/Product-Specific-Pages/startupark/resource-module/careerlaunchpad/StartupJobPosting";
-import StartupApplications from "../pages/Product-Specific-Pages/startupark/resource-module/application/StartupApplications";
 // Virtual events (canonical pages)
 import StartupEventsPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/StartupEventsPage";
 import UserEventsPage from "../pages/Product-Specific-Pages/startupark/VirtualEvent/UserEventsPage";
@@ -62,6 +60,34 @@ import ProjectArk from "../pages/Product-Specific-Pages/startupark/projectark/Pr
 import CreateWorkPost from "../pages/Product-Specific-Pages/startupark/projectark/CreateWorkPost";
 import WorkPostDetail from "../pages/Product-Specific-Pages/startupark/projectark/WorkPostDetail";
 import EngagementDetail from "../pages/Product-Specific-Pages/startupark/projectark/EngagementDetail";
+import TalentDetail from "../pages/Product-Specific-Pages/startupark/projectark/TalentDetail";
+
+// Flowboard (task studio product)
+import FlowboardCanvas from "../pages/Product-Specific-Pages/flowboard/FlowboardCanvas";
+import FlowboardTasks from "../pages/Product-Specific-Pages/flowboard/FlowboardTasks";
+import FlowboardActivity from "../pages/Product-Specific-Pages/flowboard/FlowboardActivity";
+
+// DocArc (document management / AI lab — ported 1:1 from the standalone R&D prototype)
+import DocArc from "../pages/Product-Specific-Pages/docarc/DocArc";
+
+// WIP products (Flowboard, DocArc) render a "Coming Soon" placeholder instead of
+// their real pages unless VITE_DEMO_MODE=true — lets prod ship the dock entry
+// point ahead of the product itself. Flip to true in .env.development/.env.uat
+// while building, false in .env.production until launch-ready.
+const SHOW_WIP_PRODUCTS = import.meta.env.VITE_DEMO_MODE === "true";
+
+const FlowboardCanvasOrComingSoon = SHOW_WIP_PRODUCTS
+  ? FlowboardCanvas
+  : () => <ComingSoon productName="Flowboard" icon={IconMicrophone} />;
+const FlowboardTasksOrComingSoon = SHOW_WIP_PRODUCTS
+  ? FlowboardTasks
+  : () => <ComingSoon productName="Flowboard" icon={IconMicrophone} />;
+const FlowboardActivityOrComingSoon = SHOW_WIP_PRODUCTS
+  ? FlowboardActivity
+  : () => <ComingSoon productName="Flowboard" icon={IconMicrophone} />;
+const DocArcOrComingSoon = SHOW_WIP_PRODUCTS
+  ? DocArc
+  : () => <ComingSoon productName="DocArc" icon={IconFileText} />;
 
 // ** Public Routes (No Auth Required) **
 export const publicRoutes = [
@@ -124,10 +150,10 @@ export const privateRoutes = [
   // Virtual cards
   { path: "/vc/:id",                    element: <PrivateRoute><LayoutWrapper><VirtualCardPublicView /></LayoutWrapper></PrivateRoute> },
 
-  // Career
-  { path: "/startupark/launchpad",              element: <PrivateRoute><LayoutWrapper><CareerLaunchPad /></LayoutWrapper></PrivateRoute> },
-  { path: "/startupark/jobposting",             element: <PrivateRoute><LayoutWrapper><StartupJobPosting /></LayoutWrapper></PrivateRoute> },
-  { path: "/startupark/startup/applications",   element: <PrivateRoute><LayoutWrapper><StartupApplications /></LayoutWrapper></PrivateRoute> },
+  // Career (retired — Career LaunchPad/Job Postings/Applications folded into Project Ark's Roles mode)
+  { path: "/startupark/launchpad",              element: <Navigate to="/startupark/projectark?mode=role" replace /> },
+  { path: "/startupark/jobposting",             element: <Navigate to="/startupark/projectark?mode=role" replace /> },
+  { path: "/startupark/startup/applications",   element: <Navigate to="/startupark/projectark?mode=role" replace /> },
 
   // Virtual Events
   { path: "/startupark/startup/events", element: <PrivateRoute><LayoutWrapper><StartupEventsPage /></LayoutWrapper></PrivateRoute> },
@@ -141,5 +167,14 @@ export const privateRoutes = [
   { path: "/startupark/projectark",                    element: <PrivateRoute><LayoutWrapper><ProjectArk /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/projectark/create",             element: <PrivateRoute><LayoutWrapper><CreateWorkPost /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/projectark/posts/:postId",      element: <PrivateRoute><LayoutWrapper><WorkPostDetail /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/projectark/talent/:profileType/:id", element: <PrivateRoute><LayoutWrapper><TalentDetail /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/engagements/:engagementId",     element: <PrivateRoute><LayoutWrapper><EngagementDetail /></LayoutWrapper></PrivateRoute> },
+
+  // Flowboard
+  { path: "/flowboard",          element: <PrivateRoute><LayoutWrapper><FlowboardCanvasOrComingSoon /></LayoutWrapper></PrivateRoute> },
+  { path: "/flowboard/tasks",    element: <PrivateRoute><LayoutWrapper><FlowboardTasksOrComingSoon /></LayoutWrapper></PrivateRoute> },
+  { path: "/flowboard/activity", element: <PrivateRoute><LayoutWrapper><FlowboardActivityOrComingSoon /></LayoutWrapper></PrivateRoute> },
+
+  // DocArc
+  { path: "/docarc", element: <PrivateRoute><LayoutWrapper><DocArcOrComingSoon /></LayoutWrapper></PrivateRoute> },
 ];

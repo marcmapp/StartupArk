@@ -59,8 +59,6 @@ const StartupList = ({ showOnlyFavorites = false }) => {
         const startupsWithAvailability = rawStartups.map(startup => ({
           ...startup,
           availability: startup.availability || null,
-          matchScore: Math.floor(Math.random() * 30) + 70,
-          trending: Math.random() > 0.7
         }));
 
         setStartups(startupsWithAvailability);
@@ -331,12 +329,11 @@ const StartupList = ({ showOnlyFavorites = false }) => {
       {/* Stats Footer — mono */}
       {!showOnlyFavorites && filteredStartups.length > 0 && (
         <div className="mt-14 pt-8 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             {[
               { value: startups.length, label: 'Active Startups' },
               { value: new Set(startups.map(s => s.industry)).size, label: 'Industries' },
               { value: favorites.length, label: 'Total Favorites' },
-              { value: startups.filter(s => s.trending).length, label: 'Trending Now' },
             ].map(({ value, label }) => (
               <div key={label} className="text-center">
                 <div className="text-3xl font-bold text-zinc-900 dark:text-white">{value}</div>

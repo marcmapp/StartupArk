@@ -50,26 +50,15 @@ const Pricing = () => {
           }),
         ]);
 
+        // Subscriptions are per-product; the server already lazily expires
+        // stale ones on this read. Surface the first active one, if any.
+        const subscriptions = subscriptionRes.data.subscriptions || {};
+        const activeEntry = Object.entries(subscriptions).find(([, s]) => s?.status === "active");
         const userData = {
           ...userRes.data,
-          subscriptionPlan: subscriptionRes.data.plan,
-          planExpiry: subscriptionRes.data.expiryDate,
+          subscriptionPlan: activeEntry ? activeEntry[1].plan : null,
+          planExpiry: activeEntry ? activeEntry[1].expiryDate : null,
         };
-
-        if (subscriptionRes.data.expiryDate) {
-          const expiryDate = new Date(subscriptionRes.data.expiryDate);
-          const currentDate = new Date();
-
-          if (currentDate > expiryDate) {
-            await axios.post(`${baseUrl}/api/mappuser/update-plan`, {
-              email: userRes.data.email,
-              plan: "No Subscription",
-            });
-
-            userData.subscriptionPlan = "No Subscription";
-            userData.planExpiry = null;
-          }
-        }
 
         setUser(userData);
       } catch (error) {
@@ -99,29 +88,29 @@ const Pricing = () => {
     );
 
     return (
-      <div className="relative rounded-2xl p-8 transition-all duration-300 border border-gray-200/80 backdrop-blur-sm hover:border-cyan-300/50 hover:shadow-lg">
+      <div className="glass-card p-8 transition-all duration-300 hover:border-zinc-400/60 dark:hover:border-white/20">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <ProductIcon className="h-8 w-8 text-cyan-600" />
+          <div className="w-16 h-16 glass-inset rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <ProductIcon className="h-8 w-8 text-zinc-700 dark:text-zinc-200" />
           </div>
-          <h3 className="text-2xl font-bold mb-2">{product.name}</h3>
-          <p className="text-gray-600 mb-4">{product.description}</p>
+          <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">{product.name}</h3>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-4">{product.description}</p>
         </div>
 
         <div className="space-y-3 mb-6">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Plan Types:</span>
-            <span className="font-semibold">{userTypesCount} user types</span>
+            <span className="text-zinc-500 dark:text-zinc-400">Plan Types:</span>
+            <span className="font-semibold text-zinc-900 dark:text-white">{userTypesCount} user types</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Total Plans:</span>
-            <span className="font-semibold">{totalPlans} plans available</span>
+            <span className="text-zinc-500 dark:text-zinc-400">Total Plans:</span>
+            <span className="font-semibold text-zinc-900 dark:text-white">{totalPlans} plans available</span>
           </div>
         </div>
 
         <button
           onClick={() => handleViewPlans(productKey)}
-          className="w-full py-3 px-6 bg-cyan-600 text-white rounded-xl font-semibold transition-all duration-200 hover:bg-cyan-700 hover:shadow-lg flex items-center justify-center"
+          className="btn-mono w-full py-3"
         >
           View Plans
           <ArrowRightIcon className="h-4 w-4 ml-2" />
@@ -137,14 +126,14 @@ const Pricing = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 rounded-xl bg-cyan-100 flex items-center justify-center border border-cyan-200">
-                <UserCircleIcon className="h-10 w-10 text-cyan-600" />
+              <div className="h-16 w-16 rounded-xl glass-inset flex items-center justify-center">
+                <UserCircleIcon className="h-10 w-10 text-zinc-700 dark:text-zinc-200" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">
-                  Welcome back, <span className="text-cyan-600">{user.username || user.email}</span>!
+                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
+                  Welcome back, {user.username || user.email}!
                 </h1>
-                <p className="mt-1 text-gray-600">
+                <p className="mt-1 text-zinc-600 dark:text-zinc-400">
                   Choose a product to explore subscription plans
                 </p>
               </div>
@@ -154,25 +143,25 @@ const Pricing = () => {
 
         {/* Current Subscription Status */}
         {isActivePlan && (
-          <div className="rounded-2xl border border-cyan-200 p-6 mb-8">
+          <div className="glass-card p-6 mb-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CheckIcon className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 glass-inset rounded-xl flex items-center justify-center">
+                  <CheckIcon className="h-6 w-6 text-zinc-700 dark:text-zinc-200" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">Active Subscription</h2>
-                  <p className="text-gray-600">
-                    You're subscribed to <span className="font-semibold text-cyan-600">Startup Ark</span> as{" "}
-                    <span className="font-semibold text-blue-600">{user.startuparkRole || 'User'}</span> with the{" "}
-                    <span className="font-semibold text-green-600">{user.subscriptionPlan}</span> plan
+                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Active Subscription</h2>
+                  <p className="text-zinc-600 dark:text-zinc-400">
+                    You're subscribed to <span className="font-semibold text-zinc-900 dark:text-white">Startup Ark</span> as{" "}
+                    <span className="font-semibold text-zinc-900 dark:text-white">{user.startuparkRole || 'User'}</span> with the{" "}
+                    <span className="font-semibold text-zinc-900 dark:text-white">{user.subscriptionPlan}</span> plan
                   </p>
                 </div>
               </div>
               {user.planExpiry && (
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Renews on</p>
-                  <p className="font-semibold">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Renews on</p>
+                  <p className="font-semibold text-zinc-900 dark:text-white">
                     {new Date(user.planExpiry).toLocaleDateString()}
                   </p>
                 </div>
@@ -184,8 +173,8 @@ const Pricing = () => {
         {/* Products Grid */}
         <div className="mb-12">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-4">Choose Your Product</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">Choose Your Product</h2>
+            <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
               Select a product to view detailed pricing plans tailored for different user types and needs
             </p>
           </div>
@@ -198,26 +187,26 @@ const Pricing = () => {
         </div>
 
         {/* FAQ Section */}
-        <div className="rounded-2xl border border-gray-200 p-8">
-          <h2 className="text-2xl font-bold text-center mb-8">
+        <div className="glass-card p-8">
+          <h2 className="text-2xl font-bold text-center text-zinc-900 dark:text-white mb-8">
             Frequently Asked Questions
           </h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Can I change plans anytime?</h3>
-              <p className="text-gray-600 text-sm">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Can I change plans anytime?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">Is there a free trial?</h3>
-              <p className="text-gray-600 text-sm">All paid plans come with a 14-day free trial. No credit card required to start.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">What payment methods do you accept?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">We accept all major credit/debit cards, UPI, and net banking via Razorpay.</p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">What payment methods do you accept?</h3>
-              <p className="text-gray-600 text-sm">We accept all major credit cards, PayPal, and bank transfers for annual plans.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Is billing recurring?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Paid plans run for one month per purchase. You'll need to renew manually — automatic recurring billing isn't set up yet.</p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">Can I get a refund?</h3>
-              <p className="text-gray-600 text-sm">We offer a 30-day money-back guarantee for all annual subscriptions.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Questions about a charge?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Reach out to support and we'll sort it out directly — there's no self-serve refund flow yet.</p>
             </div>
           </div>
         </div>

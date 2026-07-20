@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectArk } from './useProjectArk';
+import RequiredPositionsEditor from './RequiredPositionsEditor';
+import { POST_TYPE_LABELS, POST_TYPE_HINTS } from './projectArkLabels';
 
 const CATEGORIES = [
   { value: 'technology', label: 'Technology' },
@@ -21,22 +23,26 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ];
 
-function getUserRole() {
-  try {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
-    return u.startuparkRole || u.role || (u.isStartup ? 'startup' : 'user');
-  } catch { return 'user'; }
-}
-
 const SEL = 'input-mono text-sm w-full [&>option]:bg-zinc-900 [&>option]:text-zinc-100';
 
 export default function CreateWorkPost() {
   const navigate = useNavigate();
-  const { createPost } = useProjectArk();
-  const userRole = getUserRole();
+  const { createPost, fetchViewerContext } = useProjectArk();
+  const [viewer, setViewer] = useState(null);
+
+  useEffect(() => {
+    fetchViewerContext().then(setViewer).catch(() => setViewer({ role: 'user' }));
+  }, [fetchViewerContext]);
+
+  const userRole = viewer?.role || 'user';
 
   // postType is locked to role — startups post projects, users/students post requirements
   const lockedPostType = userRole === 'startup' ? 'project' : 'requirement';
+
+  // Only startups may choose engagementMode; everyone else is always 'gig'
+  const [engagementMode, setEngagementMode] = useState('gig');
+  const isRole = userRole === 'startup' && engagementMode === 'role';
+  const [positions, setPositions] = useState([]);
 
   const [form, setForm] = useState({
     title: '',
@@ -51,6 +57,11 @@ export default function CreateWorkPost() {
     deadline: '',
     requiredSkillsRaw: '',
     preferredExperience: '',
+    roleType: 'job',
+    internshipType: 'paid',
+    perksRaw: '',
+    price: '',
+    salaryText: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -64,6 +75,7 @@ export default function CreateWorkPost() {
     if (!form.title.trim()) { setError('Title is required.'); return; }
     if (!form.description.trim()) { setError('Description is required.'); return; }
     if (!form.category) { setError('Please select a category.'); return; }
+    if (isRole && form.roleType === 'course' && !form.price) { setError('Course price is required.'); return; }
 
     setSubmitting(true);
     setError(null);
@@ -73,17 +85,32 @@ export default function CreateWorkPost() {
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category,
-        workType: form.workType,
         workLocation: form.workLocation,
-        budgetType: form.budgetType,
-        budgetMin: form.budgetMin ? Number(form.budgetMin) : 0,
-        budgetMax: form.budgetMax ? Number(form.budgetMax) : 0,
-        estimatedDuration: form.estimatedDuration,
         deadline: form.deadline || undefined,
         preferredExperience: form.preferredExperience,
         requiredSkills: form.requiredSkillsRaw.split(',').map(s => s.trim()).filter(Boolean),
       };
-      const post = await createPost(payload);
+
+      if (userRole === 'startup' && lockedPostType === 'project') {
+        payload.requiredPositions = positions;
+      }
+
+      if (isRole) {
+        payload.engagementMode = 'role';
+        payload.roleType = form.roleType;
+        if (form.roleType === 'internship') payload.internshipType = form.internshipType;
+        if (form.roleType === 'course') payload.price = Number(form.price);
+        payload.salaryText = form.salaryText.trim();
+        payload.perks = form.perksRaw.split(',').map(s => s.trim()).filter(Boolean);
+      } else {
+        payload.workType = form.workType;
+        payload.budgetType = form.budgetType;
+        payload.budgetMin = form.budgetMin ? Number(form.budgetMin) : 0;
+        payload.budgetMax = form.budgetMax ? Number(form.budgetMax) : 0;
+        payload.estimatedDuration = form.estimatedDuration;
+      }
+
+      await createPost(payload);
       navigate(`/startupark/projectark`);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
@@ -95,10 +122,20 @@ export default function CreateWorkPost() {
   const showBudget = form.budgetType !== 'volunteer' && form.budgetType !== 'equity' && form.budgetType !== 'negotiable';
 
   const roleLabel = userRole === 'startup' ? 'Startup' : userRole === 'student' ? 'Student' : 'User';
-  const postTypeLabel = lockedPostType === 'project' ? 'Project' : 'Requirement';
-  const postTypeDesc = lockedPostType === 'project'
-    ? 'You need talent — applicants will submit proposals'
-    : 'You need a startup — startups will pitch to you';
+  const postTypeLabel = isRole ? 'Job / Internship' : POST_TYPE_LABELS[lockedPostType];
+  const postTypeDesc = isRole
+    ? 'Post a job, internship, course, or freelance opening — applicants will submit a resume'
+    : (lockedPostType === 'project'
+      ? `You need talent — ${POST_TYPE_HINTS.project}, applicants submit proposals`
+      : `You need a startup — ${POST_TYPE_HINTS.requirement}, startups will pitch to you`);
+
+  if (!viewer) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-zinc-600 text-sm">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -115,17 +152,45 @@ export default function CreateWorkPost() {
 
       <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 space-y-4">
 
-        {/* Role pill */}
+        {/* Gig / Role selector — startups only */}
+        {userRole === 'startup' && (
+          <div className="glass-card p-4 space-y-2">
+            <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Posting Mode</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { v: 'gig', label: 'Project', sub: 'proposals & milestones' },
+                { v: 'role', label: 'Job / Internship', sub: 'jobs, internships, courses' },
+              ].map(m => (
+                <button
+                  key={m.v}
+                  type="button"
+                  onClick={() => setEngagementMode(m.v)}
+                  className={`py-2.5 px-3 rounded-lg text-xs font-medium ring-1 transition-all text-left ${
+                    engagementMode === m.v
+                      ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
+                      : 'ring-zinc-800 bg-zinc-900 text-zinc-500 hover:ring-zinc-600 hover:text-zinc-300'
+                  }`}
+                >
+                  <div className="font-semibold">{m.label}</div>
+                  <div className="text-[10px] opacity-70 font-normal">{m.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Post type pill */}
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ring-1 tracking-wider ${
-            lockedPostType === 'project'
-              ? 'ring-blue-800 text-blue-400 bg-blue-950/40'
-              : 'ring-purple-800 text-purple-400 bg-purple-950/40'
-          }`}>
+          <span className="text-[10px] font-bold px-2 py-1 rounded-full ring-1 ring-zinc-700 bg-zinc-800/70 text-zinc-300 tracking-wider">
             {postTypeLabel.toUpperCase()}
           </span>
           <span className="text-xs text-zinc-500">Posting as <span className="text-zinc-300">{roleLabel}</span></span>
         </div>
+
+        {/* Required Positions — startups building a project can list who they need */}
+        {userRole === 'startup' && lockedPostType === 'project' && (
+          <RequiredPositionsEditor positions={positions} onChange={setPositions} />
+        )}
 
         {error && (
           <div className="glass-inset p-3 text-red-400 text-sm flex items-center gap-2">
@@ -143,9 +208,11 @@ export default function CreateWorkPost() {
             <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Title *</label>
             <input
               type="text"
-              placeholder={lockedPostType === 'project'
-                ? 'e.g. Need a React developer for 3-month project'
-                : 'e.g. Looking for a branding startup for our product launch'}
+              placeholder={isRole
+                ? 'e.g. Frontend Engineer Intern'
+                : lockedPostType === 'project'
+                  ? 'e.g. Need a React developer for 3-month project'
+                  : 'e.g. Looking for a branding startup for our product launch'}
               value={form.title}
               onChange={e => set('title', e.target.value)}
               className="input-mono text-sm w-full mt-1"
@@ -188,109 +255,216 @@ export default function CreateWorkPost() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Work Type</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {!isRole && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Work Type</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { v: 'one-time', label: 'One-time' },
+                    { v: 'ongoing', label: 'Ongoing' },
+                    { v: 'part-time', label: 'Part-time' },
+                    { v: 'contract', label: 'Contract' },
+                  ].map(wt => (
+                    <button
+                      key={wt.v}
+                      type="button"
+                      onClick={() => set('workType', wt.v)}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium ring-1 transition-all ${
+                        form.workType === wt.v
+                          ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
+                          : 'ring-zinc-800 bg-zinc-900 text-zinc-500 hover:ring-zinc-600 hover:text-zinc-300'
+                      }`}
+                    >
+                      {wt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {isRole ? (
+            <>
+              {/* Role Type */}
+              <div className="glass-card p-4 space-y-3">
+                <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Role Type *</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { v: 'job', label: 'Job' },
+                    { v: 'internship', label: 'Internship' },
+                    { v: 'course', label: 'Course' },
+                    { v: 'freelance', label: 'Freelance' },
+                  ].map(rt => (
+                    <button
+                      key={rt.v}
+                      type="button"
+                      onClick={() => set('roleType', rt.v)}
+                      className={`py-2 px-2 rounded-lg text-xs font-medium ring-1 transition-all ${
+                        form.roleType === rt.v
+                          ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
+                          : 'ring-zinc-800 bg-zinc-900 text-zinc-500 hover:ring-zinc-600 hover:text-zinc-300'
+                      }`}
+                    >
+                      {rt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {form.roleType === 'internship' && (
+                  <div className="space-y-1 pt-1">
+                    <label className="text-xs text-zinc-500">Internship Type</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { v: 'paid', label: 'Paid' },
+                        { v: 'unpaid', label: 'Unpaid' },
+                        { v: 'stipend', label: 'Stipend' },
+                      ].map(it => (
+                        <button
+                          key={it.v}
+                          type="button"
+                          onClick={() => set('internshipType', it.v)}
+                          className={`py-2 px-2 rounded-lg text-xs font-medium ring-1 transition-all ${
+                            form.internshipType === it.v
+                              ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
+                              : 'ring-zinc-800 bg-zinc-900 text-zinc-500 hover:ring-zinc-600 hover:text-zinc-300'
+                          }`}
+                        >
+                          {it.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {form.roleType === 'course' && (
+                  <div className="space-y-1 pt-1">
+                    <label className="text-xs text-zinc-500">Course Price (₹) *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 4999"
+                      value={form.price}
+                      onChange={e => set('price', e.target.value)}
+                      className="input-mono text-sm w-full"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1 pt-1">
+                  <label className="text-xs text-zinc-500">Salary / Compensation</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹6-10 LPA / Not disclosed"
+                    value={form.salaryText}
+                    onChange={e => set('salaryText', e.target.value)}
+                    className="input-mono text-sm w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Perks */}
+              <div className="glass-card p-4 space-y-1">
+                <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Perks</label>
+                <input
+                  type="text"
+                  placeholder="Flexible hours, Health insurance, Certificate  (comma-separated)"
+                  value={form.perksRaw}
+                  onChange={e => set('perksRaw', e.target.value)}
+                  className="input-mono text-sm w-full"
+                />
+                {form.perksRaw && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {form.perksRaw.split(',').map(s => s.trim()).filter(Boolean).map(s => (
+                      <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 ring-1 ring-zinc-700">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Budget */
+            <div className="glass-card p-4 space-y-3">
+              <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Budget</label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
-                  { v: 'one-time', label: 'One-time' },
-                  { v: 'ongoing', label: 'Ongoing' },
-                  { v: 'part-time', label: 'Part-time' },
-                  { v: 'contract', label: 'Contract' },
-                ].map(wt => (
+                  { v: 'fixed', label: 'Fixed' },
+                  { v: 'hourly', label: 'Hourly' },
+                  { v: 'equity', label: 'Equity' },
+                  { v: 'volunteer', label: 'Volunteer' },
+                  { v: 'negotiable', label: 'Negotiate' },
+                ].map(bt => (
                   <button
-                    key={wt.v}
+                    key={bt.v}
                     type="button"
-                    onClick={() => set('workType', wt.v)}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium ring-1 transition-all ${
-                      form.workType === wt.v
+                    onClick={() => set('budgetType', bt.v)}
+                    className={`py-2 px-2 rounded-lg text-xs font-medium ring-1 transition-all ${
+                      form.budgetType === bt.v
                         ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
                         : 'ring-zinc-800 bg-zinc-900 text-zinc-500 hover:ring-zinc-600 hover:text-zinc-300'
                     }`}
                   >
-                    {wt.label}
+                    {bt.label}
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
 
-          {/* Budget */}
-          <div className="glass-card p-4 space-y-3">
-            <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Budget</label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {[
-                { v: 'fixed', label: 'Fixed' },
-                { v: 'hourly', label: 'Hourly' },
-                { v: 'equity', label: 'Equity' },
-                { v: 'volunteer', label: 'Volunteer' },
-                { v: 'negotiable', label: 'Negotiate' },
-              ].map(bt => (
-                <button
-                  key={bt.v}
-                  type="button"
-                  onClick={() => set('budgetType', bt.v)}
-                  className={`py-2 px-2 rounded-lg text-xs font-medium ring-1 transition-all ${
-                    form.budgetType === bt.v
-                      ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
-                      : 'ring-zinc-800 bg-zinc-900 text-zinc-500 hover:ring-zinc-600 hover:text-zinc-300'
-                  }`}
-                >
-                  {bt.label}
-                </button>
-              ))}
-            </div>
-
-            {showBudget && (
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500">Min (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 5000"
-                    min="0"
-                    value={form.budgetMin}
-                    onChange={e => set('budgetMin', e.target.value)}
-                    className="input-mono text-sm w-full"
-                  />
+              {showBudget && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-xs text-zinc-500">Min (₹)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 5000"
+                      min="0"
+                      value={form.budgetMin}
+                      onChange={e => set('budgetMin', e.target.value)}
+                      className="input-mono text-sm w-full"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-zinc-500">Max (₹)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 20000"
+                      min="0"
+                      value={form.budgetMax}
+                      onChange={e => set('budgetMax', e.target.value)}
+                      className="input-mono text-sm w-full"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500">Max (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 20000"
-                    min="0"
-                    value={form.budgetMax}
-                    onChange={e => set('budgetMax', e.target.value)}
-                    className="input-mono text-sm w-full"
-                  />
-                </div>
-              </div>
-            )}
+              )}
 
-            {form.budgetType === 'volunteer' && (
-              <p className="text-xs text-zinc-500 bg-zinc-900 rounded-lg px-3 py-2">
-                Volunteer posts are unpaid — great for portfolio building and community work.
-              </p>
-            )}
-            {form.budgetType === 'equity' && (
-              <p className="text-xs text-zinc-500 bg-zinc-900 rounded-lg px-3 py-2">
-                Equity-based — clearly describe the stake offered in your description.
-              </p>
-            )}
-          </div>
+              {form.budgetType === 'volunteer' && (
+                <p className="text-xs text-zinc-500 bg-zinc-900 rounded-lg px-3 py-2">
+                  Volunteer posts are unpaid — great for portfolio building and community work.
+                </p>
+              )}
+              {form.budgetType === 'equity' && (
+                <p className="text-xs text-zinc-500 bg-zinc-900 rounded-lg px-3 py-2">
+                  Equity-based — clearly describe the stake offered in your description.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Timeline */}
           <div className="glass-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Est. Duration</label>
-              <input
-                type="text"
-                placeholder="e.g. 3 weeks, 2 months"
-                value={form.estimatedDuration}
-                onChange={e => set('estimatedDuration', e.target.value)}
-                className="input-mono text-sm w-full"
-              />
-            </div>
+            {!isRole && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Est. Duration</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 3 weeks, 2 months"
+                  value={form.estimatedDuration}
+                  onChange={e => set('estimatedDuration', e.target.value)}
+                  className="input-mono text-sm w-full"
+                />
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Deadline</label>
               <input

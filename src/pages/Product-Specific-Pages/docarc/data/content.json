@@ -1,0 +1,64 @@
+{
+  "sections": [
+     {
+      "id": "test-long",
+      "title": "VERY LONG TEST CONTENT",
+      "content": "This is an extremely long paragraph to test if the box properly expands to fit all content without scrollbars. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Additional text to make it even longer. More content to ensure the box stretches properly. Testing multiple lines and paragraphs to see how the box adapts. The box should keep growing vertically to accommodate all this text. No scrollbars should appear. The border lines should adjust accordingly. This is continuous testing content to demonstrate the dynamic height adjustment feature.",
+      "priority": "high"
+    },
+    {
+      "id": 1,
+      "title": "System Boot",
+      "content": "Initializing neural interface protocol... Synaptic connections established. Running diagnostics on all subsystems. Authentication protocols engaged.",
+      "priority": "high"
+    },
+    {
+      "id": 2,
+      "title": "Security Status",
+      "content": "Firewall active. Intrusion detection systems online. All encryption layers operational. No unauthorized access attempts detected in the last 24 hours.",
+      "priority": "medium"
+    },
+    {
+      "id": 3,
+      "title": "Network Nodes",
+      "content": "47 active connections. Bandwidth utilization at 68%. Latency within acceptable parameters. Data throughput optimized for real-time processing.",
+      "priority": "low"
+    },
+    {
+      "id": 4,
+      "title": "AI Core",
+      "content": "Neural network operating at 94% capacity. Learning algorithms active. Predictive models updating in real-time. Consciousness simulation stable.",
+      "priority": "high"
+    },
+    {
+      "id": 5,
+      "title": "Data Streams",
+      "content": "Processing 2.4TB of encrypted data. Quantum channels secured. Redundant backups verified. All streams flowing through encrypted tunnels.",
+      "priority": "medium"
+    },
+    {
+      "id": 6,
+      "title": "Hardware Status",
+      "content": "CPU temperature: 42°C. Memory allocation: 78%. Storage integrity: 100%. Power supply: stable. Cooling systems: operational.",
+      "priority": "low"
+    },
+    {
+      "id": 7,
+      "title": "Quantum Processing",
+      "content": "Qubit stability at 99.7%. Entanglement operations successful. Decoherence within tolerance levels. Quantum gate fidelity exceeding 99.9%.",
+      "priority": "high"
+    },
+    {
+      "id": 8,
+      "title": "Bio-Metrics",
+      "content": "Neural activity patterns nominal. Cortical stimulation within safe limits. Neurotransmitter levels balanced. Cognitive functions operating at optimal capacity.",
+      "priority": "medium"
+    },
+    {
+      "id": 9,
+      "title": "Energy Systems",
+      "content": "Primary power: 98%. Backup systems: online and ready. Distribution network: stable. Consumption efficiency: 92%. All circuits functioning normally.",
+      "priority": "low"
+    }
+  ]
+}

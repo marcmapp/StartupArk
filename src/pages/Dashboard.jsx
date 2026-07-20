@@ -72,7 +72,7 @@ const Dashboard = () => {
   const modules = [
     { label: 'Explore Startups', icon: 'search', to: '/startupark/startupsList' },
     { label: 'Browse Products', icon: 'box', to: '/products' },
-    { label: 'Career LaunchPad', icon: 'briefcase', to: '/startupark/launchpad' },
+    { label: 'Career LaunchPad', icon: 'briefcase', to: '/startupark/projectark?mode=role' },
     { label: 'Bookings', icon: 'calendar', to: role === 'startup' ? '/startupark/manage-bookings' : '/startupark/my-bookings' },
     { label: 'Chat', icon: 'chat', to: '/startupark/chat' },
     { label: 'Events', icon: 'calendar-event', to: '/startupark/events' },
@@ -220,26 +220,6 @@ const Dashboard = () => {
                 Set Up Profile →
               </button>
             )}
-          </div>
-
-          <div className="glass-card p-5">
-            <h3 className="font-semibold text-zinc-900 dark:text-white mb-3 text-sm">Account</h3>
-            <div className="space-y-1">
-              {[
-                { label: 'Profile', icon: 'user', to: '/profile' },
-                { label: 'Settings', icon: 'cog', to: '/settings' },
-                { label: 'Subscription', icon: 'credit-card', to: '/pricing' },
-              ].map(({ label, icon, to }) => (
-                <button
-                  key={to}
-                  onClick={() => navigate(to)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors text-sm text-zinc-700 dark:text-zinc-300"
-                >
-                  <box-icon name={icon} size="16px" color="currentColor"></box-icon>
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </div>

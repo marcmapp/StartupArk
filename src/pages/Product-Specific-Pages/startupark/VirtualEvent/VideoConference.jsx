@@ -1,40 +1,66 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
-const VideoConference = ({ eventId, userId, isOrganizer }) => {
+// Read the current user id from the same auth source ChatInterface.jsx uses.
+const getUserId = () => {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || 'null');
+    return u?.id || u?._id || localStorage.getItem('userId') || null;
+  } catch {
+    return localStorage.getItem('userId') || null;
+  }
+};
+
+const VideoConference = () => {
+  // eventId comes from the /virtual-event/:id route param; userId from auth storage.
+  const { id: eventId } = useParams();
+  const userId = getUserId();
+
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState(new Map());
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [socket, setSocket] = useState(null);
-  
+
   const localVideoRef = useRef();
   const peerConnections = useRef(new Map());
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
-    // Initialize socket connection
-    const newSocket = io();
+    if (!eventId) return;
+
+    // Point the socket at the backend base URL (not the page origin), matching
+    // the connection pattern used by ChatInterface.jsx / NotificationBell.jsx.
+    const newSocket = io(baseUrl, { transports: ['websocket', 'polling'] });
     setSocket(newSocket);
 
-    // Join event room
-    newSocket.emit('joinEvent', eventId);
+    // Identify so the backend tags event emits with our userId, then join the room.
+    const joinRoom = () => {
+      if (userId) newSocket.emit('identify', userId);
+      newSocket.emit('join_event', eventId);
+    };
+    if (newSocket.connected) joinRoom();
+    newSocket.on('connect', joinRoom);
 
     // Setup media
     setupMedia();
 
-    // Socket event handlers
-    newSocket.on('userJoined', handleUserJoined);
-    newSocket.on('userLeft', handleUserLeft);
-    newSocket.on('webrtc-offer', handleOffer);
-    newSocket.on('webrtc-answer', handleAnswer);
-    newSocket.on('webrtc-ice-candidate', handleIceCandidate);
+    // Socket event handlers — snake_case names match the backend (socketHandler.js).
+    newSocket.on('user_joined_event', handleUserJoined);
+    newSocket.on('user_left_event', handleUserLeft);
+    newSocket.on('webrtc_offer', handleOffer);
+    newSocket.on('webrtc_answer', handleAnswer);
+    newSocket.on('webrtc_ice_candidate', handleIceCandidate);
 
     return () => {
+      newSocket.emit('leave_event', eventId);
+      newSocket.off('connect', joinRoom);
       newSocket.disconnect();
       cleanupMedia();
     };
-  }, [eventId]);
+  }, [eventId, baseUrl]);
 
   const setupMedia = async () => {
     try {
@@ -58,7 +84,9 @@ const VideoConference = ({ eventId, userId, isOrganizer }) => {
     }
   };
 
-  const createPeerConnection = (userId) => {
+  // Peer connections are keyed by the remote socket id, since the backend tags
+  // every webrtc/user event with the sender's socket id (`from` / `socketId`).
+  const createPeerConnection = (peerId) => {
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -75,48 +103,45 @@ const VideoConference = ({ eventId, userId, isOrganizer }) => {
 
     // Handle remote stream
     pc.ontrack = (event) => {
-      setRemoteStreams(prev => new Map(prev.set(userId, event.streams[0])));
+      setRemoteStreams(prev => new Map(prev.set(peerId, event.streams[0])));
     };
 
-    // Handle ICE candidates
+    // Handle ICE candidates — backend relays to the rest of the event room.
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit('webrtc-ice-candidate', {
+        socket.emit('webrtc_ice_candidate', {
           eventId,
-          userId,
           candidate: event.candidate
         });
       }
     };
 
-    peerConnections.current.set(userId, pc);
+    peerConnections.current.set(peerId, pc);
     return pc;
   };
 
   const handleUserJoined = async (data) => {
-    const pc = createPeerConnection(data.userId);
-    
+    const pc = createPeerConnection(data.socketId);
+
     // Create offer
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    
-    socket.emit('webrtc-offer', {
+
+    socket.emit('webrtc_offer', {
       eventId,
-      targetUserId: data.userId,
       offer
     });
   };
 
   const handleOffer = async (data) => {
     const pc = createPeerConnection(data.from);
-    
+
     await pc.setRemoteDescription(data.offer);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    
-    socket.emit('webrtc-answer', {
+
+    socket.emit('webrtc_answer', {
       eventId,
-      targetUserId: data.from,
       answer
     });
   };
@@ -136,14 +161,14 @@ const VideoConference = ({ eventId, userId, isOrganizer }) => {
   };
 
   const handleUserLeft = (data) => {
-    const pc = peerConnections.current.get(data.userId);
+    const pc = peerConnections.current.get(data.socketId);
     if (pc) {
       pc.close();
-      peerConnections.current.delete(data.userId);
+      peerConnections.current.delete(data.socketId);
     }
     setRemoteStreams(prev => {
       const newStreams = new Map(prev);
-      newStreams.delete(data.userId);
+      newStreams.delete(data.socketId);
       return newStreams;
     });
   };

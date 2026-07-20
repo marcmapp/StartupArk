@@ -3,7 +3,7 @@
 // Persisted server-side via PUT /startupark/api/nav-preferences (hasSeenDockTour).
 //
 // Step 1: avatar menu
-// Step 2: nav items row (drag to reorder)
+// Step 2: nav items row
 // The launcher step was removed in Phase 5 — there is no launcher any more.
 
 import { useState, useEffect } from "react";
@@ -17,7 +17,7 @@ const STEPS = [
   {
     target: "dock-pinned",
     caption:
-      "All your navigation shortcuts are here. Drag left or right to rearrange them.",
+      "All your navigation shortcuts are here. Tap any icon to jump straight there.",
   },
 ];
 

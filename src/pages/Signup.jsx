@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { Listbox } from '@headlessui/react';
 import { authService, storageService } from '../services/auth';
 import AuthBrandPanel from '../components/AuthBrandPanel';
+
+const COUNTRY_CODES = ['+91', '+1', '+44', '+81', '+61'];
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -148,22 +151,29 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 p-4 sm:p-8">
-      <div className="glass-card shadow-xl w-full max-w-4xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+    <div className="min-h-screen w-full relative grid grid-cols-1 md:grid-cols-2 overflow-hidden bg-white dark:bg-zinc-950">
+      <div
+        className="absolute inset-0 opacity-[0.5] dark:opacity-[0.1] pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(0,0,0,0.18) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      />
 
-        {/* Left brand panel */}
-        <AuthBrandPanel
-          eyebrow={isOtpSent ? 'Verify Access' : 'Create Account'}
-          title="Join MAPP ARKS"
-          subtitle="Create your account to discover startups, connect with founders, and grow."
-        />
+      {/* Left brand panel */}
+      <AuthBrandPanel
+        eyebrow={isOtpSent ? 'Verify Access' : 'Create Account'}
+        title="Join MAPP ARKS"
+        subtitle="Create your account to discover startups, connect with founders, and grow."
+        activeStep={isOtpSent ? 1 : 0}
+      />
 
-        {/* Right form panel */}
-        <form
-          onSubmit={isOtpSent ? handleVerifyOtp : handleSendOtp}
-          className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center"
-        >
-          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-1">
+      {/* Right form panel */}
+      <form
+        onSubmit={isOtpSent ? handleVerifyOtp : handleSendOtp}
+        className="relative z-10 w-full max-w-md mx-auto px-6 sm:px-10 lg:px-0 py-10 flex flex-col justify-center"
+      >
+          <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white mb-1">
             {isOtpSent ? 'Verify OTP' : 'Sign Up'}
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
@@ -189,7 +199,7 @@ const Signup = () => {
                 placeholder="Email"
                 value={formData.email}
                 onChange={(e) => updateFormData('email', e.target.value)}
-                className="input-mono sm:col-span-2"
+                className="input-mono sm:col-span-2 rounded-2xl py-3.5 text-base"
                 required
                 disabled={isLoading}
               />
@@ -198,7 +208,7 @@ const Signup = () => {
                 placeholder="Username"
                 value={formData.username}
                 onChange={(e) => updateFormData('username', e.target.value)}
-                className="input-mono"
+                className="input-mono rounded-2xl py-3.5 text-base"
                 required
                 disabled={isLoading}
               />
@@ -207,29 +217,46 @@ const Signup = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={(e) => updateFormData('password', e.target.value)}
-                className="input-mono"
+                className="input-mono rounded-2xl py-3.5 text-base"
                 required
                 disabled={isLoading}
               />
               <div className="flex sm:col-span-2">
-                <select
+                <Listbox
                   value={formData.countryCode}
-                  onChange={(e) => updateFormData('countryCode', e.target.value)}
-                  className="input-mono w-1/4 rounded-r-none"
+                  onChange={(val) => updateFormData('countryCode', val)}
                   disabled={isLoading}
                 >
-                  <option value="+91">+91</option>
-                  <option value="+1">+1</option>
-                  <option value="+44">+44</option>
-                  <option value="+81">+81</option>
-                  <option value="+61">+61</option>
-                </select>
+                  <div className="relative w-1/4">
+                    <Listbox.Button className="input-mono w-full rounded-2xl rounded-r-none py-3.5 text-base flex items-center justify-between gap-1 disabled:opacity-50">
+                      <span>{formData.countryCode}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 shrink-0">
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </Listbox.Button>
+                    <Listbox.Options className="absolute z-20 mt-2 w-full min-w-[5.5rem] rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden focus:outline-none">
+                      {COUNTRY_CODES.map((code) => (
+                        <Listbox.Option
+                          key={code}
+                          value={code}
+                          className={({ active }) =>
+                            `cursor-pointer px-4 py-2.5 text-sm text-zinc-700 dark:text-zinc-300 ${
+                              active ? 'bg-black/5 dark:bg-white/10' : ''
+                            }`
+                          }
+                        >
+                          {code}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
                 <input
                   type="tel"
                   placeholder="WhatsApp Number"
                   value={formData.whatsappNumber}
                   onChange={(e) => updateFormData('whatsappNumber', e.target.value)}
-                  className="input-mono w-3/4 rounded-l-none border-l-0"
+                  className="input-mono w-3/4 rounded-2xl rounded-l-none border-l-0 py-3.5 text-base"
                   required
                   disabled={isLoading}
                 />
@@ -241,7 +268,7 @@ const Signup = () => {
               placeholder="Enter OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
-              className="input-mono mb-4"
+              className="input-mono mb-4 rounded-2xl py-3.5 text-base"
               required
               disabled={isLoading}
             />
@@ -250,9 +277,16 @@ const Signup = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="btn-mono w-full p-3 mt-5 disabled:opacity-50"
+            className="btn-mono w-full rounded-full py-3.5 mt-5 text-base gap-2 disabled:opacity-50"
           >
-            {isLoading ? 'Processing…' : (isOtpSent ? 'Verify OTP' : 'Send OTP')}
+            {isLoading ? 'Processing…' : (
+              <>
+                {isOtpSent ? 'Verify OTP' : 'Send OTP'}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </>
+            )}
           </button>
 
           <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
@@ -275,20 +309,24 @@ const Signup = () => {
             </div>
           )}
 
-        <div className="my-4 text-center text-zinc-500">OR</div>
-        <hr className="my-4 border-t border-white/10" />
-
-        <GoogleOAuthProvider clientId={ssoid}>
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleLoginSuccess}
-              onError={handleGoogleFailure}
-              disabled={isLoading}
-            />
+          <div className="my-4 flex items-center gap-3 text-zinc-400 dark:text-zinc-600 text-xs">
+            <div className="flex-1 h-px bg-black/10 dark:bg-white/10" /> OR <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />
           </div>
-        </GoogleOAuthProvider>
-        </form>
-      </div>
+
+          <GoogleOAuthProvider clientId={ssoid}>
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleLoginSuccess}
+                onError={handleGoogleFailure}
+                disabled={isLoading}
+              />
+            </div>
+          </GoogleOAuthProvider>
+
+          <p className="mt-6 text-center text-[11px] text-zinc-400 dark:text-zinc-600">
+            We&apos;ll verify your email with a one-time code.
+          </p>
+      </form>
     </div>
   );
 };

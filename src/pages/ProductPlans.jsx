@@ -53,26 +53,14 @@ const ProductPlans = () => {
           }),
         ]);
 
+        // Subscriptions are per-product, keyed by productId (e.g. "startupArk").
+        // The server already lazily expires stale subscriptions on this read.
+        const sub = subscriptionRes.data.subscriptions?.[productId];
         const userData = {
           ...userRes.data,
-          subscriptionPlan: subscriptionRes.data.plan,
-          planExpiry: subscriptionRes.data.expiryDate,
+          subscriptionPlan: sub?.status === "active" ? sub.plan : null,
+          planExpiry: sub?.status === "active" ? sub.expiryDate : null,
         };
-
-        if (subscriptionRes.data.expiryDate) {
-          const expiryDate = new Date(subscriptionRes.data.expiryDate);
-          const currentDate = new Date();
-
-          if (currentDate > expiryDate) {
-            await axios.post(`${baseUrl}/api/mappuser/update-plan`, {
-              email: userRes.data.email,
-              plan: "No Subscription",
-            });
-
-            userData.subscriptionPlan = "No Subscription";
-            userData.planExpiry = null;
-          }
-        }
 
         setUser(userData);
       } catch (error) {
@@ -82,30 +70,25 @@ const ProductPlans = () => {
     };
 
     fetchUser();
-  }, [navigate]);
+  }, [navigate, productId]);
 
-  const handlePaymentSuccess = async (subscriptionPlan) => {
-    try {
-      const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 1);
+  // The backend already activates the subscription (payment-verify for paid
+  // plans, update-plan for free ones) before this fires — just reflect the
+  // result locally instead of making a second, unverified update-plan call.
+  const handlePaymentSuccess = (subscriptionPlan, subscriptions) => {
+    const sub = subscriptions?.[productId];
+    setUser((prev) => ({
+      ...prev,
+      subscriptionPlan: sub?.plan || subscriptionPlan,
+      planExpiry: sub?.expiryDate || null,
+    }));
 
-      await axios.post(`${baseUrl}/api/mappuser/update-plan`, {
-        email: user.email,
-        plan: subscriptionPlan,
-        expiryDate: expiryDate.toISOString(),
-      });
+    setModalMessage("Payment Successful! Subscription updated.");
+    setShowModal(true);
 
-      setModalMessage("Payment Successful! Subscription updated.");
-      setShowModal(true);
-
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 2000);
-    } catch (error) {
-      console.error("Failed to update plan:", error);
-      setModalMessage("Payment successful, but failed to update plan. Contact support.");
-      setShowModal(true);
-    }
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 2000);
   };
 
   const handlePaymentError = (errorMessage) => {
@@ -130,20 +113,17 @@ const ProductPlans = () => {
 
   const PlanCard = ({ plan, userType, product }) => {
     const isCurrentPlan = user.subscriptionPlan === plan.name;
-    const isDisabled = isCurrentPlan || 
-      (user.subscriptionPlan?.includes("Pro") && plan.name.includes("Basic")) ||
-      (user.subscriptionPlan?.includes("Growth") && !plan.name.includes("Growth"));
+    const isDisabled = isCurrentPlan ||
+      (user.subscriptionPlan?.endsWith("Pro") && plan.name.endsWith("Free"));
 
     return (
-      <div className={`relative rounded-2xl p-8 transition-all duration-300 border ${
-        plan.popular 
-          ? 'border-cyan-500/50 shadow-xl scale-[1.02]' 
-          : 'border-gray-200/80 backdrop-blur-sm hover:border-cyan-300/50 hover:shadow-lg'
+      <div className={`glass-card relative p-8 transition-all duration-300 ${
+        plan.popular ? 'border-zinc-400 dark:border-white/30 scale-[1.02]' : 'hover:border-zinc-400/60 dark:hover:border-white/20'
       }`}>
         {/* Popular Badge */}
         {plan.popular && (
           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-            <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-lg">
+            <div className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-md">
               <StarIcon className="h-3 w-3 mr-1" />
               Most Popular
             </div>
@@ -153,28 +133,29 @@ const ProductPlans = () => {
         {/* Current Plan Badge */}
         {isCurrentPlan && (
           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-            <div className="bg-green-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-lg">
+            <div className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-md">
+              <CheckIcon className="h-3 w-3 mr-1" />
               Current Plan
             </div>
           </div>
         )}
 
         <div className="text-center mb-6">
-          <h3 className="text-xl font-bold mb-3">{plan.name}</h3>
+          <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">{plan.name}</h3>
           <div className="flex items-baseline justify-center gap-1 mb-2">
-            <span className="text-3xl font-bold text-cyan-600">{plan.price}</span>
-            {plan.amount > 0 && <span className="text-gray-600 text-sm">/month</span>}
+            <span className="text-3xl font-bold text-zinc-900 dark:text-white">{plan.price}</span>
+            {plan.amount > 0 && <span className="text-zinc-500 dark:text-zinc-400 text-sm">/month</span>}
           </div>
           {plan.amount > 0 && (
-            <p className="text-gray-600 text-sm">billed monthly</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">billed monthly</p>
           )}
         </div>
 
         <ul className="space-y-3 mb-8">
           {plan.features.map((feature, index) => (
             <li key={index} className="flex items-start">
-              <CheckIcon className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-gray-700">{feature}</span>
+              <CheckIcon className="h-5 w-5 text-zinc-500 dark:text-zinc-400 mr-3 mt-0.5 flex-shrink-0" />
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">{feature}</span>
             </li>
           ))}
         </ul>
@@ -182,18 +163,13 @@ const ProductPlans = () => {
         <MarkPayment
           amount={plan.amount}
           plan={plan.name}
+          product={product}
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
           disabled={isDisabled}
           user={user}
           buttonText={isCurrentPlan ? "Current Plan" : plan.cta}
-          className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 border ${
-            isCurrentPlan
-              ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-300'
-              : plan.popular
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg hover:shadow-xl border-transparent'
-              : 'text-cyan-600 border-cyan-600 hover:bg-cyan-600 hover:text-white hover:shadow-md'
-          }`}
+          className={isCurrentPlan ? 'btn-ghost w-full py-3 opacity-60 cursor-not-allowed' : plan.popular ? 'btn-mono w-full py-3' : 'btn-ghost w-full py-3'}
         />
       </div>
     );
@@ -206,22 +182,22 @@ const ProductPlans = () => {
         <div className="mb-8">
           <button
             onClick={() => navigate("/pricing")}
-            className="flex items-center text-cyan-600 hover:text-cyan-700 mb-4 transition-colors"
+            className="flex items-center text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white mb-4 transition-colors"
           >
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back to Products
           </button>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 rounded-xl bg-cyan-100 flex items-center justify-center border border-cyan-200">
-                <ProductIcon className="h-10 w-10 text-cyan-600" />
+              <div className="h-16 w-16 rounded-xl glass-inset flex items-center justify-center">
+                <ProductIcon className="h-10 w-10 text-zinc-700 dark:text-zinc-200" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">
+                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
                   {currentProduct.name} Plans
                 </h1>
-                <p className="mt-1 text-gray-600">
+                <p className="mt-1 text-zinc-600 dark:text-zinc-400">
                   {currentProduct.description}
                 </p>
               </div>
@@ -231,25 +207,25 @@ const ProductPlans = () => {
 
         {/* Current Subscription Status */}
         {isActivePlan && (
-          <div className="rounded-2xl border border-cyan-200 p-6 mb-8">
+          <div className="glass-card p-6 mb-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CheckIcon className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 glass-inset rounded-xl flex items-center justify-center">
+                  <CheckIcon className="h-6 w-6 text-zinc-700 dark:text-zinc-200" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">Active Subscription</h2>
-                  <p className="text-gray-600">
-                    You're subscribed to <span className="font-semibold text-cyan-600">{currentProduct.name}</span> as{" "}
-                    <span className="font-semibold text-blue-600">{user.startuparkRole || 'User'}</span> with the{" "}
-                    <span className="font-semibold text-green-600">{user.subscriptionPlan}</span> plan
+                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Active Subscription</h2>
+                  <p className="text-zinc-600 dark:text-zinc-400">
+                    You're subscribed to <span className="font-semibold text-zinc-900 dark:text-white">{currentProduct.name}</span> as{" "}
+                    <span className="font-semibold text-zinc-900 dark:text-white">{user.startuparkRole || 'User'}</span> with the{" "}
+                    <span className="font-semibold text-zinc-900 dark:text-white">{user.subscriptionPlan}</span> plan
                   </p>
                 </div>
               </div>
               {user.planExpiry && (
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Renews on</p>
-                  <p className="font-semibold">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Renews on</p>
+                  <p className="font-semibold text-zinc-900 dark:text-white">
                     {new Date(user.planExpiry).toLocaleDateString()}
                   </p>
                 </div>
@@ -260,7 +236,7 @@ const ProductPlans = () => {
 
         {/* User Type Tabs */}
         <div className="mb-8">
-          <div className="border-b border-gray-200">
+          <div className="border-b border-zinc-200 dark:border-white/10">
             <nav className="-mb-px flex space-x-8">
               {Object.entries(currentProduct.userTypes).map(([key, userType]) => {
                 const UserTypeIcon = iconMap[userType.icon];
@@ -270,8 +246,8 @@ const ProductPlans = () => {
                     onClick={() => setActiveUserType(key)}
                     className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                       activeUserType === key
-                        ? 'border-cyan-500 text-cyan-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
+                        : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-white/20'
                     }`}
                   >
                     <UserTypeIcon className="h-5 w-5 mr-3" />
@@ -286,8 +262,8 @@ const ProductPlans = () => {
         {/* Plans Grid */}
         <div className="mb-12">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">{currentUserType.name} Plans</h2>
-            <p className="text-gray-600">{currentUserType.description}</p>
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">{currentUserType.name} Plans</h2>
+            <p className="text-zinc-600 dark:text-zinc-400">{currentUserType.description}</p>
           </div>
 
           <div className={`grid gap-6 ${
@@ -306,26 +282,26 @@ const ProductPlans = () => {
         </div>
 
         {/* FAQ Section */}
-        <div className="rounded-2xl border border-gray-200 p-8">
-          <h2 className="text-2xl font-bold text-center mb-8">
+        <div className="glass-card p-8">
+          <h2 className="text-2xl font-bold text-center text-zinc-900 dark:text-white mb-8">
             Frequently Asked Questions
           </h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Can I change plans anytime?</h3>
-              <p className="text-gray-600 text-sm">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Can I change plans anytime?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">Is there a free trial?</h3>
-              <p className="text-gray-600 text-sm">All paid plans come with a 14-day free trial. No credit card required to start.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">What payment methods do you accept?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">We accept all major credit/debit cards, UPI, and net banking via Razorpay.</p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">What payment methods do you accept?</h3>
-              <p className="text-gray-600 text-sm">We accept all major credit cards, PayPal, and bank transfers for annual plans.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Is billing recurring?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Paid plans run for one month per purchase. You'll need to renew manually — automatic recurring billing isn't set up yet.</p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">Can I get a refund?</h3>
-              <p className="text-gray-600 text-sm">We offer a 30-day money-back guarantee for all annual subscriptions.</p>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Questions about a charge?</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Reach out to support and we'll sort it out directly — there's no self-serve refund flow yet.</p>
             </div>
           </div>
         </div>

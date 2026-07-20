@@ -114,7 +114,7 @@ export default function UserDashboard() {
               <ActionCard title="My Bookings" desc="Upcoming meetings & history" icon="calendar-check" onClick={() => navigate('/startupark/my-bookings')} />
               <ActionCard title="Browse Products" desc="Explore startup products" icon="box" onClick={() => navigate('/products')} />
               <ActionCard title="Messages" desc="Chat with founders" icon="chat" onClick={() => navigate('/startupark/chat')} />
-              <ActionCard title="Career LaunchPad" desc="Jobs & internships" icon="briefcase" onClick={() => navigate('/startupark/launchpad')} />
+              <ActionCard title="Career LaunchPad" desc="Jobs & internships" icon="briefcase" onClick={() => navigate('/startupark/projectark?mode=role')} />
             </div>
           </div>
 

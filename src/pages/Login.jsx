@@ -171,19 +171,25 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8">
-      <div className="glass-card shadow-xl w-full max-w-4xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+    <div className="min-h-screen w-full relative grid grid-cols-1 md:grid-cols-2 overflow-hidden bg-white dark:bg-zinc-950">
+      <div
+        className="absolute inset-0 opacity-[0.5] dark:opacity-[0.1] pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(0,0,0,0.18) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      />
 
-        {/* Left brand panel */}
-        <AuthBrandPanel
-          eyebrow="Welcome back"
-          title="Log in to MAPP ARKS"
-          subtitle="Your hub for startup discovery, connections, and growth."
-        />
+      {/* Left brand panel */}
+      <AuthBrandPanel
+        eyebrow="Welcome back"
+        title="Log in to MAPP ARKS"
+        subtitle="Your hub for startup discovery, connections, and growth."
+      />
 
-        {/* Right form panel */}
-        <form onSubmit={handleLogin} className="relative p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-1 text-zinc-900 dark:text-white">Login</h2>
+      {/* Right form panel */}
+      <form onSubmit={handleLogin} className="relative z-10 w-full max-w-md mx-auto px-6 sm:px-10 lg:px-0 py-10 flex flex-col justify-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-1 text-zinc-900 dark:text-white">Sign in</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Enter your credentials to continue.</p>
 
           {message && (
@@ -201,7 +207,7 @@ const LoginPage = () => {
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="input-mono mb-4"
+            className="input-mono mb-4 rounded-2xl py-3.5 text-base"
             required
             disabled={isLoading}
           />
@@ -211,7 +217,7 @@ const LoginPage = () => {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="input-mono"
+            className="input-mono rounded-2xl py-3.5 text-base"
             required
             disabled={isLoading}
           />
@@ -221,8 +227,19 @@ const LoginPage = () => {
             </Link>
           </div>
 
-          <button type="submit" disabled={isLoading} className="btn-mono w-full py-3">
-            {isLoading ? 'Logging in…' : 'Login'}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="btn-mono w-full rounded-full py-3.5 text-base gap-2"
+          >
+            {isLoading ? 'Logging in…' : (
+              <>
+                Login
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </>
+            )}
           </button>
 
           <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
@@ -238,13 +255,16 @@ const LoginPage = () => {
             <div id="google-signin-btn" className={isLoading ? 'opacity-50 pointer-events-none' : ''}></div>
           </div>
 
+          <p className="mt-6 text-center text-[11px] text-zinc-400 dark:text-zinc-600">
+            Secure sign-in · MAPP ARKS platform
+          </p>
+
           {isLoading && (
-            <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+            <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center">
               <div className="text-zinc-900 dark:text-white font-medium">Processing…</div>
             </div>
           )}
-        </form>
-      </div>
+      </form>
     </div>
   );
 };

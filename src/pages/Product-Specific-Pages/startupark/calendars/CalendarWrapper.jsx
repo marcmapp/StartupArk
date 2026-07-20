@@ -150,21 +150,15 @@ const CalendarWrapper = ({ type }) => {
 
   const handleCancelMeeting = async (bookingId, cancellationReason) => {
     try {
-      const endpoint = type === 'startup' 
-        ? `${baseUrl}/startupark/api/bookings/${bookingId}/status`
-        : `${baseUrl}/startupark/api/bookings/${bookingId}/cancel`;
-      
-      const body = type === 'startup' 
-        ? { status: 'cancelled', cancellationReason, cancelledBy: 'startup' }
-        : { cancellationReason };
-      
-      const response = await fetch(endpoint, {
+      // Both parties cancel via /:id/cancel — the handler derives cancelledBy from
+      // the caller and reads `reason` from the body. There is no /:id/status route.
+      const response = await fetch(`${baseUrl}/startupark/api/bookings/${bookingId}/cancel`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ reason: cancellationReason })
       });
       
       if (response.ok) {

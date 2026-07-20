@@ -39,7 +39,15 @@ const Profile = () => {
             whatsappNumber: userRes.value.data.whatsappNumber,
           });
         }
-        setSubscription(subRes.status === 'fulfilled' ? subRes.value.data : null);
+        // Subscriptions are per-product (keyed by productId, e.g. "startupArk");
+        // surface the first active one, if any.
+        if (subRes.status === 'fulfilled') {
+          const subs = subRes.value.data.subscriptions || {};
+          const activeEntry = Object.entries(subs).find(([, s]) => s?.status === 'active');
+          setSubscription(activeEntry ? activeEntry[1] : null);
+        } else {
+          setSubscription(null);
+        }
       } catch (e) {
         console.error(e);
         showMessage('Failed to load profile data');
@@ -222,7 +230,7 @@ const Profile = () => {
                   <span className="text-zinc-900 dark:text-white font-medium">{formatDate(subscription.expiryDate)}</span>
                 </div>
               )}
-              <button onClick={() => navigate('/subscription')} className="btn-mono w-full py-2.5 mt-2">Upgrade Plan</button>
+              <button onClick={() => navigate('/pricing')} className="btn-mono w-full py-2.5 mt-2">Upgrade Plan</button>
             </div>
           </div>
 

@@ -6,13 +6,31 @@ import { navRegistry } from '../Jsons/NavItems/navRegistry';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Product-mode route prefixes — everything else is Hub mode.
-const PRODUCT_PREFIXES = ['/startupark', '/products', '/manage-products', '/vc/', '/events/'];
+// Route prefixes owned by each installed product. Everything outside all of
+// these is Hub mode. Also used to scope the product-mode dock to only the
+// current product's navRegistry items (see useActiveProduct + FloatingDock.tsx)
+// instead of mixing every installed product's items into one flat list.
+const PRODUCT_ROUTES = {
+  startupark: ['/startupark', '/products', '/manage-products', '/vc/', '/events/'],
+  flowboard: ['/flowboard'],
+  docarc: ['/docarc'],
+};
+
+function matchProduct(pathname) {
+  return Object.keys(PRODUCT_ROUTES).find(product =>
+    PRODUCT_ROUTES[product].some(prefix => pathname.startsWith(prefix)),
+  );
+}
 
 export function useDockMode() {
   const { pathname } = useLocation();
-  const isProduct = PRODUCT_PREFIXES.some(p => pathname.startsWith(p));
-  return isProduct ? 'product' : 'hub';
+  return matchProduct(pathname) ? 'product' : 'hub';
+}
+
+// Which installed product the current route belongs to, or undefined in Hub mode.
+export function useActiveProduct() {
+  const { pathname } = useLocation();
+  return matchProduct(pathname);
 }
 
 function deriveRole(user) {

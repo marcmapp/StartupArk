@@ -19,6 +19,7 @@ import {
   useTransform,
 } from "motion/react";
 import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getImageUrl } from "../../utils/imageUrls";
 
@@ -233,8 +234,6 @@ function AvatarDockIcon({
       : (parts[0][0]?.toUpperCase() ?? "") + (parts[1][0]?.toUpperCase() ?? "");
   })();
 
-  const firstName = user?.username?.split(" ")[0] ?? "Me";
-
   const openMenu = () => {
     if (ref.current) {
       const r = ref.current.getBoundingClientRect();
@@ -274,52 +273,53 @@ function AvatarDockIcon({
         </motion.div>
       </motion.div>
 
-      {/* Label — sibling of the scale target, zero influence on height spring */}
-      <span
-        className="pointer-events-none text-center text-[11px] leading-none text-zinc-500 dark:text-zinc-400 truncate"
-        style={{ maxWidth: `${base * 1.5}px` }}
-      >
-        {firstName}
+      {/* Invisible spacer — keeps the avatar's circle bottom-aligned with the
+          labeled dock icons beside it (row uses items-end), without showing a name. */}
+      <span aria-hidden className="invisible pointer-events-none text-center text-[11px] leading-none">
+        .
       </span>
 
-      {menuOpen && (
-        <>
-          <div className="fixed inset-0 z-[150]" onClick={() => setMenuOpen(false)} />
-          <div
-            className="fixed z-[160] w-56 rounded-xl border border-gray-100 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900"
-            style={{ left: menuPos.left, bottom: menuPos.bottom }}
-          >
-            <div className="border-b border-gray-100 px-3 py-2.5 dark:border-white/10">
-              <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                {user?.username}
-              </p>
-              <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
-            </div>
-            <div className="p-1.5">
-              {[
-                { label: "Hub",        route: "/dashboard" },
-                { label: "My Profile", route: "/profile"   },
-                { label: "Settings",   route: "/settings"  },
-              ].map(({ label, route }) => (
+      {menuOpen &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[150]" onClick={() => setMenuOpen(false)} />
+            <div
+              className="fixed z-[160] w-56 rounded-xl border border-gray-100 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900"
+              style={{ left: menuPos.left, bottom: menuPos.bottom }}
+            >
+              <div className="border-b border-gray-100 px-3 py-2.5 dark:border-white/10">
+                <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                  {user?.username}
+                </p>
+                <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+              </div>
+              <div className="p-1.5">
+                {[
+                  { label: "Hub",           route: "/dashboard" },
+                  { label: "My Profile",    route: "/profile"   },
+                  { label: "Settings",      route: "/settings"  },
+                  { label: "Subscription",  route: "/pricing"   },
+                ].map(({ label, route }) => (
+                  <button
+                    key={route}
+                    onClick={() => { setMenuOpen(false); navigate(route); }}
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]"
+                  >
+                    {label}
+                  </button>
+                ))}
+                <div className="my-1 border-t border-gray-100 dark:border-white/10" />
                 <button
-                  key={route}
-                  onClick={() => { setMenuOpen(false); navigate(route); }}
-                  className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]"
+                  onClick={handleLogout}
+                  className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                 >
-                  {label}
+                  Log out
                 </button>
-              ))}
-              <div className="my-1 border-t border-gray-100 dark:border-white/10" />
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-              >
-                Log out
-              </button>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -373,16 +373,16 @@ function DockIcon({
           className={cn(
             "relative flex aspect-square flex-shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors",
             active
-              ? "bg-black/10 dark:bg-white/15"
+              ? "bg-teal-600 dark:bg-teal-400 shadow-md shadow-teal-900/20 dark:shadow-black/40"
               : "bg-gray-200 hover:bg-gray-300 dark:bg-neutral-800 dark:hover:bg-neutral-700",
           )}
         >
-          {active && (
-            <span className="absolute -bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-zinc-900 dark:bg-white" />
-          )}
           <motion.div
             style={{ width: widthIcon, height: heightIcon }}
-            className="flex items-center justify-center"
+            className={cn(
+              "flex items-center justify-center",
+              active && "[&>svg]:!text-white dark:[&>svg]:!text-zinc-900",
+            )}
           >
             {item.icon}
           </motion.div>
@@ -391,7 +391,12 @@ function DockIcon({
 
       {/* Label — sibling of Link, zero transform inheritance */}
       <span
-        className="pointer-events-none text-center text-[11px] leading-none text-zinc-500 dark:text-zinc-400 truncate"
+        className={cn(
+          "pointer-events-none text-center text-[11px] leading-none truncate",
+          active
+            ? "font-semibold text-teal-700 dark:text-teal-300"
+            : "text-zinc-500 dark:text-zinc-400",
+        )}
         style={{ maxWidth: `${base * 1.5}px` }}
       >
         {item.label}

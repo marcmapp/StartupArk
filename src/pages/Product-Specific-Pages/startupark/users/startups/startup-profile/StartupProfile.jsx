@@ -54,7 +54,7 @@ const StartupProfile = ({ startupId }) => {
         <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">No Startup Data Found</h3>
         <p className="text-zinc-600 dark:text-zinc-400">You haven't submitted your startup information yet.</p>
         <button
-          onClick={() => navigate('/startup/onboarding')}
+          onClick={() => navigate('/startupark')}
           className="btn-mono mt-4 text-sm sm:text-base"
         >
           Complete Startup Profile
@@ -164,7 +164,7 @@ const StartupProfile = ({ startupId }) => {
                 <div className="text-center py-6 sm:py-8">
                   <p className="text-zinc-600 dark:text-zinc-400 mb-4">No pitch deck uploaded yet.</p>
                   <button
-                    onClick={() => navigate('/startup/edit')}
+                    onClick={() => navigate('/startupark/startup-edit-profile')}
                     className="btn-mono text-sm sm:text-base"
                   >
                     Upload Pitch Deck

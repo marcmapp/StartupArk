@@ -10,7 +10,7 @@ const STATUS_STYLES = {
   withdrawn:   'text-zinc-500 bg-zinc-800/40 ring-zinc-700/50',
 };
 
-export default function ProposalManager({ workPostId }) {
+export default function ProposalManager({ workPostId, positions = [] }) {
   const { fetchProposals, updateProposalStatus } = useProjectArk();
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +23,19 @@ export default function ProposalManager({ workPostId }) {
       .catch(e => setErr(e.response?.data?.error || e.message))
       .finally(() => setLoading(false));
   }, [workPostId, fetchProposals]);
+
+  // Group by position when the project has required positions, so the owner reviews
+  // applicants position-by-position instead of one flat mixed list.
+  const groups = positions.length
+    ? [
+        ...positions.map(pos => ({
+          key: pos._id,
+          label: pos.title,
+          items: proposals.filter(p => String(p.positionId) === String(pos._id)),
+        })),
+        { key: 'general', label: 'General', items: proposals.filter(p => !p.positionId) },
+      ].filter(g => g.items.length)
+    : [{ key: 'all', label: null, items: proposals }];
 
   async function handleStatus(proposalId, status) {
     setUpdating(proposalId + status);
@@ -51,8 +64,13 @@ export default function ProposalManager({ workPostId }) {
   }
 
   return (
-    <div className="space-y-3">
-      {proposals.map(p => {
+    <div className="space-y-5">
+      {groups.map(group => (
+      <div key={group.key} className="space-y-3">
+        {group.label && (
+          <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{group.label}</h4>
+        )}
+      {group.items.map(p => {
         const proposer = p.proposedBy;
         const startup = p.startupId;
         const canAct = !['accepted', 'rejected', 'withdrawn'].includes(p.status);
@@ -138,6 +156,8 @@ export default function ProposalManager({ workPostId }) {
           </div>
         );
       })}
+      </div>
+      ))}
     </div>
   );
 }

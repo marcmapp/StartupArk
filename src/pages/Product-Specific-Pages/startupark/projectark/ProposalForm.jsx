@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function ProposalForm({ post, onSubmit, onClose, loading }) {
+export default function ProposalForm({ post, position, onSubmit, onClose, loading }) {
   const [form, setForm] = useState({
     coverNote: '',
     proposedBudget: '',
@@ -20,6 +20,7 @@ export default function ProposalForm({ post, onSubmit, onClose, loading }) {
 
     const payload = {
       workPostId: post._id,
+      positionId: position?._id,
       coverNote: form.coverNote.trim(),
       proposedBudget: form.proposedBudget ? parseFloat(form.proposedBudget) : undefined,
       proposedTimeline: form.proposedTimeline.trim() || undefined,
@@ -40,7 +41,9 @@ export default function ProposalForm({ post, onSubmit, onClose, loading }) {
       <div className="glass-card w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-zinc-800/60">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-100">Submit Proposal</h2>
+            <h2 className="text-sm font-semibold text-zinc-100">
+              {position ? `Propose for: ${position.title}` : 'Submit Proposal'}
+            </h2>
             <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">{post.title}</p>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 text-lg leading-none">×</button>

@@ -28,6 +28,11 @@ export default function ProductDetail() {
   const [error, setError] = useState(null);
   const [activeImg, setActiveImg] = useState(0);
 
+  // Record an outbound CTA click. Fire-and-forget — never blocks navigation.
+  const recordClick = () => {
+    axios.post(`${BASE}/startupark/api/products/${id}/click`).catch(() => {});
+  };
+
   useEffect(() => {
     axios.get(`${BASE}/startupark/api/products/${id}`)
       .then(res => {
@@ -179,6 +184,7 @@ export default function ProductDetail() {
                   href={product.website}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={recordClick}
                   className="btn-mono text-sm px-5 py-2 flex items-center gap-2"
                 >
                   Visit Website
@@ -192,6 +198,7 @@ export default function ProductDetail() {
                   href={product.demoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={recordClick}
                   className="btn-ghost text-sm px-5 py-2 flex items-center gap-2"
                 >
                   Live Demo
