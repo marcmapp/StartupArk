@@ -1,15 +1,28 @@
 // components/ChatInterface.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
+import {
   FiMessageSquare, FiSearch, FiSend, FiImage, FiPaperclip,
   FiLoader, FiCheck, FiCheckCircle, FiMic,
-  FiMoreVertical, FiInfo, FiX, FiPlay, FiPause, FiChevronLeft
+  FiMoreVertical, FiInfo, FiX, FiPlay, FiPause, FiChevronLeft,
+  FiVideo, FiPhone, FiPhoneOff, FiCornerUpLeft, FiFlag, FiUserX, FiUserCheck, FiSmile
 } from 'react-icons/fi';
 import { IoCheckmarkDone, IoEllipsisHorizontal } from 'react-icons/io5';
 import { getImageUrl } from '../../../../utils/imageUrls';
 import { useSocket } from '../../../../contexts/SocketContext';
 import { track } from '../../../../services/analytics';
+import ChatVideoCall from './ChatVideoCall';
+
+// Fixed small reaction set — kept in sync by hand with REACTION_EMOJIS in the
+// backend's model/Chat.cjs (no shared-package boundary between the two apps).
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+const REPORT_REASONS = [
+  { value: 'spam', label: 'Spam' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'inappropriate_content', label: 'Inappropriate content' },
+  { value: 'impersonation', label: 'Impersonation' },
+  { value: 'other', label: 'Other' },
+];
 
 const ChatInterface = () => {
   const { startupId } = useParams();
@@ -40,6 +53,29 @@ const ChatInterface = () => {
   const [recordedAudio, setRecordedAudio] = useState(null);
   const [audioUrl, setAudioUrl] = useState('');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  // Reactions
+  const [reactionPickerFor, setReactionPickerFor] = useState(null); // messageId
+
+  // Mentions (@username autocomplete, conversation participants at minimum)
+  const [mentionQuery, setMentionQuery] = useState(null); // string while typing, null when not
+  const mentionAnchorRef = useRef(null);
+
+  // Threads (reply-to)
+  const [replyingTo, setReplyingTo] = useState(null); // { _id, content, sender }
+
+  // Moderation
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [blockStatus, setBlockStatus] = useState('not_following'); // 'blocked_by_me' | 'blocked_by_them' | ...
+  const [reportTarget, setReportTarget] = useState(null); // { type: 'message'|'user', id }
+  const [reportReason, setReportReason] = useState('spam');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [banner, setBanner] = useState(null); // { type: 'error'|'info', text }
+
+  // Chat -> video (LiveKit)
+  const [videoCall, setVideoCall] = useState(null); // { serverUrl, token, roomName }
+  const [incomingCall, setIncomingCall] = useState(null); // { conversationId, roomName, callerId, callerName, callerAvatar }
+  const [callStarting, setCallStarting] = useState(false);
 
   const messagesEndRef = useRef(null);
   const typingIndicatorRef = useRef(null);
@@ -136,10 +172,11 @@ const ChatInterface = () => {
         userRole = await fetchUserRole(currentUserId);
       }
       
-      setCurrentUser({ 
-        id: currentUserId, 
+      setCurrentUser({
+        id: currentUserId,
         role: userRole || 'user',
         name: userData?.username || userData?.name || 'You',
+        username: userData?.username || '',
         avatar: userData?.profileImage
       });
     };
@@ -165,6 +202,28 @@ const ChatInterface = () => {
       socket.off('online_users', onOnlineUsers);
       socket.off('user_online', onUserOnline);
       socket.off('user_offline', onUserOffline);
+    };
+  }, [socket]);
+
+  // Chat->video call signaling. Independent of which conversation is open —
+  // an incoming call should surface even from the conversation list.
+  useEffect(() => {
+    if (!socket) return;
+    const onIncomingCall = (data) => setIncomingCall(data);
+    const onCallDeclined = () => {
+      setBanner({ type: 'info', text: 'The other person declined the call.' });
+      setVideoCall(null);
+    };
+    const onCallCancelled = () => setIncomingCall(prev => (prev ? null : prev));
+
+    socket.on('chat:incoming_call', onIncomingCall);
+    socket.on('chat:call_declined', onCallDeclined);
+    socket.on('chat:call_cancelled', onCallCancelled);
+
+    return () => {
+      socket.off('chat:incoming_call', onIncomingCall);
+      socket.off('chat:call_declined', onCallDeclined);
+      socket.off('chat:call_cancelled', onCallCancelled);
     };
   }, [socket]);
 
@@ -393,6 +452,18 @@ const ChatInterface = () => {
     }
   }, [selectedConversation, socket, baseUrl, currentUser]);
 
+  // Block status relative to the other participant — drives the Block/Unblock menu item.
+  useEffect(() => {
+    const otherId = selectedConversation ? otherParticipantId(selectedConversation, currentUser?.id) : null;
+    if (!otherId || !currentUser?.id) { setBlockStatus('not_following'); return; }
+    fetch(`${baseUrl}/startupark/api/follow/${otherId}/status`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(json => setBlockStatus(json?.data?.status || 'not_following'))
+      .catch(() => setBlockStatus('not_following'));
+  }, [selectedConversation, currentUser, baseUrl]);
+
   // Mark messages as read
   const markMessagesAsRead = async (conversationId) => {
     try {
@@ -537,9 +608,21 @@ const ChatInterface = () => {
       });
 
       socket.on('message_read', (data) => {
-        setMessages(prev => prev.map(msg => 
+        setMessages(prev => prev.map(msg =>
           msg._id === data.messageId ? { ...msg, read: true } : msg
         ));
+      });
+
+      socket.on('message_reaction_updated', (data) => {
+        setMessages(prev => prev.map(msg =>
+          msg._id === data.messageId ? { ...msg, reactions: data.reactions } : msg
+        ));
+      });
+
+      socket.on('message_error', (data) => {
+        if (data?.code === 'RATE_LIMITED' || data?.code === 'BLOCKED') {
+          setBanner({ type: 'error', text: data.error });
+        }
       });
 
       return () => {
@@ -548,9 +631,18 @@ const ChatInterface = () => {
         socket.off('user_stop_typing');
         socket.off('message_delivered');
         socket.off('message_read');
+        socket.off('message_reaction_updated');
+        socket.off('message_error');
       };
     }
   }, [socket, selectedConversation, messages, currentUser]);
+
+  // Auto-dismiss the moderation/rate-limit banner.
+  useEffect(() => {
+    if (!banner) return;
+    const t = setTimeout(() => setBanner(null), 5000);
+    return () => clearTimeout(t);
+  }, [banner]);
 
   // Handle file selection
   const MAX_FILE_MB = 25;
@@ -677,13 +769,16 @@ const ChatInterface = () => {
   // Optimistically render + send a message with attachments.
   const emitMessageWithAttachments = (attachments, content = '') => {
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const parentMessageId = replyingTo?._id;
     const optimistic = {
       _id: tempId, content, attachments,
       sender: { _id: currentUser.id, name: currentUser.name, profilePicture: currentUser.avatar },
       timestamp: new Date(), read: false, delivered: false, isOptimistic: true,
+      parentMessageId: replyingTo ? { _id: replyingTo._id, content: replyingTo.content, senderId: replyingTo.sender } : undefined,
     };
     setMessages(prev => [...prev, optimistic]);
-    const payload = { conversationId: selectedConversation._id, senderId: currentUser.id, content, attachments };
+    const payload = { conversationId: selectedConversation._id, senderId: currentUser.id, content, attachments, parentMessageId };
+    setReplyingTo(null);
     if (socket?.connected) {
       socket.emit('send_message', payload);
     } else {
@@ -718,32 +813,34 @@ const ChatInterface = () => {
       
       // Send text message if any
       if (newMessage.trim()) {
+        const parentMessageId = replyingTo?._id;
         const messageData = {
           content: newMessage.trim(),
           senderId: currentUser.id,
           receiverId: receiverId,
           startupId: selectedConversation.startupId?._id || selectedConversation.startupId,
-          conversationId: selectedConversation._id
+          conversationId: selectedConversation._id,
+          parentMessageId
         };
-        
+
         // Generate a temporary ID for the optimistic message
         const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // Get receiver name for optimistic message
         let receiverName = 'Unknown User';
         const otherParticipant = selectedConversation.participants?.find(
           p => (typeof p === 'string' ? p !== currentUser.id : p._id !== currentUser.id)
         );
-        
+
         if (typeof otherParticipant === 'object') {
           receiverName = otherParticipant?.username || otherParticipant?.name || 'Unknown User';
         }
-        
+
         // Optimistically add message with temporary ID
         const optimisticMessage = {
           _id: tempMessageId, // Use temporary ID
           content: newMessage.trim(),
-          sender: { 
+          sender: {
             _id: currentUser.id,
             name: currentUser.name,
             profileImage: currentUser.avatar
@@ -755,11 +852,13 @@ const ChatInterface = () => {
           timestamp: new Date(),
           read: false,
           delivered: false,
-          isOptimistic: true // Flag to identify optimistic messages
+          isOptimistic: true, // Flag to identify optimistic messages
+          parentMessageId: replyingTo ? { _id: replyingTo._id, content: replyingTo.content, senderId: replyingTo.sender } : undefined,
         };
-        
+
         setMessages(prev => [...prev, optimisticMessage]);
         setNewMessage('');
+        setReplyingTo(null);
 
         // Prefer realtime socket; fall back to REST so a message is never lost
         // if the socket is mid-reconnect.
@@ -769,11 +868,15 @@ const ChatInterface = () => {
           const res = await fetch(`${baseUrl}/startupark/api/chat/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-            body: JSON.stringify({ conversationId: messageData.conversationId, content: messageData.content })
+            body: JSON.stringify({ conversationId: messageData.conversationId, content: messageData.content, parentMessageId })
           });
           if (res.ok) {
             const { message } = await res.json();
             setMessages(prev => prev.map(m => m._id === tempMessageId ? normalizeMsg(message) : m));
+          } else if (res.status === 429 || res.status === 403) {
+            const errJson = await res.json().catch(() => ({}));
+            setBanner({ type: 'error', text: errJson.error || 'Message could not be sent.' });
+            setMessages(prev => prev.filter(m => m._id !== tempMessageId));
           }
         }
       }
@@ -787,6 +890,174 @@ const ChatInterface = () => {
     } finally {
       setSending(false);
     }
+  };
+
+  // ───────────────── Reactions ─────────────────
+  const toggleReaction = async (messageId, emoji) => {
+    setReactionPickerFor(null);
+    // Optimistic local toggle; the server's message_reaction_updated broadcast
+    // (or the response below) reconciles it for both participants.
+    setMessages(prev => prev.map(msg => {
+      if (msg._id !== messageId) return msg;
+      const mine = (msg.reactions || []).find(r => String(r.userId) === String(currentUser.id) && r.emoji === emoji);
+      const reactions = mine
+        ? msg.reactions.filter(r => !(String(r.userId) === String(currentUser.id) && r.emoji === emoji))
+        : [...(msg.reactions || []), { userId: currentUser.id, emoji }];
+      return { ...msg, reactions };
+    }));
+    try {
+      const res = await fetch(`${baseUrl}/startupark/api/chat/messages/${messageId}/react`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ emoji }),
+      });
+      if (res.ok) {
+        const { reactions } = await res.json();
+        setMessages(prev => prev.map(msg => msg._id === messageId ? { ...msg, reactions } : msg));
+      }
+    } catch (e) {
+      console.error('Error toggling reaction:', e);
+    }
+  };
+
+  // ───────────────── Threads (reply-to) ─────────────────
+  const startReply = (message) => setReplyingTo({ _id: message._id, content: message.content, sender: message.sender });
+
+  // ───────────────── Mentions ─────────────────
+  const mentionCandidates = () => {
+    const names = [otherUser?.username, currentUser?.username].filter(Boolean);
+    return [...new Set(names)];
+  };
+
+  const handleMessageInputChange = (value) => {
+    setNewMessage(value);
+    const upToCursor = value;
+    const match = upToCursor.match(/@([a-zA-Z0-9_.-]{0,20})$/);
+    setMentionQuery(match ? match[1] : null);
+  };
+
+  const mentionSuggestions = mentionQuery === null
+    ? []
+    : mentionCandidates().filter(u => u.toLowerCase().startsWith(mentionQuery.toLowerCase()));
+
+  const insertMention = (username) => {
+    setNewMessage(prev => prev.replace(/@([a-zA-Z0-9_.-]{0,20})$/, `@${username} `));
+    setMentionQuery(null);
+  };
+
+  // Bold/color any @token that matches a resolved mention on this message
+  // (falls back to plain text for an unresolved `@text`, matching the backend's
+  // "only notify on a real username" rule).
+  const renderTextWithMentions = (content, mentions) => {
+    const mentionUsernames = new Set((mentions || []).map(m => (m.username || '').toLowerCase()));
+    if (!mentionUsernames.size) return content;
+    const parts = content.split(/(@[a-zA-Z0-9_.-]{3,20})/g);
+    return parts.map((part, i) => {
+      const isMention = part.startsWith('@') && mentionUsernames.has(part.slice(1).toLowerCase());
+      return isMention
+        ? <span key={i} className="font-semibold text-blue-600 dark:text-blue-400">{part}</span>
+        : <span key={i}>{part}</span>;
+    });
+  };
+
+  // ───────────────── Moderation ─────────────────
+  const submitReport = async () => {
+    if (!reportTarget || !selectedConversation) return;
+    setReportSubmitting(true);
+    try {
+      const res = await fetch(`${baseUrl}/startupark/api/chat/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({
+          targetType: reportTarget.type,
+          targetId: reportTarget.id,
+          conversationId: selectedConversation._id,
+          reason: reportReason,
+        }),
+      });
+      if (res.ok) {
+        setBanner({ type: 'info', text: 'Report submitted. Thank you.' });
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setBanner({ type: 'error', text: errJson.error || 'Could not submit report.' });
+      }
+    } catch (e) {
+      setBanner({ type: 'error', text: 'Could not submit report.' });
+    } finally {
+      setReportSubmitting(false);
+      setReportTarget(null);
+      setReportReason('spam');
+    }
+  };
+
+  const toggleBlock = async () => {
+    const otherId = otherParticipantId(selectedConversation, currentUser.id);
+    if (!otherId) return;
+    const isBlocked = blockStatus === 'blocked_by_me';
+    try {
+      const res = await fetch(`${baseUrl}/startupark/api/follow/${otherId}/block`, {
+        method: isBlocked ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (res.ok) {
+        setBlockStatus(isBlocked ? 'not_following' : 'blocked_by_me');
+        setBanner({ type: 'info', text: isBlocked ? 'User unblocked.' : 'User blocked.' });
+      }
+    } catch (e) {
+      console.error('Error toggling block:', e);
+    } finally {
+      setShowChatMenu(false);
+    }
+  };
+
+  // ───────────────── Chat -> video (LiveKit) ─────────────────
+  const startVideoCall = async () => {
+    if (!selectedConversation) return;
+    setCallStarting(true);
+    try {
+      const res = await fetch(`${baseUrl}/startupark/api/chat/messages/${selectedConversation._id}/call/start`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVideoCall(data);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setBanner({ type: 'error', text: errJson.error || "Couldn't start the call." });
+      }
+    } catch (e) {
+      setBanner({ type: 'error', text: "Couldn't start the call." });
+    } finally {
+      setCallStarting(false);
+    }
+  };
+
+  const acceptIncomingCall = async () => {
+    if (!incomingCall) return;
+    const { conversationId } = incomingCall;
+    setIncomingCall(null);
+    try {
+      const res = await fetch(`${baseUrl}/startupark/api/chat/messages/${conversationId}/call/join`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVideoCall(data);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setBanner({ type: 'error', text: errJson.error || "Couldn't join the call." });
+      }
+    } catch (e) {
+      setBanner({ type: 'error', text: "Couldn't join the call." });
+    }
+  };
+
+  const declineIncomingCall = () => {
+    if (!incomingCall || !socket) { setIncomingCall(null); return; }
+    socket.emit('chat:call_decline', { conversationId: incomingCall.conversationId, toUserId: incomingCall.callerId });
+    setIncomingCall(null);
   };
 
   const formatTime = (timestamp) => {
@@ -857,14 +1128,58 @@ const ChatInterface = () => {
 
   const renderMessageContent = (message, mine) => {
     const atts = Array.isArray(message.attachments) ? message.attachments : [];
+    const parent = message.parentMessageId;
     return (
       <div className="space-y-1.5">
+        {parent && (
+          <div className={`border-l-2 pl-2 py-0.5 text-xs opacity-80 ${mine ? 'border-white/40 dark:border-black/30' : 'border-zinc-400 dark:border-zinc-600'}`}>
+            <span className="font-medium">{parent.deletedAt ? 'Deleted message' : (parent.senderId?.username || 'Someone')}</span>
+            {!parent.deletedAt && parent.content && (
+              <p className="truncate max-w-[220px]">{parent.content}</p>
+            )}
+          </div>
+        )}
         {atts.length > 0 && (
           <div className="flex flex-col gap-1.5">
             {atts.map((a, i) => renderAttachment(a, i, mine))}
           </div>
         )}
-        {message.content && <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>}
+        {message.content && (
+          <p className="text-sm whitespace-pre-wrap break-words">
+            {renderTextWithMentions(message.content, message.mentions)}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const renderReactions = (message, mine) => {
+    const reactions = message.reactions || [];
+    if (!reactions.length) return null;
+    const grouped = reactions.reduce((acc, r) => {
+      acc[r.emoji] = acc[r.emoji] || [];
+      acc[r.emoji].push(r.userId);
+      return acc;
+    }, {});
+    return (
+      <div className={`flex flex-wrap gap-1 mt-1 ${mine ? 'justify-end' : 'justify-start'}`}>
+        {Object.entries(grouped).map(([emoji, userIds]) => {
+          const iReacted = userIds.some(id => String(id) === String(currentUser?.id));
+          return (
+            <button
+              key={emoji}
+              onClick={() => toggleReaction(message._id, emoji)}
+              className={`text-xs px-1.5 py-0.5 rounded-full border flex items-center gap-1 transition-colors ${
+                iReacted
+                  ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-transparent'
+                  : 'bg-white dark:bg-zinc-800 border-black/10 dark:border-white/15 text-zinc-700 dark:text-zinc-300'
+              }`}
+            >
+              <span>{emoji}</span>
+              <span>{userIds.length}</span>
+            </button>
+          );
+        })}
       </div>
     );
   };
@@ -1056,11 +1371,43 @@ const ChatInterface = () => {
               })()}
             </div>
             
-            <div className="flex items-center space-x-2">
-              {/* TODO: chat→video handoff — deferred to chat community roadmap (requires WebRTC signaling for 1:1 rooms). */}
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300">
+            <div className="flex items-center space-x-2 relative">
+              <button
+                onClick={startVideoCall}
+                disabled={callStarting || blockStatus === 'blocked_by_me' || blockStatus === 'blocked_by_them'}
+                title="Start video call"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {callStarting ? <FiLoader className="animate-spin" size={20} /> : <FiVideo size={20} />}
+              </button>
+              <button
+                onClick={() => setShowChatMenu(v => !v)}
+                title="Conversation options"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] text-gray-600 dark:text-gray-300"
+              >
                 <FiInfo size={20} />
               </button>
+              {showChatMenu && (
+                <div className="absolute right-0 top-12 z-20 w-52 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                  <button
+                    onClick={toggleBlock}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left hover:bg-gray-50 dark:hover:bg-white/[0.06] text-zinc-700 dark:text-zinc-200"
+                  >
+                    {blockStatus === 'blocked_by_me' ? <FiUserCheck size={16} /> : <FiUserX size={16} />}
+                    {blockStatus === 'blocked_by_me' ? 'Unblock user' : 'Block user'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const otherId = otherParticipantId(selectedConversation, currentUser.id);
+                      setReportTarget({ type: 'user', id: otherId });
+                      setShowChatMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left hover:bg-gray-50 dark:hover:bg-white/[0.06] text-red-600 dark:text-red-400"
+                  >
+                    <FiFlag size={16} /> Report user
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1081,23 +1428,70 @@ const ChatInterface = () => {
                     </div>
                     {dateMessages.map((message) => {
                       const mine = String(message.sender?._id) === String(currentUser?.id);
+                      const isTemp = String(message._id).startsWith('temp-');
                       return (
-                      <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'} mb-2`}>
-                        <div
-                          className={`max-w-xs lg:max-w-md px-3.5 py-2 rounded-2xl ${
-                            mine
-                              ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-br-md'
-                              : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border border-black/[0.06] dark:border-white/10 rounded-bl-md'
-                          }`}
-                        >
-                          {renderMessageContent(message, mine)}
-                          <div className="flex items-center justify-end gap-1 mt-1">
-                            <span className={`text-[10px] ${mine ? 'text-zinc-300 dark:text-zinc-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
-                              {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            {getMessageStatusIcon(message)}
+                      <div key={message._id} className={`group flex flex-col ${mine ? 'items-end' : 'items-start'} mb-2`}>
+                        <div className={`flex items-center gap-1 ${mine ? 'flex-row-reverse' : 'flex-row'}`}>
+                          <div
+                            className={`max-w-xs lg:max-w-md px-3.5 py-2 rounded-2xl ${
+                              mine
+                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-br-md'
+                                : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border border-black/[0.06] dark:border-white/10 rounded-bl-md'
+                            }`}
+                          >
+                            {renderMessageContent(message, mine)}
+                            <div className="flex items-center justify-end gap-1 mt-1">
+                              <span className={`text-[10px] ${mine ? 'text-zinc-300 dark:text-zinc-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {getMessageStatusIcon(message)}
+                            </div>
                           </div>
+
+                          {!isTemp && (
+                            <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
+                              <button
+                                onClick={() => setReactionPickerFor(reactionPickerFor === message._id ? null : message._id)}
+                                title="React"
+                                className="p-1.5 rounded-full hover:bg-black/[0.06] dark:hover:bg-white/[0.08] text-zinc-500 dark:text-zinc-400"
+                              >
+                                <FiSmile size={15} />
+                              </button>
+                              <button
+                                onClick={() => startReply(message)}
+                                title="Reply"
+                                className="p-1.5 rounded-full hover:bg-black/[0.06] dark:hover:bg-white/[0.08] text-zinc-500 dark:text-zinc-400"
+                              >
+                                <FiCornerUpLeft size={15} />
+                              </button>
+                              {!mine && (
+                                <button
+                                  onClick={() => setReportTarget({ type: 'message', id: message._id })}
+                                  title="Report message"
+                                  className="p-1.5 rounded-full hover:bg-black/[0.06] dark:hover:bg-white/[0.08] text-zinc-500 dark:text-zinc-400"
+                                >
+                                  <FiFlag size={15} />
+                                </button>
+                              )}
+
+                              {reactionPickerFor === message._id && (
+                                <div className={`absolute top-full mt-1 z-10 flex gap-1 p-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-lg ${mine ? 'right-0' : 'left-0'}`}>
+                                  {REACTION_EMOJIS.map(emoji => (
+                                    <button
+                                      key={emoji}
+                                      onClick={() => toggleReaction(message._id, emoji)}
+                                      className="text-lg hover:scale-125 transition-transform"
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
+
+                        {renderReactions(message, mine)}
                       </div>
                       );
                     })}
@@ -1181,7 +1575,39 @@ const ChatInterface = () => {
           {/* Message input */}
           <div className="border-t border-gray-200 dark:border-white/10 px-4 py-3 bg-white dark:bg-zinc-950">
             <div className="max-w-3xl mx-auto">
-              <div className="flex items-center mb-2">
+              {replyingTo && (
+                <div className="flex items-center justify-between mb-2 pl-3 pr-2 py-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border-l-2 border-zinc-400 dark:border-zinc-500">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Replying to {replyingTo.sender?.username || 'message'}</p>
+                    <p className="text-xs truncate text-zinc-700 dark:text-zinc-300">{replyingTo.content}</p>
+                  </div>
+                  <button onClick={() => setReplyingTo(null)} className="p-1 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+                    <FiX size={16} />
+                  </button>
+                </div>
+              )}
+
+              {blockStatus === 'blocked_by_me' && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">You've blocked this user — unblock them to send a message.</p>
+              )}
+              {blockStatus === 'blocked_by_them' && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">You can't message this user right now.</p>
+              )}
+
+              <div className="flex items-center mb-2 relative">
+                {mentionSuggestions.length > 0 && (
+                  <div className="absolute bottom-full mb-1 left-0 w-56 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden z-10">
+                    {mentionSuggestions.map(u => (
+                      <button
+                        key={u}
+                        onClick={() => insertMention(u)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.06] text-zinc-700 dark:text-zinc-200"
+                      >
+                        @{u}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -1196,11 +1622,11 @@ const ChatInterface = () => {
                 >
                   <FiPaperclip size={20} />
                 </button>
-                <button 
+                <button
                   onClick={isRecording ? stopRecording : startRecording}
                   className={`p-2 mr-3 rounded-lg ${
-                    isRecording 
-                      ? 'text-red-500 bg-red-100 dark:bg-red-900/20' 
+                    isRecording
+                      ? 'text-red-500 bg-red-100 dark:bg-red-900/20'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
@@ -1209,19 +1635,20 @@ const ChatInterface = () => {
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => handleMessageInputChange(e.target.value)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Type your message..."
-                  className="flex-1 border border-gray-300 dark:border-white/10 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20 dark:bg-zinc-950 dark:text-white"
+                  disabled={blockStatus === 'blocked_by_me' || blockStatus === 'blocked_by_them'}
+                  placeholder="Type your message... (@mention)"
+                  className="flex-1 border border-gray-300 dark:border-white/10 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20 dark:bg-zinc-950 dark:text-white disabled:opacity-50"
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={(!newMessage.trim() && mediaFiles.length === 0 && !recordedAudio) || sending}
+                  disabled={(!newMessage.trim() && mediaFiles.length === 0 && !recordedAudio) || sending || blockStatus === 'blocked_by_me' || blockStatus === 'blocked_by_them'}
                   className="ml-3 p-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
                 >
                   {sending ? (
@@ -1251,6 +1678,73 @@ const ChatInterface = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Moderation / rate-limit toast */}
+      {banner && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium ${
+          banner.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+        }`}>
+          {banner.text}
+        </div>
+      )}
+
+      {/* Report modal */}
+      {reportTarget && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 p-5">
+            <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">
+              Report {reportTarget.type === 'message' ? 'message' : 'user'}
+            </h3>
+            <div className="space-y-1.5 mb-4">
+              {REPORT_REASONS.map(r => (
+                <label key={r.value} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="reportReason"
+                    checked={reportReason === r.value}
+                    onChange={() => setReportReason(r.value)}
+                  />
+                  {r.label}
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={() => setReportTarget(null)} className="btn-ghost">Cancel</button>
+              <button onClick={submitReport} disabled={reportSubmitting} className="btn-mono !bg-red-600 dark:!bg-red-600 !text-white disabled:opacity-50">
+                {reportSubmitting ? 'Submitting…' : 'Submit report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incoming call banner */}
+      {incomingCall && !videoCall && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 shadow-xl">
+          {incomingCall.callerAvatar ? (
+            <img src={getImageUrl(incomingCall.callerAvatar, baseUrl)} alt="" className="w-9 h-9 rounded-full object-cover" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+              <FiVideo className="text-zinc-500" size={16} />
+            </div>
+          )}
+          <div>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-white">{incomingCall.callerName}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Incoming video call…</p>
+          </div>
+          <button onClick={acceptIncomingCall} className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600" title="Accept">
+            <FiPhone size={16} />
+          </button>
+          <button onClick={declineIncomingCall} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Decline">
+            <FiPhoneOff size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Active call overlay */}
+      {videoCall && (
+        <ChatVideoCall connection={videoCall} onLeave={() => setVideoCall(null)} />
       )}
     </div>
   );

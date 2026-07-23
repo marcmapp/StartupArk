@@ -38,8 +38,10 @@ export default function ProductShowcase() {
   const [availableIndustries, setAvailableIndustries] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   // 'latest' (default, backend creation order) | 'trending' | 'top_rated' —
-  // both driven by the nightly productRankingCron snapshot already present on
-  // each product, so sorting happens client-side without a re-fetch.
+  // both driven by the nightly productRankingCron snapshot; changing this
+  // re-fetches from the backend (see the products effect below) rather than
+  // re-sorting client-side, since 'trending' also carries a per-viewer Follow
+  // boost (Tier 3 C#6) that only the backend can compute.
   const [sortBy, setSortBy] = useState('latest');
   // "My Products" tab only makes sense for the startup role — a plain
   // user/student has nothing to manage here.
@@ -59,8 +61,17 @@ export default function ProductShowcase() {
       .catch(() => {});
   }, []);
 
+  // Re-fetches on every sort change (rather than a client-side re-sort of a
+  // single fetched page) so Trending can reflect the backend's per-viewer
+  // Follow-graph personalization boost (Tier 3 C#6) — that boost only exists
+  // server-side, computed against the full ranked set, not just the products
+  // already in hand. Auth header is best-effort: an anonymous browse still
+  // works, it just won't get the personalization boost.
   useEffect(() => {
-    axios.get(`${BASE}/startupark/api/products`)
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    axios.get(`${BASE}/startupark/api/products`, { params: { sort: sortBy }, headers })
       .then(res => {
         const all = res.data.products || res.data || [];
         setProducts(all);
@@ -76,7 +87,7 @@ export default function ProductShowcase() {
       })
       .catch(err => setError(err.response?.data?.error || 'Failed to load products'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [sortBy]);
 
   useEffect(() => {
     let results = products;
@@ -94,15 +105,11 @@ export default function ProductShowcase() {
       results = results.filter(p => p.tags && filters.tags.some(t => p.tags.includes(t)));
     }
 
-    if (sortBy === 'trending') {
-      // Unranked products (dailyRank not yet computed) sort last, not first.
-      results = [...results].sort((a, b) => (a.dailyRank ?? Infinity) - (b.dailyRank ?? Infinity));
-    } else if (sortBy === 'top_rated') {
-      results = [...results].sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0));
-    }
-
+    // No client-side sort here — `products` already arrives in the right
+    // order for `sortBy` from the backend (including the Trending
+    // personalization boost), and filtering preserves that order.
     setFilteredProducts(results);
-  }, [searchTerm, filters, products, sortBy]);
+  }, [searchTerm, filters, products]);
 
   const clearFilters = () => {
     setFilters({ industry: '', stage: '', tags: [] });
