@@ -33,7 +33,7 @@ const UserEventsPage = () => {
       loadEvents(); // Reload to update registration status
     } catch (error) {
       console.error('Failed to register:', error);
-      alert('Failed to register for event');
+      alert(error.response?.data?.error || 'Failed to register for event');
     }
   };
 

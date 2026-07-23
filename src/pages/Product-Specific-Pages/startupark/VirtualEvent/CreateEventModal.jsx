@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FiX } from 'react-icons/fi';
 
 const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
   const [formData, setFormData] = useState({
@@ -21,7 +22,7 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.date) newErrors.date = 'Date is required';
@@ -42,11 +43,11 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-    
+
     const submitData = {
       ...formData,
       date: eventDateTime.toISOString()
@@ -74,77 +75,83 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
     }));
   };
 
+  const checkboxClass = 'h-4 w-4 rounded border-zinc-300 dark:border-white/20 accent-zinc-900 dark:accent-white focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden border border-zinc-200 dark:border-white/10 flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
             {editingEvent ? 'Edit Event' : 'Create New Event'}
           </h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors p-2 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+            aria-label="Close modal"
+          >
+            <FiX size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          {/* Content */}
+          <div className="p-6 space-y-4 overflow-y-auto">
             {/* Event Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                 Event Title *
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`input-mono ${errors.title ? '!border-red-500' : ''}`}
                 placeholder="Enter event title"
               />
-              {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+              {errors.title && <p className="text-red-500 text-xs mt-1.5">{errors.title}</p>}
             </div>
 
             {/* Date and Time */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                   Date *
                 </label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.date ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`input-mono ${errors.date ? '!border-red-500' : ''}`}
                   min={new Date().toISOString().split('T')[0]}
                 />
-                {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
+                {errors.date && <p className="text-red-500 text-xs mt-1.5">{errors.date}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                   Time *
                 </label>
                 <input
                   type="time"
                   value={formData.time}
                   onChange={(e) => setFormData({...formData, time: e.target.value})}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.time ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`input-mono ${errors.time ? '!border-red-500' : ''}`}
                 />
-                {errors.time && <p className="text-red-500 text-sm mt-1">{errors.time}</p>}
+                {errors.time && <p className="text-red-500 text-xs mt-1.5">{errors.time}</p>}
               </div>
             </div>
 
             {/* Duration and Type */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                   Duration *
                 </label>
                 <select
                   value={formData.duration}
                   onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.duration ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`input-mono appearance-none ${errors.duration ? '!border-red-500' : ''}`}
                 >
                   <option value="30 minutes">30 minutes</option>
                   <option value="1 hour">1 hour</option>
@@ -154,16 +161,16 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
                   <option value="Half day">Half day</option>
                   <option value="Full day">Full day</option>
                 </select>
-                {errors.duration && <p className="text-red-500 text-sm mt-1">{errors.duration}</p>}
+                {errors.duration && <p className="text-red-500 text-xs mt-1.5">{errors.duration}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                   Event Type
                 </label>
                 <select
                   value={formData.eventType}
                   onChange={(e) => setFormData({...formData, eventType: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="input-mono appearance-none"
                 >
                   <option value="conference">Conference</option>
                   <option value="networking">Networking</option>
@@ -177,74 +184,72 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
 
             {/* Max Attendees */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                 Maximum Attendees *
               </label>
               <input
                 type="number"
                 value={formData.maxAttendees}
                 onChange={(e) => setFormData({...formData, maxAttendees: parseInt(e.target.value)})}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.maxAttendees ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`input-mono ${errors.maxAttendees ? '!border-red-500' : ''}`}
                 min="1"
                 max="500"
               />
-              {errors.maxAttendees && <p className="text-red-500 text-sm mt-1">{errors.maxAttendees}</p>}
+              {errors.maxAttendees && <p className="text-red-500 text-xs mt-1.5">{errors.maxAttendees}</p>}
             </div>
 
             {/* Invitees */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Invite User Types *
               </label>
-              <div className="space-y-2">
-                {['startups', 'students', 'companies'].map((type) => (
-                  <label key={type} className="flex items-center">
+              <div className="glass-inset p-3 space-y-2.5">
+                {['startups', 'students', 'users'].map((type) => (
+                  <label key={type} className="flex items-center gap-2.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={formData.invitees.includes(type)}
                       onChange={() => toggleInvitee(type)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className={checkboxClass}
                     />
-                    <span className="ml-2 text-sm text-gray-700 capitalize">{type}</span>
+                    <span className="text-sm text-zinc-700 dark:text-zinc-300 capitalize">{type}</span>
                   </label>
                 ))}
               </div>
-              {errors.invitees && <p className="text-red-500 text-sm mt-1">{errors.invitees}</p>}
+              {errors.invitees && <p className="text-red-500 text-xs mt-1.5">{errors.invitees}</p>}
             </div>
 
             {/* Event Settings */}
-            <div className="border-t pt-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Event Settings</h3>
-              <div className="space-y-3">
-                <label className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">Require Registration</span>
+            <div className="border-t border-zinc-200 dark:border-white/10 pt-4">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Event Settings</h3>
+              <div className="glass-inset p-3 space-y-3">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Require Registration</span>
                   <input
                     type="checkbox"
                     checked={formData.settings.requireRegistration}
                     onChange={() => handleSettingToggle('requireRegistration')}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className={checkboxClass}
                   />
                 </label>
-                
-                <label className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">Enable Chat</span>
+
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Enable Chat</span>
                   <input
                     type="checkbox"
                     checked={formData.settings.enableChat}
                     onChange={() => handleSettingToggle('enableChat')}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className={checkboxClass}
                   />
                 </label>
-                
-                <label className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">Allow Recording</span>
+
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Allow Recording</span>
                   <input
                     type="checkbox"
                     checked={formData.settings.allowRecording}
                     onChange={() => handleSettingToggle('allowRecording')}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className={checkboxClass}
                   />
                 </label>
               </div>
@@ -252,39 +257,30 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                 Description *
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 rows="4"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`input-mono resize-none ${errors.description ? '!border-red-500' : ''}`}
                 placeholder="Describe your event, agenda, and what attendees can expect..."
               />
-              {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+              {errors.description && <p className="text-red-500 text-xs mt-1.5">{errors.description}</p>}
             </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex space-x-3 pt-4">
-              <button
-                type="submit"
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-              >
-                {editingEvent ? 'Update Event' : 'Create Event'}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+          {/* Action Buttons */}
+          <div className="px-6 py-4 border-t border-zinc-200 dark:border-white/10 flex gap-3 flex-shrink-0">
+            <button type="submit" className="btn-mono flex-1">
+              {editingEvent ? 'Update Event' : 'Create Event'}
+            </button>
+            <button type="button" onClick={onClose} className="btn-ghost flex-1">
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import ProductManagement from './ProductManagement';
 
 const BASE = import.meta.env.VITE_API_BASE_URL;
 const R2 = 'https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev';
@@ -36,6 +37,27 @@ export default function ProductShowcase() {
   const [availableTags, setAvailableTags] = useState([]);
   const [availableIndustries, setAvailableIndustries] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  // 'latest' (default, backend creation order) | 'trending' | 'top_rated' —
+  // both driven by the nightly productRankingCron snapshot already present on
+  // each product, so sorting happens client-side without a re-fetch.
+  const [sortBy, setSortBy] = useState('latest');
+  // "My Products" tab only makes sense for the startup role — a plain
+  // user/student has nothing to manage here.
+  const [isStartup, setIsStartup] = useState(false);
+  // Tab state (Tier 3 C#5): folds the old standalone /manage-products page
+  // into a tab here instead of a separate nav item/route. `tab=mine` in the
+  // URL is what the old /manage-products redirect and the header CTA below
+  // both set — keeps the shareable/bookmarkable "My Products" view a URL.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab') === 'mine' ? 'mine' : 'browse';
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    axios.get(`${BASE}/api/mappuser/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setIsStartup(res.data?.startuparkRole === 'startup'))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     axios.get(`${BASE}/startupark/api/products`)
@@ -72,8 +94,15 @@ export default function ProductShowcase() {
       results = results.filter(p => p.tags && filters.tags.some(t => p.tags.includes(t)));
     }
 
+    if (sortBy === 'trending') {
+      // Unranked products (dailyRank not yet computed) sort last, not first.
+      results = [...results].sort((a, b) => (a.dailyRank ?? Infinity) - (b.dailyRank ?? Infinity));
+    } else if (sortBy === 'top_rated') {
+      results = [...results].sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0));
+    }
+
     setFilteredProducts(results);
-  }, [searchTerm, filters, products]);
+  }, [searchTerm, filters, products, sortBy]);
 
   const clearFilters = () => {
     setFilters({ industry: '', stage: '', tags: [] });
@@ -121,22 +150,56 @@ export default function ProductShowcase() {
     );
   }
 
+  const activeTab = requestedTab === 'mine' && isStartup ? 'mine' : 'browse';
+  const setTab = (tab) => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'mine') next.set('tab', 'mine'); else next.delete('tab');
+    setSearchParams(next, { replace: true });
+  };
+
+  // Shared across both tabs so switching feels like one page, not a route
+  // change — sits above ProductManagement's own header when "My Products" is active.
+  const tabBar = isStartup && (
+    <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 flex justify-end">
+      <div className="flex items-center gap-1 bg-zinc-900 ring-1 ring-zinc-800 rounded-lg p-1">
+        <button
+          onClick={() => setTab('browse')}
+          className={`text-xs font-medium px-4 py-1.5 rounded-md transition-all ${
+            activeTab === 'browse' ? 'bg-zinc-200 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          Browse
+        </button>
+        <button
+          onClick={() => setTab('mine')}
+          className={`text-xs font-medium px-4 py-1.5 rounded-md transition-all ${
+            activeTab === 'mine' ? 'bg-zinc-200 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          My Products
+        </button>
+      </div>
+    </div>
+  );
+
+  if (activeTab === 'mine') {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+        {tabBar}
+        <ProductManagement />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {tabBar}
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-6">
 
         {/* Page header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-100">Product Showcase</h1>
-            <p className="text-sm text-zinc-500 mt-0.5">Discover products from across the StartupArk ecosystem</p>
-          </div>
-          <Link to="/startupark/products/manage" className="btn-ghost text-xs px-4 py-2 flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Manage My Products
-          </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-100">Products</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Discover products from across the StartupArk ecosystem</p>
         </div>
 
         {/* Search + filter bar */}
@@ -236,13 +299,33 @@ export default function ProductShowcase() {
           )}
         </div>
 
+        {/* Sort toggles */}
+        <div className="flex items-center gap-2">
+          {[
+            { value: 'latest', label: 'Latest' },
+            { value: 'trending', label: 'Trending' },
+            { value: 'top_rated', label: 'Top Rated' }
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSortBy(opt.value)}
+              className={`text-xs px-3 py-1.5 rounded-full ring-1 transition-all ${
+                sortBy === opt.value
+                  ? 'bg-zinc-200 text-zinc-900 ring-zinc-400'
+                  : 'bg-zinc-900 text-zinc-400 ring-zinc-700 hover:ring-zinc-500'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {/* Results count */}
         <div className="flex items-center justify-between text-xs text-zinc-500">
           <span>
             Showing <span className="text-zinc-300 font-semibold">{filteredProducts.length}</span>
             {filteredProducts.length !== products.length && ` of ${products.length}`} products
           </span>
-          <span>Sorted by latest</span>
         </div>
 
         {/* Product grid */}

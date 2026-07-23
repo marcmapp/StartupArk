@@ -1,4 +1,5 @@
 import { authApi, api } from './authApi'; // Use the new file
+import { track } from './analytics';
 
 export const authService = {
   // Send OTP
@@ -37,6 +38,7 @@ export const storageService = {
   setAuthData(token, user) {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
+    track('session_start', 'session', null);
   },
 
   getAuthData() {

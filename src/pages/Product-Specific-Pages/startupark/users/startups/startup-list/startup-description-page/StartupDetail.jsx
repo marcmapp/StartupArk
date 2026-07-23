@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 // At the top of StartupDetail.js
 import { getImageUrl } from '../../../../../../../utils/imageUrls';
+import { track } from '../../../../../../../services/analytics';
 
 // Shared Components
 import StartupProfileHeader from '../../startups-ui-components/StartupProfileHeader/index';
@@ -11,6 +12,7 @@ import StartupTeam from '../../startups-ui-components/StartupTeam/index';
 import StartupGallery from '../../startups-ui-components/StartupGallery/index';
 import StartupProducts from '../../startups-ui-components/products/index';
 import StartupVirtualCard from '../../startups-ui-components/StartupVirtualCard/index';
+import TestimonialsSection from '../../../../../../../components/TestimonialsSection';
 
 // Shared Hooks
 import { useStartupData } from '../../shared/hooks/useStartupData';
@@ -22,6 +24,10 @@ const StartupDetail = () => {
   
   const { startupData, loading, error } = useStartupData(id);
   const { products, loading: productsLoading } = useStartupProducts(id);
+
+  useEffect(() => {
+    if (id && !loading && startupData) track('profile_view', 'startup', id);
+  }, [id, loading, startupData]);
   
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -248,6 +254,12 @@ const StartupDetail = () => {
               </div>
             </div>
           </div>
+
+          {/* Testimonials — public booking + engagement ratings for the owner.
+              Renders nothing until at least one has been approved. */}
+          <TestimonialsSection
+            userId={startupDataWithProducts.userId?._id || startupDataWithProducts.userId}
+          />
 
           {/* Contact Card */}
           <ContactCard

@@ -97,9 +97,9 @@ export const COMPENSATION_LABELS = {
 // Status colors — the one place this module uses color, matching the rest of the app's
 // "status colors only" rule.
 export const POSITION_STATUS_STYLE = {
-  open:   { label: 'Open', className: 'text-emerald-400 ring-emerald-800/60 bg-emerald-950/30' },
-  filled: { label: 'Filled', className: 'text-zinc-400 ring-zinc-700 bg-zinc-800/60' },
-  closed: { label: 'Closed', className: 'text-zinc-500 ring-zinc-800 bg-zinc-900/60' },
+  open:   { label: 'Open', className: 'text-emerald-600 dark:text-emerald-400 ring-emerald-300 dark:ring-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30' },
+  filled: { label: 'Filled', className: 'text-zinc-500 dark:text-zinc-400 ring-black/10 dark:ring-zinc-700 bg-black/[0.04] dark:bg-zinc-800/60' },
+  closed: { label: 'Closed', className: 'text-zinc-400 dark:text-zinc-500 ring-black/10 dark:ring-zinc-800 bg-black/[0.03] dark:bg-zinc-900/60' },
 };
 
 export const MessageIcon = MessageCircle;

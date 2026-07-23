@@ -82,5 +82,27 @@ export const eventService = {
   getAttendees: async (id) => {
     const response = await api.get(`${API_URL}/${id}/attendees`);
     return response.data;
+  },
+
+  // Mint a LiveKit access token to join the event's video room
+  getLiveKitToken: async (id) => {
+    const response = await api.post(`${API_URL}/${id}/token`);
+    return response.data;
+  },
+
+  // Recording (host only)
+  startRecording: async (id) => {
+    const response = await api.post(`${API_URL}/${id}/recording/start`);
+    return response.data;
+  },
+
+  stopRecording: async (id, egressId) => {
+    const response = await api.post(`${API_URL}/${id}/recording/${egressId}/stop`);
+    return response.data;
+  },
+
+  getRecordings: async (id) => {
+    const response = await api.get(`${API_URL}/${id}/recordings`);
+    return response.data;
   }
 };

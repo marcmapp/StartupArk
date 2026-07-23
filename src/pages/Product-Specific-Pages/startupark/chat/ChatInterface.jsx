@@ -9,6 +9,7 @@ import {
 import { IoCheckmarkDone, IoEllipsisHorizontal } from 'react-icons/io5';
 import { getImageUrl } from '../../../../utils/imageUrls';
 import { useSocket } from '../../../../contexts/SocketContext';
+import { track } from '../../../../services/analytics';
 
 const ChatInterface = () => {
   const { startupId } = useParams();
@@ -340,7 +341,8 @@ const ChatInterface = () => {
 
       try {
         setLoading(true);
-        
+        track('chat_opened', 'chat', selectedConversation._id);
+
         // Join conversation room
         socket.emit('join_conversation', selectedConversation._id);
 

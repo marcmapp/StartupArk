@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Loader from '../components/Loader';
 import { getImageUrl } from '../utils/imageUrls';
+import { track } from '../services/analytics';
 import 'boxicons';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -75,6 +76,8 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
+    // Fire before clearing the token — track() needs it to authenticate.
+    track('session_end', 'session', null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userId');

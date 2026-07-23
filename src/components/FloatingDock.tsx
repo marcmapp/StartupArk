@@ -32,6 +32,9 @@ import {
   IconListCheck,
   IconActivity,
   IconFileText,
+  IconNews,
+  IconEdit,
+  IconUsers,
 } from "@tabler/icons-react";
 
 // ── Icon resolution ───────────────────────────────────────────────────────────
@@ -59,6 +62,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   IconListCheck,
   IconActivity,
   IconFileText,
+  IconNews,
+  IconEdit,
+  IconUsers,
 };
 
 const iconCls = "h-full w-full text-zinc-600 dark:text-zinc-300";
@@ -149,7 +155,6 @@ const RoleBasedFloatingDock = ({ user }: { user: any }) => {
         className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 max-w-[calc(100vw-32px)]"
       >
         <FloatingDock
-          user={user}
           dockItems={dockItems}
           onReorder={handleReorder}
           reorderable={reorderable}

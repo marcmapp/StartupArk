@@ -34,6 +34,9 @@ export const globalItems = [
   { id: 'settings',     label: 'Settings',     icon: 'IconSettings',        route: '/settings'  },
   { id: 'profile',      label: 'My Profile',   icon: 'IconUser',            route: '/profile'   },
   { id: 'subscription', label: 'Subscription', icon: 'IconCreditCard',      route: '/pricing'   },
+  // 'guide' intentionally removed from the dock — the Hub page now surfaces an
+  // interactive guide widget inline and links out to /guide (page kept, just
+  // no longer a separate nav entry). See Dashboard.jsx's GuideSpotlight.
 ];
 
 // Fallback pinned order used when no server preference exists for the user.
@@ -52,13 +55,18 @@ export const navRegistry = {
     { id: 'project-ark',       label: 'Project Ark',    icon: 'IconBriefcase2',    route: '/startupark/projectark',           category: 'primary',   product: 'startupark' },
     { id: 'messages',          label: 'Messages',       icon: 'IconMessage',       route: '/startupark/chat',                 category: 'primary',   product: 'startupark' },
     // ── secondary (overflow) ─────────────────────────────────────────────
-    { id: 'nearby',            label: 'Nearby',         icon: 'IconMapPin',        route: '/startupark/nearby',               category: 'secondary', product: 'startupark' },
-    { id: 'showcase',          label: 'Showcase',       icon: 'IconBox',           route: '/products',                        category: 'secondary', product: 'startupark' },
-    { id: 'my-products',       label: 'My Products',    icon: 'IconBuildingStore', route: '/manage-products',                 category: 'secondary', product: 'startupark' },
+    // 'nearby' folded into the Startup List page as a toggle, 'saved' moved to
+    // a header icon panel, 'my-products' folded into the Products page as a
+    // tab — Tier 3 C#5. Removed here to match startupark-nav-preferences.cjs.
+    { id: 'products',          label: 'Products',       icon: 'IconBox',           route: '/products',                        category: 'secondary', product: 'startupark' },
     { id: 'events',            label: 'Events',         icon: 'IconCalendarEvent', route: '/startupark/startup/events',       category: 'secondary', product: 'startupark' },
-    { id: 'saved',             label: 'Saved',          icon: 'IconBookmarks',     route: '/startupark/favorites',            category: 'secondary', product: 'startupark' },
-    { id: 'calendar',          label: 'Calendar',       icon: 'IconCalendar',      route: '/startupark/startupcalender',      category: 'secondary', product: 'startupark' },
+    // 'my-updates' folded into the Newsletter page as an in-page "Mine" tab —
+    // it was a straight duplicate of the switch already available there.
+    { id: 'updates',           label: 'Newsletter',     icon: 'IconNews',          route: '/startupark/updates',              category: 'secondary', product: 'startupark' },
     { id: 'bookings',          label: 'Bookings',       icon: 'IconCalendarStats', route: '/startupark/manage-bookings',      category: 'secondary', product: 'startupark' },
+    // Tier 3 C#9: startup-only entry point into the existing Talent Directory,
+    // pre-filtered to students — not a separate page.
+    { id: 'student-list',      label: 'Students',       icon: 'IconUsers',         route: '/startupark/projectark?mode=talent&type=student', category: 'secondary', product: 'startupark' },
     // ── Flowboard ─────────────────────────────────────────────────────────
     { id: 'flowboard-canvas',   label: 'Canvas',   icon: 'IconMicrophone', route: '/flowboard',          category: 'primary',   product: 'flowboard' },
     { id: 'flowboard-tasks',    label: 'Tasks',    icon: 'IconListCheck',  route: '/flowboard/tasks',    category: 'primary',   product: 'flowboard' },
@@ -74,11 +82,12 @@ export const navRegistry = {
     { id: 'project-ark',       label: 'Project Ark',     icon: 'IconBriefcase2',    route: '/startupark/projectark',          category: 'primary',   product: 'startupark' },
     { id: 'messages',          label: 'Messages',        icon: 'IconMessage',       route: '/startupark/chat',                category: 'primary',   product: 'startupark' },
     // ── secondary ────────────────────────────────────────────────────────
-    { id: 'nearby',            label: 'Nearby',          icon: 'IconMapPin',        route: '/startupark/nearby',              category: 'secondary', product: 'startupark' },
+    // 'nearby' folded into the Startup List page as a toggle, 'saved' moved to
+    // a header icon panel — Tier 3 C#5. Removed here to match
+    // startupark-nav-preferences.cjs.
     { id: 'products',          label: 'Products',        icon: 'IconBox',           route: '/products',                       category: 'secondary', product: 'startupark' },
     { id: 'events',            label: 'Events',          icon: 'IconCalendarEvent', route: '/startupark/events',              category: 'secondary', product: 'startupark' },
-    { id: 'saved',             label: 'Saved',           icon: 'IconBookmarks',     route: '/startupark/favorites',           category: 'secondary', product: 'startupark' },
-    { id: 'calendar',          label: 'Calendar',        icon: 'IconCalendar',      route: '/startupark/usercalender',        category: 'secondary', product: 'startupark' },
+    { id: 'updates',           label: 'Newsletter',      icon: 'IconNews',          route: '/startupark/updates',             category: 'secondary', product: 'startupark' },
     { id: 'my-bookings',       label: 'My Bookings',     icon: 'IconCalendarStats', route: '/startupark/my-bookings',         category: 'secondary', product: 'startupark' },
     // ── Flowboard ─────────────────────────────────────────────────────────
     { id: 'flowboard-canvas',   label: 'Canvas',   icon: 'IconMicrophone', route: '/flowboard',          category: 'primary',   product: 'flowboard' },
@@ -95,11 +104,12 @@ export const navRegistry = {
     { id: 'project-ark',       label: 'Project Ark',     icon: 'IconBriefcase2',    route: '/startupark/projectark',          category: 'primary',   product: 'startupark' },
     { id: 'messages',          label: 'Messages',        icon: 'IconMessage',       route: '/startupark/chat',                category: 'primary',   product: 'startupark' },
     // ── secondary ────────────────────────────────────────────────────────
-    { id: 'nearby',            label: 'Nearby',          icon: 'IconMapPin',        route: '/startupark/nearby',              category: 'secondary', product: 'startupark' },
+    // 'nearby' folded into the Startup List page as a toggle, 'saved' moved to
+    // a header icon panel — Tier 3 C#5. Removed here to match
+    // startupark-nav-preferences.cjs.
     { id: 'products',          label: 'Products',        icon: 'IconBox',           route: '/products',                       category: 'secondary', product: 'startupark' },
     { id: 'events',            label: 'Events',          icon: 'IconCalendarEvent', route: '/startupark/events',              category: 'secondary', product: 'startupark' },
-    { id: 'saved',             label: 'Saved',           icon: 'IconBookmarks',     route: '/startupark/favorites',           category: 'secondary', product: 'startupark' },
-    { id: 'calendar',          label: 'Calendar',        icon: 'IconCalendar',      route: '/startupark/usercalender',        category: 'secondary', product: 'startupark' },
+    { id: 'updates',           label: 'Newsletter',      icon: 'IconNews',          route: '/startupark/updates',             category: 'secondary', product: 'startupark' },
     { id: 'meetings',          label: 'Meetings',        icon: 'IconCalendarStats', route: '/startupark/my-bookings',         category: 'secondary', product: 'startupark' },
     // ── Flowboard ─────────────────────────────────────────────────────────
     { id: 'flowboard-canvas',   label: 'Canvas',   icon: 'IconMicrophone', route: '/flowboard',          category: 'primary',   product: 'flowboard' },

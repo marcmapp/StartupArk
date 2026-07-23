@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../../../../../components/Loader';
+import TrustBadge from '../../../../../components/TrustBadge';
 import { getImageUrl } from '../../../../../utils/imageUrls';
 import 'boxicons';
 
@@ -85,7 +86,10 @@ export default function StudentDashboard() {
             )}
             <div>
               <p className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-1">Student Dashboard</p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Welcome, {name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Welcome, {name}</h1>
+                <TrustBadge userId={user?._id} />
+              </div>
               <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">
                 {profile?.institution ? `${profile.institution} · ${profile.course || ''}` : 'Continue your journey to career success.'}
               </p>

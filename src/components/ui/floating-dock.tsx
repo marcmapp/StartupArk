@@ -6,6 +6,10 @@
  * Adaptive sizing scales base icon size down from 44→28px as item count grows;
  * if even 28px doesn't fit the viewport, the row becomes horizontally scrollable
  * with edge-fade gradients indicating more content off-screen.
+ *
+ * The account avatar used to live here as the dock's leading item; it now
+ * lives in the fixed top Header (see HeaderAvatar.jsx) so the dock is
+ * navigation-only.
  */
 
 import { cn } from "../../lib/utils";
@@ -19,9 +23,7 @@ import {
   useTransform,
 } from "motion/react";
 import { useRef, useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getImageUrl } from "../../utils/imageUrls";
+import { Link, useLocation } from "react-router-dom";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -34,7 +36,6 @@ export type NavItem = {
 };
 
 type FloatingDockProps = {
-  user: any;
   dockItems: NavItem[];
   onReorder: (newItems: NavItem[]) => void;
   reorderable?: boolean;
@@ -43,7 +44,6 @@ type FloatingDockProps = {
 
 // ── Adaptive icon sizing ──────────────────────────────────────────────────────
 
-const AVATAR_SLOT  = 44 + 12; // avatar rest size + gap-3
 const DOCK_PADDING = 32;       // px-4 each side = 16 * 2
 const SIDE_MARGIN  = 16;       // clearance on each side of the dock bar
 const GAP          = 12;       // gap-3
@@ -55,7 +55,7 @@ const PB           = 12;       // pb-3
 const PT           = 8;        // pt-2
 
 function computeSizing(itemCount: number, viewportWidth: number) {
-  const available = viewportWidth - SIDE_MARGIN * 2 - DOCK_PADDING - AVATAR_SLOT;
+  const available = viewportWidth - SIDE_MARGIN * 2 - DOCK_PADDING;
   const totalGaps = Math.max(0, itemCount - 1) * GAP;
   const ideal = itemCount > 0 ? (available - totalGaps) / itemCount : BASE_MAX;
   if (ideal >= BASE_MAX) return { base: BASE_MAX, needsScroll: false };
@@ -95,7 +95,6 @@ export const FloatingDock = (props: FloatingDockProps) => <FloatingDockBar {...p
 // ── Dock bar ──────────────────────────────────────────────────────────────────
 
 function FloatingDockBar({
-  user,
   dockItems,
   onReorder,
   reorderable = true,
@@ -177,8 +176,6 @@ function FloatingDockBar({
             : "overflow-visible",
         )}
       >
-        <AvatarDockIcon user={user} mouseX={mouseX} base={base} />
-
         {reorderable ? (
           <Reorder.Group
             as="div"
@@ -200,126 +197,6 @@ function FloatingDockBar({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ── Avatar dock item ──────────────────────────────────────────────────────────
-
-function AvatarDockIcon({
-  user,
-  mouseX,
-  base,
-}: {
-  user: any;
-  mouseX: MotionValue<number>;
-  base: number;
-}) {
-  const { ref, width, height, widthIcon, heightIcon } = useMagnify(mouseX, base);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ left: 0, bottom: 0 });
-  const navigate = useNavigate();
-
-  const avatarUrl =
-    user?.profilePicture || user?.profileImage
-      ? getImageUrl(user.profilePicture || user.profileImage, "")
-      : null;
-
-  const initials = (() => {
-    const u = user?.username;
-    if (!u || typeof u !== "string") return "?";
-    const parts = u.trim().split(" ");
-    return parts.length === 1
-      ? (parts[0][0]?.toUpperCase() ?? "?")
-      : (parts[0][0]?.toUpperCase() ?? "") + (parts[1][0]?.toUpperCase() ?? "");
-  })();
-
-  const openMenu = () => {
-    if (ref.current) {
-      const r = ref.current.getBoundingClientRect();
-      setMenuPos({ left: Math.max(8, r.left - 8), bottom: window.innerHeight - r.top + 8 });
-    }
-    setMenuOpen(true);
-  };
-
-  const handleLogout = () => {
-    setMenuOpen(false);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/login";
-  };
-
-  // Structure: icon container and label are siblings — label is NOT inside the
-  // motion.div so it does not participate in the height spring animation.
-  return (
-    <div data-tour="dock-avatar" className="flex flex-col items-center gap-1 flex-shrink-0">
-      <motion.div
-        ref={ref}
-        style={{ width, height }}
-        onClick={openMenu}
-        className="relative flex aspect-square flex-shrink-0 cursor-pointer items-center justify-center rounded-full overflow-hidden bg-zinc-900 dark:bg-white"
-      >
-        <motion.div
-          style={{ width: widthIcon, height: heightIcon }}
-          className="flex items-center justify-center"
-        >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={user?.username} className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-white dark:text-zinc-900 font-bold text-sm leading-none select-none">
-              {initials}
-            </span>
-          )}
-        </motion.div>
-      </motion.div>
-
-      {/* Invisible spacer — keeps the avatar's circle bottom-aligned with the
-          labeled dock icons beside it (row uses items-end), without showing a name. */}
-      <span aria-hidden className="invisible pointer-events-none text-center text-[11px] leading-none">
-        .
-      </span>
-
-      {menuOpen &&
-        createPortal(
-          <>
-            <div className="fixed inset-0 z-[150]" onClick={() => setMenuOpen(false)} />
-            <div
-              className="fixed z-[160] w-56 rounded-xl border border-gray-100 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900"
-              style={{ left: menuPos.left, bottom: menuPos.bottom }}
-            >
-              <div className="border-b border-gray-100 px-3 py-2.5 dark:border-white/10">
-                <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                  {user?.username}
-                </p>
-                <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
-              </div>
-              <div className="p-1.5">
-                {[
-                  { label: "Hub",           route: "/dashboard" },
-                  { label: "My Profile",    route: "/profile"   },
-                  { label: "Settings",      route: "/settings"  },
-                  { label: "Subscription",  route: "/pricing"   },
-                ].map(({ label, route }) => (
-                  <button
-                    key={route}
-                    onClick={() => { setMenuOpen(false); navigate(route); }}
-                    className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.05]"
-                  >
-                    {label}
-                  </button>
-                ))}
-                <div className="my-1 border-t border-gray-100 dark:border-white/10" />
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                >
-                  Log out
-                </button>
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
     </div>
   );
 }

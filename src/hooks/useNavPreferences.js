@@ -115,3 +115,17 @@ export function useNavPreferences(user) {
     role,
   };
 }
+
+// Standalone (non-hook) helper for the Guide page's "replay tour" button — it
+// isn't rendered inside the dock's own useNavPreferences instance, so it can't
+// reach markTourSeen's inverse. Flips hasSeenDockTour back to false server-side;
+// caller is responsible for a full navigation/reload so useNavPreferences
+// re-fetches and DockTour re-mounts on the next page.
+export async function resetDockTour() {
+  const token = localStorage.getItem('token');
+  await axios.put(
+    `${BASE_URL}/startupark/api/nav-preferences`,
+    { hasSeenDockTour: false },
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+}

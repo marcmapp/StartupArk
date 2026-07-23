@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 
 const STEPS = [
   {
-    target: "dock-avatar",
+    target: "header-avatar",
     caption:
       "Your profile and account menu. Tap any time to log out or switch to another app.",
   },

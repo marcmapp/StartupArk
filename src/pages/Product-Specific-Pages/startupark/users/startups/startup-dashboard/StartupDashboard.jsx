@@ -107,6 +107,32 @@ export default function StartupDashboard() {
         </div>
       </div>
 
+      {/* Availability status — surfaced up top since it gates whether users
+          can even book this startup (semantic colors kept). */}
+      <div className={`p-5 rounded-2xl border mb-6 ${hasAvailability ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/50' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/50'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${hasAvailability ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'}`}>
+              <box-icon name="calendar" type="solid" color="currentColor" size="18px" />
+            </div>
+            <div className="min-w-0">
+              <p className={`font-semibold text-sm ${hasAvailability ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>
+                {hasAvailability ? 'Availability Set' : 'No Availability Set'}
+              </p>
+              <p className={`text-xs truncate ${hasAvailability ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                {hasAvailability
+                  ? `${startup.availability.days.join(', ')} · ${startup.availability.timeRange?.start || ''} – ${startup.availability.timeRange?.end || ''}`
+                  : 'Users cannot book meetings until you set your availability'}
+              </p>
+            </div>
+          </div>
+          <button onClick={() => navigate('/startupark/startup-profile')}
+            className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${hasAvailability ? 'text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30' : 'text-amber-700 bg-amber-100 hover:bg-amber-200 dark:text-amber-300 dark:bg-amber-900/30'}`}>
+            {hasAvailability ? 'Edit' : 'Set'}
+          </button>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <StatCard label="Team Members" value={startup.team?.length || 0} icon="group" />
@@ -127,31 +153,6 @@ export default function StartupDashboard() {
               <ActionCard title="Job Postings" desc="Post roles & find talent" icon="briefcase" onClick={() => navigate('/startupark/projectark?mode=role')} />
               <ActionCard title="Messages" desc="Chats with users & investors" icon="chat" onClick={() => navigate('/startupark/chat')} />
               <ActionCard title="Events" desc="Manage & join startup events" icon="calendar-event" onClick={() => navigate('/startupark/startup/events')} />
-            </div>
-          </div>
-
-          {/* Availability status (semantic colors kept) */}
-          <div className={`p-5 rounded-2xl border ${hasAvailability ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/50' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/50'}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${hasAvailability ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'}`}>
-                  <box-icon name="calendar" type="solid" color="currentColor" size="18px" />
-                </div>
-                <div className="min-w-0">
-                  <p className={`font-semibold text-sm ${hasAvailability ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>
-                    {hasAvailability ? 'Availability Set' : 'No Availability Set'}
-                  </p>
-                  <p className={`text-xs truncate ${hasAvailability ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {hasAvailability
-                      ? `${startup.availability.days.join(', ')} · ${startup.availability.timeRange?.start || ''} – ${startup.availability.timeRange?.end || ''}`
-                      : 'Users cannot book meetings until you set your availability'}
-                  </p>
-                </div>
-              </div>
-              <button onClick={() => navigate('/startupark/startup-profile')}
-                className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${hasAvailability ? 'text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30' : 'text-amber-700 bg-amber-100 hover:bg-amber-200 dark:text-amber-300 dark:bg-amber-900/30'}`}>
-                {hasAvailability ? 'Edit' : 'Set'}
-              </button>
             </div>
           </div>
         </div>
@@ -178,7 +179,6 @@ export default function StartupDashboard() {
           <div className="glass-card p-4">
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Manage</p>
             {[
-              { label: 'My Calendar', icon: 'calendar', to: '/startupark/startupcalender' },
               { label: 'Applications', icon: 'notepad', to: '/startupark/projectark?mode=role' },
               { label: 'Edit Profile', icon: 'edit', to: '/startupark/startup-edit-profile' },
             ].map(({ label, icon, to }) => (

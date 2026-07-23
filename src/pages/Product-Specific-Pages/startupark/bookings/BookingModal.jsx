@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FiClock, FiCalendar, FiX, FiCheck, FiChevronDown } from 'react-icons/fi';
+import { MEETING_PURPOSES } from '../../../../services/bookingRatings';
 
 const BookingModal = ({ 
   startup, 
@@ -12,6 +13,8 @@ const BookingModal = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [meetingPurpose, setMeetingPurpose] = useState('');
   const [meetingType, setMeetingType] = useState('general');
+  const [purpose, setPurpose] = useState('');
+  const [purposeOther, setPurposeOther] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -28,9 +31,14 @@ const BookingModal = ({
     setSelectedTime('');
     setMeetingPurpose('');
     setMeetingType('general');
+    setPurpose('');
+    setPurposeOther('');
     setBookingError(null);
     setBookingSuccess(false);
   };
+
+  // Mirrors the server-side rule in routes/startupark-bookings.cjs.
+  const isPurposeValid = purpose && (purpose !== 'other' || purposeOther.trim());
 
   const isDateAvailable = (dateString) => {
     if (!startup.availability?.days?.length) return false;
@@ -93,6 +101,16 @@ const BookingModal = ({
       return;
     }
 
+    if (!purpose) {
+      setBookingError('Please select the purpose of this meeting');
+      return;
+    }
+
+    if (purpose === 'other' && !purposeOther.trim()) {
+      setBookingError('Please specify the purpose of this meeting');
+      return;
+    }
+
     try {
       setBookingLoading(true);
       setBookingError(null);
@@ -109,6 +127,8 @@ const BookingModal = ({
           time: selectedTime,
           meetingPurpose: meetingPurpose.trim(),
           meetingType,
+          purpose,
+          ...(purpose === 'other' ? { purposeOther: purposeOther.trim() } : {}),
           message: meetingPurpose.trim()
         })
       });
@@ -214,6 +234,40 @@ const BookingModal = ({
                 </p>
               </div>
 
+              {/* Purpose — structured, drives the startup's queue filters */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  Purpose of this meeting <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  className="input-mono appearance-none"
+                >
+                  <option value="">Select a purpose…</option>
+                  {MEETING_PURPOSES.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+
+                {purpose === 'other' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      Please specify <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={purposeOther}
+                      onChange={(e) => setPurposeOther(e.target.value.slice(0, 200))}
+                      maxLength={200}
+                      placeholder="Briefly describe the purpose"
+                      className="input-mono"
+                    />
+                    <p className="text-xs text-gray-500 mt-1 text-right">{purposeOther.length}/200</p>
+                  </div>
+                )}
+              </div>
+
               {/* Meeting Type */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
@@ -316,9 +370,9 @@ const BookingModal = ({
             </button>
             <button
               onClick={handleBookMeeting}
-              disabled={bookingLoading || !selectedDate || !selectedTime || !isDateAvailable(selectedDate) || !meetingPurpose.trim()}
+              disabled={bookingLoading || !selectedDate || !selectedTime || !isDateAvailable(selectedDate) || !meetingPurpose.trim() || !isPurposeValid}
               className={`px-6 py-3 rounded-xl font-medium text-sm flex items-center justify-center transition-all ${
-                bookingLoading || !selectedDate || !selectedTime || !isDateAvailable(selectedDate) || !meetingPurpose.trim()
+                bookingLoading || !selectedDate || !selectedTime || !isDateAvailable(selectedDate) || !meetingPurpose.trim() || !isPurposeValid
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-md'
               }`}

@@ -4,6 +4,8 @@ import { FiEdit2, FiCalendar, FiClock, FiMessageCircle, FiCheckCircle, FiLoader 
 import { formatAvailability } from '../../shared/utils/startupDataFormatter';
 import axios from 'axios';
 import BookingModal from '../../../../bookings/BookingModal';
+import FollowButton from '../../../../../../../components/FollowButton';
+import TrustBadge from '../../../../../../../components/TrustBadge';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -89,7 +91,10 @@ const StartupProfileHeader = ({ startupData, onEdit, onEditAvailability, isPubli
               )}
 
               <div className="space-y-1.5 flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white truncate">{companyName}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white truncate">{companyName}</h1>
+                  <TrustBadge userId={startupData.userId?._id || startupData.userId} />
+                </div>
                 <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base line-clamp-2">
                   {startupData.tagline || 'Building the future'}
                 </p>
@@ -129,6 +134,11 @@ const StartupProfileHeader = ({ startupData, onEdit, onEditAvailability, isPubli
                     {chatLoading ? <FiLoader className="animate-spin" size={15} /> : <FiMessageCircle size={15} />}
                     {chatLoading ? 'Opening…' : 'Chat'}
                   </button>
+
+                  <FollowButton
+                    targetUserId={startupData.userId?._id || startupData.userId}
+                    className="w-full"
+                  />
 
                   {hasAvailability && (
                     activeBooking ? (

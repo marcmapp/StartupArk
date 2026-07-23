@@ -129,6 +129,33 @@ const CalendarWrapper = ({ type }) => {
     };
   };
 
+  const handleConfirmMeeting = async (bookingId) => {
+    try {
+      // Mirrors StartupBookingsPage's confirmBooking — same endpoint, same no-body PATCH.
+      const response = await fetch(`${baseUrl}/startupark/api/bookings/${bookingId}/confirm`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        await fetchEvents();
+        closeModal();
+      }
+    } catch (error) {
+      console.error('Failed to confirm meeting:', error);
+    }
+  };
+
+  const handleDeclineMeeting = async (bookingId) => {
+    // Mirrors StartupBookingsPage's declineBooking — decline is a cancel with a required reason.
+    const reason = prompt('Please enter a reason for declining this request:');
+    if (!reason) return;
+    await handleCancelMeeting(bookingId, reason);
+  };
+
   const handleCompleteMeeting = async (bookingId) => {
     try {
       const response = await fetch(`${baseUrl}/startupark/api/bookings/${bookingId}/complete`, {
@@ -675,6 +702,26 @@ const CalendarWrapper = ({ type }) => {
             {/* Action Buttons */}
             <div className="p-6 border-t border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] rounded-b-2xl">
               <div className="flex flex-wrap gap-3">
+                {/* Receiving party (the startup) responds to a pending request. */}
+                {selectedEvent.extendedProps?.status === 'pending' && type === 'startup' && (
+                  <>
+                    <button
+                      onClick={() => handleConfirmMeeting(selectedEvent.id)}
+                      className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                    >
+                      <FiCheck size={18} />
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleDeclineMeeting(selectedEvent.id)}
+                      className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                    >
+                      <FiX size={18} />
+                      Decline
+                    </button>
+                  </>
+                )}
+
                 {selectedEvent.extendedProps?.status === 'confirmed' && type === 'startup' && (
                   <button
                     onClick={() => handleCompleteMeeting(selectedEvent.id)}
@@ -684,8 +731,11 @@ const CalendarWrapper = ({ type }) => {
                     Mark Complete
                   </button>
                 )}
-                
-                {['pending', 'confirmed'].includes(selectedEvent.extendedProps?.status) && (
+
+                {/* The requester's own cancel — and the startup's cancel of an already-confirmed
+                    meeting. Pending requests on the startup side are handled by Accept/Decline above. */}
+                {['pending', 'confirmed'].includes(selectedEvent.extendedProps?.status) &&
+                  !(selectedEvent.extendedProps?.status === 'pending' && type === 'startup') && (
                   <button
                     onClick={() => {
                       const reason = prompt('Please enter cancellation reason:');

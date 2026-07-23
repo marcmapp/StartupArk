@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { track } from '../../../../services/analytics';
+import ProductReviewsSection from '../../../../components/ProductReviewsSection';
 
 const BASE = import.meta.env.VITE_API_BASE_URL;
 const R2 = 'https://pub-96dbf4700a544b3b825b262291f6f0a7.r2.dev';
@@ -29,8 +31,11 @@ export default function ProductDetail() {
   const [activeImg, setActiveImg] = useState(0);
 
   // Record an outbound CTA click. Fire-and-forget — never blocks navigation.
+  // Public clickCount is a separate anonymous counter; track() adds the
+  // per-user analytics signal (silently no-ops if the visitor isn't logged in).
   const recordClick = () => {
     axios.post(`${BASE}/startupark/api/products/${id}/click`).catch(() => {});
+    track('product_click', 'product', id);
   };
 
   useEffect(() => {
@@ -38,6 +43,7 @@ export default function ProductDetail() {
       .then(res => {
         // Backend returns { product: {...} }
         setProduct(res.data.product || res.data);
+        track('product_view', 'product', id);
       })
       .catch(err => {
         setError(err.response?.data?.error || 'Failed to load product');
@@ -256,6 +262,9 @@ export default function ProductDetail() {
             <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{product.description}</p>
           </div>
         )}
+
+        {/* Reviews */}
+        <ProductReviewsSection productId={product._id} productOwnerId={product.userId} />
 
         {/* Startup card */}
         {startup && (

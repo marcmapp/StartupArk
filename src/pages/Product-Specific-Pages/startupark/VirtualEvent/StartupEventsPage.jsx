@@ -1,14 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { eventService } from '../../../../services/eventService';
 import CreateEventModal from './CreateEventModal';
 import EventCard from './EventCard';
 
 const StartupEventsPage = () => {
   const [events, setEvents] = useState([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showCreateModal, setShowCreateModal] = useState(searchParams.get('create') === 'true');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [error, setError] = useState(null);
+
+  // Deep link from the Calendar page's "Create Event" CTA (Tier 3 C#5) —
+  // open the create flow immediately, then drop the param so it doesn't
+  // reopen on a later refresh/back-navigation.
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      searchParams.delete('create');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Get token function (same as your working model)
   const getAuthToken = () => {

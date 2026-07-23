@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import HyperText from "../components/HyperText";
 import Loader from "../components/Loader";
+import BillboardSection from "../components/hub/BillboardSection";
 import { getImageUrl } from "../utils/imageUrls";
 import "boxicons";
 
@@ -20,10 +21,21 @@ const ROLE_META = {
   user: { label: 'User Dashboard', icon: 'user', description: 'Browse startups, book meetings, and explore the ecosystem.' },
 };
 
+// Rotating one-liners for the inline Guide widget — a taste of what's in the
+// full guide, not a duplicate of it. Generic across roles on purpose; the
+// full breakdown at /guide is where role-specific detail lives.
+const GUIDE_TIPS = [
+  { icon: 'layout', text: "The Hub is your cross-product switcher — jump between StartupArk, Flowboard, and DocArc from the dock." },
+  { icon: 'bell', text: "The bell in the header surfaces bookings, proposals, and replies that need your attention." },
+  { icon: 'search', text: "Use search to find people, startups, and posts without leaving the page you're on." },
+  { icon: 'id-card', text: "Your profile is shared across every product — update it once in Settings." },
+];
+
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [roleStatus, setRoleStatus] = useState(null); // { startuparkRole, agreements, profiles }
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [tipIndex, setTipIndex] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +54,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTipIndex((i) => (i + 1) % GUIDE_TIPS.length), 4500);
     return () => clearInterval(timer);
   }, []);
 
@@ -69,20 +86,19 @@ const Dashboard = () => {
       ? (agreed ? 'Finish Your Profile' : 'Continue Setup')
       : `Go to ${roleMeta?.label}`;
 
-  const modules = [
-    { label: 'Explore Startups', icon: 'search', to: '/startupark/startupsList' },
-    { label: 'Browse Products', icon: 'box', to: '/products' },
-    { label: 'Career LaunchPad', icon: 'briefcase', to: '/startupark/projectark?mode=role' },
-    { label: 'Bookings', icon: 'calendar', to: role === 'startup' ? '/startupark/manage-bookings' : '/startupark/my-bookings' },
-    { label: 'Chat', icon: 'chat', to: '/startupark/chat' },
-    { label: 'Events', icon: 'calendar-event', to: '/startupark/events' },
-  ];
+  const tip = GUIDE_TIPS[tipIndex];
+  // Once a role's set up, the Hub's dock already gets you into that product —
+  // this card only needs to exist while onboarding isn't finished yet.
+  const showSetupCard = !role || setupIncomplete;
 
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:ml-8">
 
       {/* Welcome header — mono glass */}
       <div className="glass-panel p-6 sm:p-7 mb-6">
+        <div className="absolute bottom-0 left-0 right-0 h-px overflow-hidden">
+          <div className="h-full w-1/4 bg-gradient-to-r from-transparent via-zinc-900/30 dark:via-white/40 to-transparent animate-hud-sweep" />
+        </div>
         <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             {avatarUrl ? (
@@ -112,116 +128,87 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: StartupArk entry */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="glass-panel p-6 sm:p-8">
-            <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06] pointer-events-none">
-              <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-zinc-900 dark:bg-white blur-3xl" />
-            </div>
-            <div className="relative flex items-start justify-between gap-4">
+      {/* Billboard — the hub's main event: events + newsletter, front and center.
+          Everything below it is status, not navigation. */}
+      <div className="mb-6">
+        <BillboardSection />
+      </div>
+
+      <div className={`grid grid-cols-1 gap-5 ${showSetupCard ? 'md:grid-cols-2' : ''}`}>
+        {/* Your space — setup status / entry point into StartupArk. Only shown
+            while onboarding isn't finished; once a role's set up, the dock
+            already gets you into that product. */}
+        {showSetupCard && (
+          <div className="glass-card relative overflow-hidden p-5">
+            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] blur-3xl pointer-events-none" />
+            <div className="relative flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-1">
-                  {role ? (setupIncomplete ? 'Setup In Progress' : 'Your Space') : 'Get Started'}
+                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">
+                  {role ? 'Setup in progress' : 'Get started'}
                 </p>
-                <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
+                <p className="text-base font-bold text-zinc-900 dark:text-white truncate">
                   {roleMeta ? roleMeta.label : 'Enter StartupArk'}
-                </h2>
-                <p className="text-zinc-500 dark:text-zinc-400 mt-2 max-w-md text-sm">
-                  {setupIncomplete
-                    ? "You started setting up but haven't finished. Complete your profile to unlock your dashboard."
-                    : roleMeta ? roleMeta.description
-                    : "Choose your role as a User, Startup, or Student and unlock your personalized experience."}
                 </p>
               </div>
-              <div className="hidden sm:flex w-14 h-14 rounded-2xl bg-black/[0.05] dark:bg-white/[0.08] items-center justify-center flex-shrink-0 text-zinc-700 dark:text-zinc-200">
-                <box-icon name={roleMeta?.icon || 'rocket'} type="solid" color="currentColor" size="28px"></box-icon>
+              <div className="w-10 h-10 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0 text-zinc-700 dark:text-zinc-200">
+                <box-icon name={roleMeta?.icon || 'rocket'} type="solid" color="currentColor" size="20px"></box-icon>
               </div>
             </div>
 
-            {setupIncomplete && (
-              <div className="relative mt-5 mb-4 flex items-center gap-3">
-                {['Role', 'Terms', 'Profile'].map((s, i) => {
-                  const done = i === 0 ? true : i === 1 ? agreed : profileComplete;
-                  return (
-                    <div key={s} className="flex items-center gap-2 flex-1">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${done ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900' : 'bg-black/[0.06] dark:bg-white/10 text-zinc-400'}`}>
-                        {done ? '✓' : i + 1}
-                      </div>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{s}</span>
-                      {i < 2 && <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />}
+            <div className="relative mt-4 mb-1 flex items-center gap-2">
+              {['Role', 'Terms', 'Profile'].map((s, i) => {
+                const done = i === 0 ? true : i === 1 ? agreed : profileComplete;
+                return (
+                  <div key={s} className="flex items-center gap-1.5 flex-1">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${done ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900' : 'bg-black/[0.06] dark:bg-white/10 text-zinc-400'}`}>
+                      {done ? '✓' : i + 1}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                    {i < 2 && <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />}
+                  </div>
+                );
+              })}
+            </div>
 
-            <button onClick={primaryAction} className="btn-mono mt-5 px-6 py-3">
-              <box-icon name="right-arrow-circle" type="solid" size="18px" color="currentColor"></box-icon>
+            <button onClick={primaryAction} className="btn-mono w-full mt-4 py-2.5 text-sm">
               {primaryLabel}
             </button>
           </div>
+        )}
 
-          {/* Module grid — mono */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {modules.map(({ label, icon, to }) => (
-              <button
-                key={to}
-                onClick={() => navigate(to)}
-                className="flex flex-col items-center justify-center gap-2 p-4 glass-card hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:-translate-y-0.5 transition-all"
-              >
-                <div className="text-zinc-700 dark:text-zinc-200">
-                  <box-icon name={icon} type="solid" size="24px" color="currentColor"></box-icon>
-                </div>
-                <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 text-center leading-tight">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div className="space-y-6">
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-3 mb-4">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={user.username} className="w-11 h-11 rounded-full object-cover border border-black/10 dark:border-white/15 flex-shrink-0" />
-              ) : (
-                <div className="w-11 h-11 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                  {user.username?.charAt(0)?.toUpperCase() || '?'}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="font-semibold text-zinc-900 dark:text-white truncate">{user.username}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{user.email}</p>
-              </div>
+        {/* Guide — interactive, inline. Full breakdown lives at /guide. */}
+        <button
+          onClick={() => navigate('/guide')}
+          className="hud-grid text-zinc-900 dark:text-white relative overflow-hidden p-5 text-left glass-card
+                     hover:border-zinc-400/60 dark:hover:border-white/25 hover:-translate-y-0.5 transition-all duration-300 group"
+          style={{ backgroundSize: '20px 20px' }}
+        >
+          <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] blur-3xl pointer-events-none" />
+          <div className="relative flex items-start justify-between gap-3 mb-3">
+            <p className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Guide</p>
+            <div className="w-10 h-10 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0 text-zinc-700 dark:text-zinc-200">
+              <box-icon name="help-circle" type="solid" color="currentColor" size="20px"></box-icon>
             </div>
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-500 dark:text-zinc-400">Role</span>
-                <span className="font-semibold capitalize px-2.5 py-0.5 rounded-full text-xs glass-inset text-zinc-700 dark:text-zinc-200">
-                  {role || 'Not set'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-500 dark:text-zinc-400">Setup</span>
-                <span className={`font-medium flex items-center gap-1 text-xs ${profileComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${profileComplete ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                  {profileComplete ? 'Complete' : 'Incomplete'}
-                </span>
-              </div>
-            </div>
-            {setupIncomplete && (
-              <button onClick={() => navigate('/startupark')} className="btn-mono w-full mt-4 py-2.5 text-sm">
-                Complete Setup →
-              </button>
-            )}
-            {!role && (
-              <button onClick={() => navigate('/startupark')} className="btn-mono w-full mt-4 py-2.5 text-sm">
-                Set Up Profile →
-              </button>
-            )}
           </div>
-        </div>
+          <div key={tipIndex} className="relative animate-fade-in min-h-[52px]">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 flex-shrink-0 text-zinc-400 dark:text-zinc-500">
+                <box-icon name={tip.icon} size="16px" color="currentColor"></box-icon>
+              </span>
+              <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-snug">{tip.text}</p>
+            </div>
+          </div>
+          <div className="relative flex items-center justify-between mt-3">
+            <div className="flex items-center gap-1">
+              {GUIDE_TIPS.map((_, i) => (
+                <span key={i} className={`h-1 rounded-full transition-all ${i === tipIndex ? 'w-4 bg-zinc-900 dark:bg-white' : 'w-1 bg-black/15 dark:bg-white/15'}`} />
+              ))}
+            </div>
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors flex items-center gap-1">
+              Open guide
+              <box-icon name="chevron-right" size="14px" color="currentColor"></box-icon>
+            </span>
+          </div>
+        </button>
       </div>
     </div>
   );

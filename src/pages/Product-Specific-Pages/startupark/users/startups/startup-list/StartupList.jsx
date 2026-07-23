@@ -1,14 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { FiArrowRight, FiStar, FiTrendingUp, FiMapPin, FiGlobe, FiAward, FiNavigation } from 'react-icons/fi';
+import { FiArrowRight, FiStar, FiTrendingUp, FiMapPin, FiGlobe, FiAward, FiNavigation, FiX } from 'react-icons/fi';
 import { MdRocketLaunch, MdGroups, MdLightbulb } from 'react-icons/md';
 import axios from 'axios';
 import StartupCard from './StartupCard';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import FilterDropdown from './FilterDropdown';
 import LoadingSkeleton from '../../../../../../components/Loader';
 import { getImageUrl } from '../../../../../../utils/imageUrls';
 import DefaultLogo from '../../../../../../assets/MP-white-bg.png';
+import { useGeoSearch } from '../../../geo/useGeoSearch';
+import NearbyStartupCard from '../../../geo/NearbyStartupCard';
+
+const RADIUS_OPTIONS = [10, 25, 50, 100, 200, 500];
+
+function getUserRole() {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    return u.startuparkRole || u.role || (u.isStartup ? 'startup' : 'user');
+  } catch {
+    return 'user';
+  }
+}
 
 const StartupList = ({ showOnlyFavorites = false }) => {
   const [startups, setStartups] = useState([]);
@@ -23,6 +36,38 @@ const StartupList = ({ showOnlyFavorites = false }) => {
   const [hoveredStartup, setHoveredStartup] = useState(null);
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── Nearby toggle (Tier 3 C#5) — folds the old standalone /startupark/nearby
+  // page into a filter here instead of a separate nav item/route. Reuses the
+  // same geo-search hook/logic (browser geolocation, city text search, no
+  // external geo APIs) — only how it's surfaced has changed.
+  const [nearbyMode, setNearbyMode] = useState(searchParams.get('nearby') === 'true');
+  const userRole = getUserRole();
+  const searchEntity = userRole === 'startup' ? 'user' : 'startup';
+  const entityLabel = searchEntity === 'startup' ? 'startup' : 'user';
+  const {
+    state: geoState, results: geoResults, total: geoTotal, radiusKm,
+    error: geoError, filters: geoFilters, locate, searchByCity, updateFilters: updateGeoFilters, reset: resetGeo,
+  } = useGeoSearch(searchEntity);
+  const [cityInput, setCityInput] = useState('');
+  const [selectedRadius, setSelectedRadius] = useState(50);
+  const isGeoScanning = geoState === 'locating' || geoState === 'searching';
+
+  const toggleNearby = () => {
+    const next = !nearbyMode;
+    setNearbyMode(next);
+    if (!next) resetGeo();
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set('nearby', 'true'); else params.delete('nearby');
+    setSearchParams(params, { replace: true });
+  };
+
+  // Deep link from the redirected old /startupark/nearby route, or a shared URL.
+  useEffect(() => {
+    if (searchParams.get('nearby') === 'true' && !nearbyMode) setNearbyMode(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getAuthToken = () => {
     return localStorage.getItem('token') || document.cookie
@@ -230,15 +275,17 @@ const StartupList = ({ showOnlyFavorites = false }) => {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
               <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-                {showOnlyFavorites ? 'Favorites' : 'Featured Startups'}
+                {nearbyMode ? `${entityLabel === 'startup' ? 'Startups' : 'Users'} Near You` : showOnlyFavorites ? 'Favorites' : 'Featured Startups'}
               </h2>
               <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
-                {filteredStartups.length} {filteredStartups.length === 1 ? 'startup' : 'startups'} found
+                {nearbyMode
+                  ? (geoState === 'results' ? `${geoTotal} ${entityLabel}${geoTotal !== 1 ? 's' : ''} found` : 'Use GPS or search a city')
+                  : `${filteredStartups.length} ${filteredStartups.length === 1 ? 'startup' : 'startups'} found`}
               </p>
             </div>
 
             <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
-              {!showOnlyFavorites && (
+              {!showOnlyFavorites && !nearbyMode && (
                 <>
                   <div className="relative flex-1 sm:flex-initial">
                     <SearchBar
@@ -255,13 +302,15 @@ const StartupList = ({ showOnlyFavorites = false }) => {
                   />
                 </>
               )}
-              <button
-                onClick={() => navigate('/startupark/nearby')}
-                className="btn-ghost flex items-center gap-2"
-              >
-                <FiNavigation className="h-4 w-4" />
-                Nearby
-              </button>
+              {!showOnlyFavorites && (
+                <button
+                  onClick={toggleNearby}
+                  className={`btn-ghost flex items-center gap-2 ${nearbyMode ? 'ring-1 ring-zinc-400 dark:ring-white/30' : ''}`}
+                >
+                  {nearbyMode ? <FiX className="h-4 w-4" /> : <FiNavigation className="h-4 w-4" />}
+                  {nearbyMode ? 'Exit Nearby' : 'Nearby'}
+                </button>
+              )}
               <button
                 onClick={() => navigate(showOnlyFavorites ? '/startupark/startups' : '/startupark/favorites')}
                 className="btn-ghost"
@@ -273,8 +322,89 @@ const StartupList = ({ showOnlyFavorites = false }) => {
         </div>
       </div>
 
+      {/* Nearby panel (Tier 3 C#5) — folded-in geo search, same hook/logic as
+          the old standalone Nearby page. */}
+      {nearbyMode && !showOnlyFavorites && (
+        <div className="mb-8 space-y-5">
+          <div className="glass-card p-4">
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="relative flex-1 min-w-[180px]">
+                <input
+                  type="text"
+                  value={cityInput}
+                  onChange={e => setCityInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && cityInput.trim()) searchByCity(cityInput.trim()); }}
+                  placeholder="City or state…"
+                  className="input-mono w-full text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => locate(selectedRadius)}
+                disabled={isGeoScanning}
+                className="btn-mono flex items-center gap-2 text-sm disabled:opacity-50 whitespace-nowrap"
+              >
+                <FiNavigation className={`h-4 w-4 ${geoState === 'locating' ? 'animate-pulse' : ''}`} />
+                {geoState === 'locating' ? 'Locating…' : 'Use GPS'}
+              </button>
+              <select
+                value={selectedRadius}
+                onChange={e => setSelectedRadius(Number(e.target.value))}
+                className="input-mono text-sm w-28"
+              >
+                {RADIUS_OPTIONS.map(r => <option key={r} value={r}>{r} km</option>)}
+              </select>
+              <select
+                value={geoFilters.sort}
+                onChange={e => updateGeoFilters({ sort: e.target.value })}
+                className="input-mono text-sm w-36"
+              >
+                <option value="distance">Nearest first</option>
+                <option value="relevance">Most relevant</option>
+                <option value="newest">Newest first</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => cityInput.trim() && searchByCity(cityInput.trim())}
+                disabled={isGeoScanning || !cityInput.trim()}
+                className="btn-ghost text-sm px-3 py-2 disabled:opacity-40"
+              >
+                Search
+              </button>
+            </div>
+          </div>
+
+          <p className={`text-sm font-medium ${geoState === 'error' ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+            {geoState === 'idle' && 'Grant location access or search by city to find startups near you'}
+            {geoState === 'locating' && 'Getting your location…'}
+            {geoState === 'searching' && `Scanning for ${entityLabel}s…`}
+            {geoState === 'results' && `${geoTotal} ${entityLabel}${geoTotal !== 1 ? 's' : ''} found · ${radiusKm}km radius`}
+            {geoState === 'error' && geoError}
+          </p>
+
+          {isGeoScanning ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => <div key={i} className="animate-pulse glass-card h-28 rounded-xl" />)}
+            </div>
+          ) : geoState === 'results' && geoResults.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {geoResults.map(item => (
+                <NearbyStartupCard key={item._id} startup={item} entity={searchEntity} />
+              ))}
+            </div>
+          ) : geoState === 'results' ? (
+            <div className="glass-card py-12 flex flex-col items-center text-center space-y-3">
+              <p className="text-zinc-400 text-sm">No {entityLabel}s found in this area</p>
+              <button onClick={() => setSelectedRadius(r => Math.min(r * 2, 500))} className="btn-ghost text-xs px-4 py-2">
+                Expand radius
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* Main Grid */}
-      {loading ? (
+      {nearbyMode && !showOnlyFavorites ? null : loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="animate-pulse">
@@ -327,7 +457,7 @@ const StartupList = ({ showOnlyFavorites = false }) => {
       )}
 
       {/* Stats Footer — mono */}
-      {!showOnlyFavorites && filteredStartups.length > 0 && (
+      {!showOnlyFavorites && !nearbyMode && filteredStartups.length > 0 && (
         <div className="mt-14 pt-8 border-t border-black/[0.06] dark:border-white/[0.08]">
           <div className="grid grid-cols-3 gap-6">
             {[

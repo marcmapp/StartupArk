@@ -2,12 +2,19 @@ import { useState, useEffect } from 'react';
 import {
   FiClock, FiCheck, FiX, FiCalendar, FiRefreshCw, FiExternalLink,
   FiVideo, FiXCircle, FiInfo, FiCheckCircle, FiUsers, FiTrendingUp,
-  FiAlertCircle, FiArrowRight, FiGrid
+  FiAlertCircle, FiArrowRight, FiGrid, FiStar
 } from 'react-icons/fi';
 import { getImageUrl } from '../../../../utils/imageUrls';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import RatingModal from '../../../../components/RatingModal';
+import BookingModal from './BookingModal';
+import { purposeLabel } from '../../../../services/bookingRatings';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+// Days left in the 7-day rating window, floored at 0.
+const daysLeft = (expiry) =>
+  Math.max(0, Math.ceil((new Date(expiry) - Date.now()) / 86400000));
 
 const STATUS_CONFIG = {
   pending:   { bg: 'bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800', icon: '⏳' },
@@ -42,7 +49,10 @@ const UserBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [ratingTarget, setRatingTarget] = useState(null);
+  const [bookAgainStartup, setBookAgainStartup] = useState(null);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const fetchBookings = async () => {
     try {
@@ -90,6 +100,42 @@ const UserBookingsPage = () => {
     } catch (e) { console.error(e); }
   };
 
+  // "Book again" reuses BookingModal, which needs the startup's availability —
+  // the bookings list only populates companyName/logo, so fetch the full record.
+  const openBookAgain = async (startupId) => {
+    try {
+      const r = await fetch(`${baseUrl}/startupark/api/profile/startups/${startupId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const d = await r.json();
+      const startup = d.data || d.startup || d;
+      if (startup?._id) setBookAgainStartup(startup);
+      else navigate(`/startupark/startups/${startupId}`);
+    } catch (e) {
+      console.error(e);
+      navigate(`/startupark/startups/${startupId}`);
+    }
+  };
+
+  const handleRatingSubmitted = (rating, booking) => {
+    setBookings(prev => prev.map(b =>
+      b._id === booking._id
+        ? { ...b, myRatingStatus: 'submitted', myRatingScore: rating.overallScore }
+        : b
+    ));
+  };
+
+  // Deep link from a booking_rating_requested notification: ?highlight=<id>
+  useEffect(() => {
+    const highlight = searchParams.get('highlight');
+    if (!highlight || !bookings.length) return;
+    const target = bookings.find(b => b._id === highlight);
+    if (target && target.myRatingStatus === 'pending') setRatingTarget(target);
+    document.getElementById(`booking-${highlight}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    searchParams.delete('highlight');
+    setSearchParams(searchParams, { replace: true });
+  }, [bookings, searchParams, setSearchParams]);
+
   const isMeetingPast = (booking) => {
     try {
       const dt = new Date(`${new Date(booking.date).toISOString().split('T')[0]}T${booking.time}:00`);
@@ -135,7 +181,7 @@ const UserBookingsPage = () => {
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Manage your scheduled calls and meetings</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/startupark/usercalender')}
+          <button onClick={() => navigate('/startupark/bookings/calendar/user')}
             className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-xl text-sm font-semibold transition-colors">
             <FiGrid size={16} /> Calendar View
           </button>
@@ -199,7 +245,7 @@ const UserBookingsPage = () => {
             const logoUrl = getImageUrl(booking.startupId?.logo, baseUrl);
             const meetingPast = isMeetingPast(booking);
             return (
-              <div key={booking._id}
+              <div key={booking._id} id={`booking-${booking._id}`}
                 className="bg-white/70 dark:bg-zinc-800/60 backdrop-blur-sm border border-gray-200 dark:border-zinc-700/60 rounded-2xl p-5 hover:shadow-md transition-all">
                 <div className="flex items-start gap-4">
                   {/* Logo */}
@@ -237,6 +283,13 @@ const UserBookingsPage = () => {
                       <span className="bg-gray-100 dark:bg-zinc-700/60 px-2.5 py-1 rounded-lg text-xs">
                         {booking.duration || 60} min
                       </span>
+                      {booking.purpose && (
+                        <span className="bg-gray-100 dark:bg-zinc-700/60 px-2.5 py-1 rounded-lg text-xs">
+                          {booking.purpose === 'other' && booking.purposeOther
+                            ? booking.purposeOther
+                            : purposeLabel(booking.purpose)}
+                        </span>
+                      )}
                     </div>
 
                     {booking.meetingPurpose && (
@@ -289,10 +342,35 @@ const UserBookingsPage = () => {
                       </>
                     )}
                     {booking.status === 'completed' && (
-                      <Link to={`/startupark/startups/${booking.startupId?._id}`}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors">
-                        <FiCheck size={14} /> Book Again
-                      </Link>
+                      <>
+                        {booking.myRatingStatus === 'pending' && (
+                          <>
+                            <button onClick={() => setRatingTarget(booking)}
+                              className="flex items-center gap-1.5 px-3 py-2 btn-mono rounded-xl text-sm font-medium">
+                              <FiStar size={14} /> Rate this session
+                            </button>
+                            {booking.ratingWindowExpiresAt && (
+                              <span className="text-[11px] text-center text-zinc-500 dark:text-zinc-400">
+                                {daysLeft(booking.ratingWindowExpiresAt)} days left
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {booking.myRatingStatus === 'submitted' && (
+                          <span className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-black/[0.04] dark:bg-white/[0.06] text-zinc-600 dark:text-zinc-300">
+                            You rated <span className="text-amber-400">★</span>{booking.myRatingScore}/5
+                          </span>
+                        )}
+                        {booking.myRatingStatus === 'window_closed' && (
+                          <span className="px-3 py-2 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
+                            Rating window closed
+                          </span>
+                        )}
+                        <button onClick={() => openBookAgain(booking.startupId?._id)}
+                          className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-zinc-700/60 transition-colors">
+                          <FiCheck size={14} /> Book again
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -306,6 +384,24 @@ const UserBookingsPage = () => {
             );
           })}
         </div>
+      )}
+
+      {ratingTarget && (
+        <RatingModal
+          booking={ratingTarget}
+          otherParticipant={{ name: ratingTarget.startupId?.companyName || 'this startup' }}
+          onClose={() => setRatingTarget(null)}
+          onSubmit={handleRatingSubmitted}
+        />
+      )}
+
+      {bookAgainStartup && (
+        <BookingModal
+          startup={bookAgainStartup}
+          isOpen={!!bookAgainStartup}
+          onClose={() => setBookAgainStartup(null)}
+          onBookingSuccess={fetchBookings}
+        />
       )}
     </div>
   );

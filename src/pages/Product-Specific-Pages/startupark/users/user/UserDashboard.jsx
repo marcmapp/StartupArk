@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../../../../../components/Loader';
+import TrustBadge from '../../../../../components/TrustBadge';
 import { getImageUrl } from '../../../../../utils/imageUrls';
 import 'boxicons';
 
@@ -84,7 +85,10 @@ export default function UserDashboard() {
             )}
             <div>
               <p className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-1">User Dashboard</p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Welcome back, {name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Welcome back, {name}</h1>
+                <TrustBadge userId={user?._id} />
+              </div>
               <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">Discover startups, book meetings, and explore the ecosystem.</p>
             </div>
           </div>
@@ -193,7 +197,6 @@ export default function UserDashboard() {
             {[
               { label: 'Edit Profile', icon: 'user', to: '/startupark/edit-profile' },
               { label: 'My Bookings', icon: 'calendar-check', to: '/startupark/my-bookings' },
-              { label: 'My Calendar', icon: 'calendar', to: '/startupark/usercalender' },
             ].map(({ label, icon, to }) => (
               <button key={to} onClick={() => navigate(to)}
                 className="w-full flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-sm text-zinc-700 dark:text-zinc-300 transition-colors">

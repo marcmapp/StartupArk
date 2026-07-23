@@ -4,6 +4,8 @@ import { MapPin, ExternalLink } from 'lucide-react';
 import { useTalentDirectory } from './useTalentDirectory';
 import TrustBadge from './TrustBadge';
 import { MessageIcon } from './projectArkLabels';
+import { track } from '../../../../services/analytics';
+import FollowButton from '../../../../components/FollowButton';
 
 function getCurrentUserId() {
   try {
@@ -24,7 +26,10 @@ export default function TalentDetail() {
 
   useEffect(() => {
     fetchTalentProfile(profileType, id)
-      .then(setProfile)
+      .then(profile => {
+        setProfile(profile);
+        track('profile_view', 'project', profile?.id || id, { profileType });
+      })
       .catch(e => setErr(e.response?.data?.error || e.message))
       .finally(() => setLoading(false));
   }, [profileType, id, fetchTalentProfile]);
@@ -108,14 +113,17 @@ export default function TalentDetail() {
           <div className="flex items-center gap-2">
             {profile.posterTrust && <TrustBadge trust={profile.posterTrust} size="sm" />}
             {!isOwnProfile && (
-              <button
-                onClick={handleMessage}
-                disabled={messaging}
-                className="btn-mono text-sm px-4 py-2 flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <MessageIcon className="w-4 h-4" strokeWidth={2} />
-                {messaging ? 'Opening…' : 'Message'}
-              </button>
+              <>
+                <FollowButton targetUserId={profile.userId} />
+                <button
+                  onClick={handleMessage}
+                  disabled={messaging}
+                  className="btn-mono text-sm px-4 py-2 flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <MessageIcon className="w-4 h-4" strokeWidth={2} />
+                  {messaging ? 'Opening…' : 'Message'}
+                </button>
+              </>
             )}
           </div>
         </div>

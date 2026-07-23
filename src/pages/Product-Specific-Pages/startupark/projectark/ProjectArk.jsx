@@ -41,8 +41,13 @@ const MORE_CATEGORIES = CATEGORIES.slice(5);
 // Compact, content-sized select — deliberately not `.input-mono` (which is w-full and
 // meant for form fields), so filter dropdowns sit inline like pills instead of
 // stretching to fill the row.
-const SELECT_PILL = 'w-auto shrink-0 bg-zinc-900 border border-white/10 rounded-lg px-2.5 h-8 text-xs text-zinc-300 ' +
-  'outline-none focus:border-zinc-500 [&>option]:bg-zinc-900 [&>option]:text-zinc-100';
+const SELECT_PILL = 'w-auto shrink-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-lg px-2.5 h-8 text-xs text-zinc-700 dark:text-zinc-300 ' +
+  'outline-none focus:border-zinc-400 dark:focus:border-zinc-500 [&>option]:bg-white dark:[&>option]:bg-zinc-900 [&>option]:text-zinc-900 dark:[&>option]:text-zinc-100';
+
+// Selected vs. unselected pill treatment, shared by every filter row below —
+// keeps the mode/type/category toggles visually consistent with each other.
+const PILL_ACTIVE = 'ring-transparent bg-zinc-900 text-white dark:bg-white dark:text-zinc-900';
+const PILL_INACTIVE = 'ring-1 ring-black/10 dark:ring-white/10 bg-black/[0.03] dark:bg-white/[0.04] text-zinc-500 dark:text-zinc-400 hover:ring-black/20 dark:hover:ring-white/20 hover:text-zinc-700 dark:hover:text-zinc-200';
 
 const ROLE_TYPES = [
   { v: '', label: 'All' },
@@ -145,17 +150,17 @@ export default function ProjectArk() {
   const canPost = !isTalent && (isGig || userRole === 'startup');
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-10 px-4 md:px-6 py-4">
+      <div className="border-b border-zinc-200 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-10 px-4 md:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-zinc-900 ring-1 ring-zinc-700 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-zinc-300" strokeWidth={1.75} />
+            <div className="w-9 h-9 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/10 dark:ring-white/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-zinc-600 dark:text-zinc-300" strokeWidth={1.75} />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Project Ark</h1>
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">Project Ark</h1>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                 {!isTalent && !loading && `${pagination.total} ${pagination.total === 1 ? 'listing' : 'listings'} live · `}
                 {isTalent ? 'Browse skills & portfolios' : isGig ? 'Startups & talent, connected' : 'Jobs, internships, courses & freelance work'}
               </p>
@@ -179,9 +184,9 @@ export default function ProjectArk() {
             { label: 'Talent requests', value: stats?.requirements },
           ].map(stat => (
             <div key={stat.label} className="glass-card px-4 py-3">
-              <div className="text-[11px] text-zinc-500">{stat.label}</div>
-              <div className="text-2xl font-bold text-zinc-100 mt-0.5">
-                {stat.value ?? <span className="inline-block w-6 h-5 rounded bg-zinc-800 animate-pulse align-middle" />}
+              <div className="text-[11px] text-zinc-500 dark:text-zinc-400">{stat.label}</div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-0.5">
+                {stat.value ?? <span className="inline-block w-6 h-5 rounded bg-black/[0.06] dark:bg-white/10 animate-pulse align-middle" />}
               </div>
             </div>
           ))}
@@ -195,10 +200,8 @@ export default function ProjectArk() {
               <button
                 key={v}
                 onClick={() => switchMode(v)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold ring-1 transition-all ${
-                  engagementMode === v
-                    ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
-                    : 'ring-zinc-800 bg-zinc-900 text-zinc-400 hover:ring-zinc-600 hover:text-zinc-200'
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  engagementMode === v ? PILL_ACTIVE : PILL_INACTIVE
                 }`}
                 title={MODE_HINTS[v]}
               >
@@ -207,7 +210,7 @@ export default function ProjectArk() {
               </button>
             );
           })}
-          <span className="text-[11px] text-zinc-600 hidden sm:inline ml-1">{MODE_HINTS[engagementMode]}</span>
+          <span className="text-[11px] text-zinc-400 dark:text-zinc-600 hidden sm:inline ml-1">{MODE_HINTS[engagementMode]}</span>
         </div>
 
         {isTalent ? (
@@ -219,7 +222,7 @@ export default function ProjectArk() {
           {/* Search */}
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" strokeWidth={2} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
               <input
                 type="text"
                 placeholder="Search by title, skill, or keyword…"
@@ -230,11 +233,11 @@ export default function ProjectArk() {
             </div>
             <button
               onClick={() => setShowFilters(f => !f)}
-              className={`sm:hidden shrink-0 w-10 h-10 rounded-lg ring-1 flex items-center justify-center transition-all ${
-                showFilters ? 'ring-zinc-400 bg-zinc-700' : 'ring-zinc-800 bg-zinc-900'
+              className={`sm:hidden shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                showFilters ? PILL_ACTIVE : PILL_INACTIVE
               }`}
             >
-              <SlidersHorizontal className="w-4 h-4 text-zinc-300" strokeWidth={2} />
+              <SlidersHorizontal className="w-4 h-4" strokeWidth={2} />
             </button>
           </div>
 
@@ -250,14 +253,12 @@ export default function ProjectArk() {
                   <button
                     key={opt.v}
                     onClick={() => { setActiveType(opt.v); setPage(1); }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ring-1 transition-all ${
-                      activeType === opt.v
-                        ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
-                        : 'ring-zinc-800 bg-zinc-900 text-zinc-400 hover:ring-zinc-600 hover:text-zinc-200'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      activeType === opt.v ? PILL_ACTIVE : PILL_INACTIVE
                     }`}
                   >
                     {opt.label}
-                    {opt.sub && <span className="text-zinc-500 font-normal hidden lg:inline">· {opt.sub}</span>}
+                    {opt.sub && <span className="text-zinc-400 dark:text-zinc-500 font-normal hidden lg:inline">· {opt.sub}</span>}
                   </button>
                 ))
               ) : (
@@ -267,10 +268,8 @@ export default function ProjectArk() {
                     <button
                       key={opt.v}
                       onClick={() => { setActiveRoleType(opt.v); setPage(1); }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ring-1 transition-all ${
-                        activeRoleType === opt.v
-                          ? 'ring-zinc-400 bg-zinc-700 text-zinc-100'
-                          : 'ring-zinc-800 bg-zinc-900 text-zinc-400 hover:ring-zinc-600 hover:text-zinc-200'
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        activeRoleType === opt.v ? PILL_ACTIVE : PILL_INACTIVE
                       }`}
                     >
                       {Icon && <Icon className="w-3 h-3" strokeWidth={2} />}
@@ -288,17 +287,15 @@ export default function ProjectArk() {
 
             {/* Category — top pills + a dropdown for the long tail, so a 16-entry list
                 never needs a scrollbar */}
-            <div className="pt-3 border-t border-zinc-800/60 space-y-2">
-              <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Category</div>
+            <div className="pt-3 border-t border-black/[0.06] dark:border-zinc-800/60 space-y-2">
+              <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-600 uppercase tracking-wider">Category</div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {TOP_CATEGORIES.map(cat => (
                   <button
                     key={cat.value}
                     onClick={() => { setActiveCategory(cat.value); setPage(1); }}
-                    className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-medium ring-1 transition-all ${
-                      activeCategory === cat.value
-                        ? 'ring-zinc-300 bg-zinc-700 text-zinc-100'
-                        : 'ring-zinc-800 bg-zinc-900 text-zinc-500 hover:text-zinc-300 hover:ring-zinc-600'
+                    className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all ${
+                      activeCategory === cat.value ? PILL_ACTIVE : PILL_INACTIVE
                     }`}
                   >
                     {cat.label}
@@ -350,7 +347,7 @@ export default function ProjectArk() {
         {/* Results header */}
         {!loading && (
           <div className="flex items-center justify-between">
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {pagination.total} {pagination.total === 1 ? 'post' : 'posts'}
               {activeCategory ? ` in ${CATEGORIES.find(c => c.value === activeCategory)?.label}` : ''}
               {q ? ` matching "${q}"` : ''}
@@ -360,7 +357,7 @@ export default function ProjectArk() {
 
         {/* Error */}
         {error && (
-          <div className="glass-inset p-4 text-red-400 text-sm flex items-center gap-2">
+          <div className="glass-inset p-4 text-red-500 dark:text-red-400 text-sm flex items-center gap-2">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -373,26 +370,26 @@ export default function ProjectArk() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="glass-card p-5 space-y-3 animate-pulse">
-                <div className="h-3 w-20 rounded bg-zinc-800" />
-                <div className="h-4 w-full rounded bg-zinc-800" />
-                <div className="h-3 w-3/4 rounded bg-zinc-800" />
+                <div className="h-3 w-20 rounded bg-black/[0.06] dark:bg-zinc-800" />
+                <div className="h-4 w-full rounded bg-black/[0.06] dark:bg-zinc-800" />
+                <div className="h-3 w-3/4 rounded bg-black/[0.06] dark:bg-zinc-800" />
                 <div className="flex gap-1 pt-1">
-                  {[1,2,3].map(j => <div key={j} className="h-5 w-16 rounded-full bg-zinc-800" />)}
+                  {[1,2,3].map(j => <div key={j} className="h-5 w-16 rounded-full bg-black/[0.06] dark:bg-zinc-800" />)}
                 </div>
               </div>
             ))}
           </div>
         ) : posts.length === 0 ? (
           <div className="glass-inset flex flex-col items-center justify-center py-20 gap-3">
-            <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center">
-              <svg className="w-6 h-6 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-12 h-12 rounded-xl bg-black/[0.05] dark:bg-zinc-800 flex items-center justify-center">
+              <svg className="w-6 h-6 text-zinc-400 dark:text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-zinc-300 font-semibold text-base">
+            <p className="text-zinc-700 dark:text-zinc-300 font-semibold text-base">
               No {isGig ? 'projects' : 'jobs'} posted yet
             </p>
-            <p className="text-zinc-600 text-sm text-center max-w-xs">
+            <p className="text-zinc-400 dark:text-zinc-600 text-sm text-center max-w-xs">
               {canPost ? `Be the first to ${postLabel.toLowerCase()} and start connecting.` : postHint}
             </p>
             {canPost && (
@@ -434,7 +431,7 @@ export default function ProjectArk() {
                 >
                   ← Prev
                 </button>
-                <span className="text-xs text-zinc-500 px-2">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 px-2">
                   {page} / {pagination.pages}
                 </span>
                 <button
