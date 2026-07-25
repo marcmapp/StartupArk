@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useProjectArk } from './useProjectArk';
+import { useOpportunities } from './useOpportunities';
 
 const STATUS_STYLES = {
   pending:     'text-zinc-400 bg-zinc-800/60 ring-zinc-700',
@@ -18,8 +18,8 @@ const STATUS_ACTIONS = [
   { v: 'rejected', label: 'Reject', ring: 'ring-red-900/60 text-red-400 hover:ring-red-800 hover:bg-red-950/20' },
 ];
 
-export default function RoleApplicantsManager({ workPostId, positions = [] }) {
-  const { fetchApplications, updateApplicationStatus, fetchApplicationResumeUrl } = useProjectArk();
+export default function OpportunityApplicantsManager({ opportunityId }) {
+  const { fetchApplications, updateApplicationStatus, fetchApplicationResumeUrl } = useOpportunities();
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
@@ -28,26 +28,10 @@ export default function RoleApplicantsManager({ workPostId, positions = [] }) {
 
   useEffect(() => {
     fetchApplications('startup')
-      .then(all => {
-        const mine = all.filter(a => (a.workPostId?._id || a.workPostId) === workPostId);
-        setApplicants(mine);
-      })
+      .then(all => setApplicants(all.filter(a => (a.opportunityId?._id || a.opportunityId) === opportunityId)))
       .catch(e => setErr(e.response?.data?.error || e.message))
       .finally(() => setLoading(false));
-  }, [workPostId, fetchApplications]);
-
-  // Group by position when the project has required positions, so the owner reviews
-  // applicants position-by-position instead of one flat mixed list.
-  const groups = positions.length
-    ? [
-        ...positions.map(pos => ({
-          key: pos._id,
-          label: pos.title,
-          items: applicants.filter(a => String(a.positionId) === String(pos._id)),
-        })),
-        { key: 'general', label: 'General', items: applicants.filter(a => !a.positionId) },
-      ].filter(g => g.items.length)
-    : [{ key: 'all', label: null, items: applicants }];
+  }, [opportunityId, fetchApplications]);
 
   async function handleStatus(applicationId, status) {
     setUpdating(applicationId + status);
@@ -73,48 +57,30 @@ export default function RoleApplicantsManager({ workPostId, positions = [] }) {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="py-8 text-center text-zinc-600 text-sm">Loading applicants...</div>
-    );
-  }
-
-  if (err) {
-    return <p className="text-xs text-red-400 py-4">{err}</p>;
-  }
-
-  if (!applicants.length) {
-    return <p className="text-sm text-zinc-600 py-6 text-center">No applicants yet.</p>;
-  }
+  if (loading) return <div className="py-8 text-center text-zinc-600 text-sm">Loading applicants...</div>;
+  if (err) return <p className="text-xs text-red-400 py-4">{err}</p>;
+  if (!applicants.length) return <p className="text-sm text-zinc-600 py-6 text-center">No applicants yet.</p>;
 
   return (
-    <div className="space-y-5">
-      {groups.map(group => (
-      <div key={group.key} className="space-y-3">
-        {group.label && (
-          <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{group.label}</h4>
-        )}
-      {group.items.map(a => {
-        const applicant = a.studentId || a.userId || a.applicantId;
+    <div className="space-y-3">
+      {applicants.map(a => {
+        const applicant = a.studentId;
         const canAct = !['accepted', 'rejected'].includes(a.status);
 
         return (
           <div key={a._id} className="glass-card px-4 py-4 flex flex-col gap-3">
-            {/* Header */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 {applicant?.profilePicture ? (
                   <img src={applicant.profilePicture} alt="" className="w-8 h-8 rounded-full object-cover" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400">
-                    {(applicant?.username || applicant?.name)?.[0]?.toUpperCase() || '?'}
+                    {applicant?.username?.[0]?.toUpperCase() || '?'}
                   </div>
                 )}
                 <div>
-                  <div className="text-sm font-medium text-zinc-200">{applicant?.username || applicant?.name || 'Unknown'}</div>
-                  {applicant?.email && (
-                    <div className="text-xs text-zinc-500">{applicant.email}</div>
-                  )}
+                  <div className="text-sm font-medium text-zinc-200">{applicant?.username || 'Unknown'}</div>
+                  {applicant?.email && <div className="text-xs text-zinc-500">{applicant.email}</div>}
                 </div>
               </div>
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded ring-1 capitalize ${STATUS_STYLES[a.status] || STATUS_STYLES.pending}`}>
@@ -122,16 +88,10 @@ export default function RoleApplicantsManager({ workPostId, positions = [] }) {
               </span>
             </div>
 
-            {/* Cover letter */}
-            {a.coverLetter && (
-              <p className="text-xs text-zinc-400 leading-relaxed line-clamp-3">{a.coverLetter}</p>
-            )}
+            {a.coverLetter && <p className="text-xs text-zinc-400 leading-relaxed line-clamp-3">{a.coverLetter}</p>}
 
-            {/* Resume + applied date */}
             <div className="flex items-center gap-4 text-xs text-zinc-500">
-              {a.appliedAt && (
-                <span>Applied: <span className="text-zinc-300">{new Date(a.appliedAt).toLocaleDateString()}</span></span>
-              )}
+              {a.appliedAt && <span>Applied: <span className="text-zinc-300">{new Date(a.appliedAt).toLocaleDateString()}</span></span>}
               {a.resume && (
                 <button
                   onClick={() => handleDownloadResume(a._id)}
@@ -148,7 +108,6 @@ export default function RoleApplicantsManager({ workPostId, positions = [] }) {
               )}
             </div>
 
-            {/* Action buttons */}
             {canAct && (
               <div className="flex gap-2 pt-1 flex-wrap">
                 {STATUS_ACTIONS.map(action => (
@@ -166,8 +125,6 @@ export default function RoleApplicantsManager({ workPostId, positions = [] }) {
           </div>
         );
       })}
-      </div>
-      ))}
     </div>
   );
 }

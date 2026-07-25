@@ -30,7 +30,7 @@ export const hubItems = {
 };
 
 export const globalItems = [
-  { id: 'hub',          label: 'Hub',          icon: 'IconLayoutDashboard', route: '/dashboard' },
+  { id: 'hub',          label: 'MappArks',     icon: 'IconLayoutDashboard', route: '/dashboard' },
   { id: 'settings',     label: 'Settings',     icon: 'IconSettings',        route: '/settings'  },
   { id: 'profile',      label: 'My Profile',   icon: 'IconUser',            route: '/profile'   },
   { id: 'subscription', label: 'Subscription', icon: 'IconCreditCard',      route: '/pricing'   },
@@ -64,9 +64,11 @@ export const navRegistry = {
     // it was a straight duplicate of the switch already available there.
     { id: 'updates',           label: 'Newsletter',     icon: 'IconNews',          route: '/startupark/updates',              category: 'secondary', product: 'startupark' },
     { id: 'bookings',          label: 'Bookings',       icon: 'IconCalendarStats', route: '/startupark/manage-bookings',      category: 'secondary', product: 'startupark' },
-    // Tier 3 C#9: startup-only entry point into the existing Talent Directory,
-    // pre-filtered to students — not a separate page.
-    { id: 'student-list',      label: 'Students',       icon: 'IconUsers',         route: '/startupark/projectark?mode=talent&type=student', category: 'secondary', product: 'startupark' },
+    // C#8: superseded the startup-only 'student-list' shortcut into the Talent
+    // Directory — now a full page reachable by all three roles (see below), with
+    // a Students tab (same directory, pre-filterable via ?type=) and a Talent tab
+    // (new self-marketing Talent Posts).
+    { id: 'students-hub',      label: 'Students Hub',   icon: 'IconUsers',         route: '/startupark/students-hub',         category: 'secondary', product: 'startupark' },
     // ── Flowboard ─────────────────────────────────────────────────────────
     { id: 'flowboard-canvas',   label: 'Canvas',   icon: 'IconMicrophone', route: '/flowboard',          category: 'primary',   product: 'flowboard' },
     { id: 'flowboard-tasks',    label: 'Tasks',    icon: 'IconListCheck',  route: '/flowboard/tasks',    category: 'primary',   product: 'flowboard' },
@@ -89,6 +91,7 @@ export const navRegistry = {
     { id: 'events',            label: 'Events',          icon: 'IconCalendarEvent', route: '/startupark/events',              category: 'secondary', product: 'startupark' },
     { id: 'updates',           label: 'Newsletter',      icon: 'IconNews',          route: '/startupark/updates',             category: 'secondary', product: 'startupark' },
     { id: 'my-bookings',       label: 'My Bookings',     icon: 'IconCalendarStats', route: '/startupark/my-bookings',         category: 'secondary', product: 'startupark' },
+    { id: 'students-hub',      label: 'Students Hub',    icon: 'IconUsers',         route: '/startupark/students-hub',        category: 'secondary', product: 'startupark' },
     // ── Flowboard ─────────────────────────────────────────────────────────
     { id: 'flowboard-canvas',   label: 'Canvas',   icon: 'IconMicrophone', route: '/flowboard',          category: 'primary',   product: 'flowboard' },
     { id: 'flowboard-tasks',    label: 'Tasks',    icon: 'IconListCheck',  route: '/flowboard/tasks',    category: 'primary',   product: 'flowboard' },
@@ -111,6 +114,7 @@ export const navRegistry = {
     { id: 'events',            label: 'Events',          icon: 'IconCalendarEvent', route: '/startupark/events',              category: 'secondary', product: 'startupark' },
     { id: 'updates',           label: 'Newsletter',      icon: 'IconNews',          route: '/startupark/updates',             category: 'secondary', product: 'startupark' },
     { id: 'meetings',          label: 'Meetings',        icon: 'IconCalendarStats', route: '/startupark/my-bookings',         category: 'secondary', product: 'startupark' },
+    { id: 'students-hub',      label: 'Students Hub',    icon: 'IconUsers',         route: '/startupark/students-hub',        category: 'secondary', product: 'startupark' },
     // ── Flowboard ─────────────────────────────────────────────────────────
     { id: 'flowboard-canvas',   label: 'Canvas',   icon: 'IconMicrophone', route: '/flowboard',          category: 'primary',   product: 'flowboard' },
     { id: 'flowboard-tasks',    label: 'Tasks',    icon: 'IconListCheck',  route: '/flowboard/tasks',    category: 'primary',   product: 'flowboard' },

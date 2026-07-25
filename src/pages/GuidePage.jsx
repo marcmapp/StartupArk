@@ -54,7 +54,7 @@ const NAV_DESCRIPTIONS = {
   'bookings': 'Manage incoming booking requests from users and students.',
   'my-bookings': 'Sessions you’ve booked with startups.',
   'meetings': 'Sessions you’ve booked with startups.',
-  'student-list': 'The Talent Directory, pre-filtered to student profiles — find student talent fast.',
+  'students-hub': 'Browse student & professional profiles, or self-marketing Talent Posts you can invite directly.',
   'flowboard-canvas': 'Flowboard’s voice-to-notes canvas.',
   'flowboard-tasks': 'Tasks captured or created in Flowboard.',
   'flowboard-activity': 'Recent Flowboard activity across your workspace.',
@@ -197,7 +197,12 @@ const GuidePage = () => {
   const roleLabel = ROLE_LANE_LABEL[role] || 'Your nav';
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-hidden bg-zinc-200 dark:bg-zinc-950">
+    // top-16 keeps this below the app Header (z-50, h-16) instead of covering
+    // it — the canvas used to sit at inset-0/z-[60] and blot out the logo +
+    // search bar for the entire time the guide was open. z-45 stays above the
+    // FloatingDock (z-40) so the real dock still doesn't show through
+    // underneath the guide's own illustration of it.
+    <div className="fixed inset-x-0 top-16 bottom-0 z-[45] overflow-hidden bg-zinc-200 dark:bg-zinc-950">
       {/* canvas surface — owns pan/zoom, sits full-bleed beneath the HUD */}
       <div
         className={`absolute inset-0 touch-none ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
@@ -228,8 +233,10 @@ const GuidePage = () => {
         )}
       </div>
 
-      {/* top toolbar — sibling of the canvas surface, never hijacked by drag */}
-      <div className="fixed top-4 left-4 right-4 z-10 flex items-center gap-3 glass-panel px-4 py-3">
+      {/* top toolbar — sibling of the canvas surface, never hijacked by drag.
+          top-4 here is relative to this container (which now starts below
+          the app Header), not the viewport, so it no longer sits underneath it. */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex items-center gap-3 glass-panel px-4 py-3">
         <button
           onClick={() => navigate(-1)}
           className="glass-inset flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition-colors"

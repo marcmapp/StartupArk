@@ -12,27 +12,27 @@ import {
   Crown, Users, Users2, Lightbulb, Code2, MessageCircle, TrendingUp
 } from 'lucide-react';
 
-// "Talent Requests" (postType:'requirement') and "Talent Directory" (this mode) are
-// deliberately worded distinctly — the former is a demand-side post ("I need a
-// startup"), the latter is a browsable list of people's skills/portfolios. Keep them
-// visually and verbally separate; conflating them is the confusion that led to this
-// feature being scoped out in the first place.
+// C#8: the Talent Directory mode moved out of Project Ark entirely, onto the
+// Students Hub page (see students-hub/StudentsHub.jsx) alongside the new
+// self-marketing Talent Posts. Project Ark now toggles Projects (gig/role,
+// unchanged) against standalone Opportunities (routes/startupark-opportunities.cjs
+// — jobs/internships/courses/freelance not tied to any project).
 export const MODE_LABELS = {
   gig: 'Projects',
   role: 'Jobs & Internships',
-  talent: 'Talent Directory',
+  opportunity: 'Opportunities',
 };
 
 export const MODE_HINTS = {
   gig: 'Collaborative work — startup projects & the positions inside them',
   role: 'Structured jobs, internships, courses & freelance openings',
-  talent: 'Browse student & professional profiles — skills, portfolios, and how to reach them',
+  opportunity: 'Standalone jobs, internships, courses & freelance work — not tied to a project',
 };
 
 export const MODE_ICONS = {
   gig: Rocket,
   role: Briefcase,
-  talent: Users2,
+  opportunity: GraduationCap,
 };
 
 export const POST_TYPE_LABELS = {

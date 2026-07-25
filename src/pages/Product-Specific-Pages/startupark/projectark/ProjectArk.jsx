@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, X, Sparkles } from 'lucide-react';
 import { useProjectArk } from './useProjectArk';
 import WorkPostCard from './WorkPostCard';
-import TalentDirectory from './TalentDirectory';
+import OpportunityBoard from './OpportunityBoard';
 import {
   MODE_LABELS, MODE_HINTS, MODE_ICONS,
   POST_TYPE_LABELS, POST_TYPE_HINTS,
@@ -59,13 +59,26 @@ const ROLE_TYPES = [
 
 export default function ProjectArk() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { posts, pagination, loading, error, fetchPosts, fetchViewerContext, fetchStats } = useProjectArk();
 
   const [viewer, setViewer] = useState(null); // { role, startupId, userId } — authoritative, from server
   const [stats, setStats] = useState(null); // { total, projects, requirements }
   const isAuthenticated = !!localStorage.getItem('token');
 
-  const initialMode = ['role', 'talent'].includes(searchParams.get('mode')) ? searchParams.get('mode') : 'gig';
+  // The Talent Directory mode moved to the Students Hub page (C#8) — send anyone
+  // still landing here with the old ?mode=talent shortcut (e.g. the startup nav
+  // item, or a bookmark) straight there instead of silently falling back to gig
+  // mode and losing their ?type filter.
+  useEffect(() => {
+    if (searchParams.get('mode') === 'talent') {
+      const type = searchParams.get('type');
+      navigate(`/startupark/students-hub?tab=students${type ? `&type=${type}` : ''}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const initialMode = ['role', 'opportunity'].includes(searchParams.get('mode')) ? searchParams.get('mode') : 'gig';
   const [engagementMode, setEngagementMode] = useState(initialMode);
   const [activeType, setActiveType] = useState('');
   const [activeRoleType, setActiveRoleType] = useState('');
@@ -85,8 +98,9 @@ export default function ProjectArk() {
   }, [fetchStats]);
 
   const doFetch = useCallback(() => {
-    // The Talent Directory tab manages its own fetching (people, not WorkPosts).
-    if (engagementMode === 'talent') return;
+    // The Opportunities tab manages its own fetching (standalone Opportunity
+    // records, not WorkPosts) — see OpportunityBoard.
+    if (engagementMode === 'opportunity') return;
     fetchPosts({
       engagementMode,
       postType: engagementMode === 'gig' ? activeType : '',
@@ -117,37 +131,46 @@ export default function ProjectArk() {
   const hasFilter = activeType || activeRoleType || activeCategory || workLocation || budgetType || q;
 
   const isGig = engagementMode === 'gig';
-  const isTalent = engagementMode === 'talent';
+  const isOpportunity = engagementMode === 'opportunity';
   const userRole = viewer?.role || 'user';
 
   // Role-aware primary CTA. Once authenticated, the server-derived role decides the
   // label/target — a startup always gets "Post a startup project", talent (user or
   // student) always gets "Post a talent request". Only when we genuinely don't know
   // who's asking (logged out) do we fall back to whatever sub-tab is active, so the
-  // button still matches what the visitor is looking at. The Talent Directory tab has
-  // no post action at all — profiles are edited on the existing student/user profile
-  // pages, not created here.
-  let postLabel, postType;
-  if (!isGig && !isTalent) {
+  // button still matches what the visitor is looking at. Opportunities are
+  // startup-only, and post through the standalone Opportunity model instead of
+  // WorkPost — a distinct create route from Jobs & Internships (role mode).
+  let postLabel, postType, postHref;
+  if (isOpportunity) {
+    postLabel = 'Post an Opportunity';
+    postType = 'opportunity';
+    postHref = '/startupark/projectark/opportunities/create';
+  } else if (!isGig) {
     postLabel = 'Post a Job / Internship';
     postType = 'role';
+    postHref = '/startupark/projectark/create';
   } else if (isAuthenticated && userRole === 'startup') {
     postLabel = 'Post a Startup Project';
     postType = 'project';
+    postHref = '/startupark/projectark/create';
   } else if (isAuthenticated) {
     postLabel = 'Post a Talent Request';
     postType = 'requirement';
+    postHref = '/startupark/projectark/create';
   } else {
     postType = activeType === 'project' ? 'project' : 'requirement';
     postLabel = postType === 'project' ? 'Post a Startup Project' : 'Post a Talent Request';
+    postHref = '/startupark/projectark/create';
   }
 
   const postHint = isGig
     ? (postType === 'project' ? `You need talent — ${POST_TYPE_HINTS.project}` : `You need a startup — ${POST_TYPE_HINTS.requirement}`)
     : 'Hire talent — post a job, internship, course, or freelance opening';
-  // Jobs & Internships is startup-only; Projects mode is open to everyone (the label
-  // above already routes each visitor to the right side of it); Talent Directory never posts.
-  const canPost = !isTalent && (isGig || userRole === 'startup');
+  // Jobs & Internships and Opportunities are both startup-only; Projects mode is
+  // open to everyone (the label above already routes each visitor to the right
+  // side of it).
+  const canPost = isGig || userRole === 'startup';
 
   return (
     <div className="min-h-screen">
@@ -161,13 +184,13 @@ export default function ProjectArk() {
             <div>
               <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">Project Ark</h1>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                {!isTalent && !loading && `${pagination.total} ${pagination.total === 1 ? 'listing' : 'listings'} live · `}
-                {isTalent ? 'Browse skills & portfolios' : isGig ? 'Startups & talent, connected' : 'Jobs, internships, courses & freelance work'}
+                {!isOpportunity && !loading && `${pagination.total} ${pagination.total === 1 ? 'listing' : 'listings'} live · `}
+                {isOpportunity ? 'Standalone jobs, internships, courses & freelance work' : isGig ? 'Startups & talent, connected' : 'Jobs, internships, courses & freelance work'}
               </p>
             </div>
           </div>
           {canPost && (
-            <Link to="/startupark/projectark/create" className="btn-mono text-sm px-4 py-2 shrink-0">
+            <Link to={postHref} className="btn-mono text-sm px-4 py-2 shrink-0">
               + {postLabel}
             </Link>
           )}
@@ -192,9 +215,9 @@ export default function ProjectArk() {
           ))}
         </div>
 
-        {/* Projects / Jobs / Talent Directory mode toggle */}
+        {/* Projects / Jobs / Opportunities mode toggle */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {['gig', 'role', 'talent'].map(v => {
+          {['gig', 'role', 'opportunity'].map(v => {
             const Icon = MODE_ICONS[v];
             return (
               <button
@@ -213,8 +236,8 @@ export default function ProjectArk() {
           <span className="text-[11px] text-zinc-400 dark:text-zinc-600 hidden sm:inline ml-1">{MODE_HINTS[engagementMode]}</span>
         </div>
 
-        {isTalent ? (
-          <TalentDirectory />
+        {isOpportunity ? (
+          <OpportunityBoard userRole={userRole} viewerStartupId={viewer?.startupId} />
         ) : (
         <>
         {/* Type tabs + search row */}

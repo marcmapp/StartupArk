@@ -11,6 +11,7 @@ import {
   POST_TYPE_SHORT, ROLE_TYPE_LABELS, ROLE_TYPE_ICONS,
   POSITION_CATEGORY, POSITION_STATUS_STYLE, COMMITMENT_LABELS, COMPENSATION_LABELS,
 } from './projectArkLabels';
+import { formatCurrency } from '../../../../utils/currency';
 
 const BUDGET_LABEL = { fixed: 'Fixed', hourly: '/hr', equity: 'Equity', volunteer: 'Volunteer', negotiable: 'Negotiable' };
 const LOCATION_ICON = { remote: Globe, onsite: MapPin, hybrid: GitMerge };
@@ -21,7 +22,7 @@ function formatBudget(post) {
   if (post.budgetType === 'equity') return 'Equity';
   if (post.budgetType === 'negotiable') return 'Negotiable';
   if (!post.budgetMin && !post.budgetMax) return 'Open';
-  const fmt = n => n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : n >= 1000 ? `₹${(n / 1000).toFixed(0)}k` : `₹${n}`;
+  const fmt = n => formatCurrency(n, { compact: true });
   if (post.budgetMin && post.budgetMax) return `${fmt(post.budgetMin)} – ${fmt(post.budgetMax)}`;
   if (post.budgetMax) return `≤ ${fmt(post.budgetMax)}`;
   return `${fmt(post.budgetMin)}+`;
@@ -29,7 +30,7 @@ function formatBudget(post) {
 
 function formatPrice(n) {
   if (n == null) return '';
-  return n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : n >= 1000 ? `₹${(n / 1000).toFixed(0)}k` : `₹${n}`;
+  return formatCurrency(n, { compact: true });
 }
 
 // A single position sub-card with its own apply/propose CTA — the "team you're
@@ -75,8 +76,11 @@ function PositionCard({ position, post, isOwner, myResponse, onApply }) {
         </span>
         {!isOwner && (
           myResponse ? (
-            <span className="text-[11px] px-2.5 py-1 rounded-lg ring-1 ring-green-800/50 bg-green-950/20 text-green-400">
+            <span className="text-[11px] px-2.5 py-1 rounded-lg ring-1 ring-green-800/50 bg-green-950/20 text-green-400 flex items-center gap-2">
               {myResponse.status || 'submitted'}
+              {myResponse.status === 'accepted' && myResponse.conversationId && (
+                <a href="/startupark/chat" className="text-emerald-300 underline underline-offset-2">Open chat</a>
+              )}
             </span>
           ) : position.status === 'open' && post.status === 'open' ? (
             <button onClick={() => onApply(position)} className="btn-mono px-3 py-1.5 text-xs">
@@ -148,7 +152,7 @@ export default function WorkPostDetail() {
         .forEach(p => { mine[p.positionId || 'flat'] = { status: p.status, kind: 'proposal' }; });
       applications
         .filter(a => (a.workPostId?._id || a.workPostId) === postId)
-        .forEach(a => { mine[a.positionId || 'flat'] = { status: a.status, kind: 'application' }; });
+        .forEach(a => { mine[a.positionId || 'flat'] = { status: a.status, kind: 'application', conversationId: a.conversationId }; });
       setMyResponses(mine);
     });
   }, [post, postId, isOwner, fetchProposals, fetchApplications]);
@@ -285,8 +289,11 @@ export default function WorkPostDetail() {
           {!isOwner && !hasPositions && (
             <div className="shrink-0">
               {myResponses.flat ? (
-                <div className="text-xs px-3 py-2 rounded-lg ring-1 ring-green-800/50 bg-green-950/20 text-green-400">
-                  {isRole ? 'Application' : 'Proposal'} {myResponses.flat.status}
+                <div className="text-xs px-3 py-2 rounded-lg ring-1 ring-green-800/50 bg-green-950/20 text-green-400 flex flex-col items-end gap-1">
+                  <span>{isRole ? 'Application' : 'Proposal'} {myResponses.flat.status}</span>
+                  {myResponses.flat.status === 'accepted' && myResponses.flat.conversationId && (
+                    <a href="/startupark/chat" className="text-emerald-300 underline underline-offset-2">Open chat</a>
+                  )}
                 </div>
               ) : canApplyFlat && post.status === 'open' ? (
                 <button onClick={() => setActivePosition('flat')} className="btn-mono px-4 py-2 text-sm">

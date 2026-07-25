@@ -64,6 +64,14 @@ import CreateWorkPost from "../pages/Product-Specific-Pages/startupark/projectar
 import WorkPostDetail from "../pages/Product-Specific-Pages/startupark/projectark/WorkPostDetail";
 import EngagementDetail from "../pages/Product-Specific-Pages/startupark/projectark/EngagementDetail";
 import TalentDetail from "../pages/Product-Specific-Pages/startupark/projectark/TalentDetail";
+import OpportunityDetail from "../pages/Product-Specific-Pages/startupark/projectark/OpportunityDetail";
+import CreateOpportunity from "../pages/Product-Specific-Pages/startupark/projectark/CreateOpportunity";
+
+// Students Hub (C#8) — Students tab reuses TalentDirectory/TalentDetail above;
+// Talent tab is the new self-marketing Talent Posts.
+import StudentsHub from "../pages/Product-Specific-Pages/startupark/students-hub/StudentsHub";
+import TalentPostDetail from "../pages/Product-Specific-Pages/startupark/projectark/TalentPostDetail";
+import CreateTalentPost from "../pages/Product-Specific-Pages/startupark/projectark/CreateTalentPost";
 
 // Flowboard (task studio product)
 import FlowboardCanvas from "../pages/Product-Specific-Pages/flowboard/FlowboardCanvas";
@@ -186,7 +194,15 @@ export const privateRoutes = [
   { path: "/startupark/projectark/create",             element: <PrivateRoute><LayoutWrapper><CreateWorkPost /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/projectark/posts/:postId",      element: <PrivateRoute><LayoutWrapper><WorkPostDetail /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/projectark/talent/:profileType/:id", element: <PrivateRoute><LayoutWrapper><TalentDetail /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/projectark/opportunities/create", element: <PrivateRoute><LayoutWrapper><CreateOpportunity /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/projectark/opportunities/:opportunityId", element: <PrivateRoute><LayoutWrapper><OpportunityDetail /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/engagements/:engagementId",     element: <PrivateRoute><LayoutWrapper><EngagementDetail /></LayoutWrapper></PrivateRoute> },
+
+  // Students Hub (C#8)
+  { path: "/startupark/students-hub",                   element: <PrivateRoute><LayoutWrapper><StudentsHub /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/students-hub/talent/create",      element: <PrivateRoute><LayoutWrapper><CreateTalentPost /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/students-hub/talent/:talentPostId/edit", element: <PrivateRoute><LayoutWrapper><CreateTalentPost /></LayoutWrapper></PrivateRoute> },
+  { path: "/startupark/students-hub/talent/:talentPostId", element: <PrivateRoute><LayoutWrapper><TalentPostDetail /></LayoutWrapper></PrivateRoute> },
 
   // Flowboard
   { path: "/flowboard",          element: <PrivateRoute><LayoutWrapper><FlowboardCanvasOrComingSoon /></LayoutWrapper></PrivateRoute> },
