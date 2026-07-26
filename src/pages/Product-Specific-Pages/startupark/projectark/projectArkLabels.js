@@ -14,25 +14,40 @@ import {
 
 // C#8: the Talent Directory mode moved out of Project Ark entirely, onto the
 // Students Hub page (see students-hub/StudentsHub.jsx) alongside the new
-// self-marketing Talent Posts. Project Ark now toggles Projects (gig/role,
-// unchanged) against standalone Opportunities (routes/startupark-opportunities.cjs
-// — jobs/internships/courses/freelance not tied to any project).
-export const MODE_LABELS = {
-  gig: 'Projects',
-  role: 'Jobs & Internships',
+// self-marketing Talent Posts. Project Ark is now a two-level toggle, not three
+// flat tabs — a flat gig/role/opportunity tab bar made "Jobs & Internships" (role)
+// and "Opportunities" look like two competing versions of the same thing, when
+// they're deliberately different: role postings live under a project, Opportunities
+// don't. Top level: Projects (wraps gig + role) vs Opportunities. Second level,
+// shown only inside Projects: gig vs role.
+export const TAB_LABELS = {
+  projects: 'Projects',
   opportunity: 'Opportunities',
+};
+
+export const TAB_HINTS = {
+  projects: 'Startup projects, and the jobs/internships tied to them',
+  opportunity: 'Standalone jobs, internships, courses & freelance work — not tied to a project',
+};
+
+export const TAB_ICONS = {
+  projects: Rocket,
+  opportunity: GraduationCap,
+};
+
+export const MODE_LABELS = {
+  gig: 'Startup Projects',
+  role: 'Jobs & Internships',
 };
 
 export const MODE_HINTS = {
   gig: 'Collaborative work — startup projects & the positions inside them',
-  role: 'Structured jobs, internships, courses & freelance openings',
-  opportunity: 'Standalone jobs, internships, courses & freelance work — not tied to a project',
+  role: 'Structured jobs, internships, courses & freelance openings, tied to a project',
 };
 
 export const MODE_ICONS = {
   gig: Rocket,
   role: Briefcase,
-  opportunity: GraduationCap,
 };
 
 export const POST_TYPE_LABELS = {

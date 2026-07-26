@@ -8,10 +8,14 @@ import TalentPostCard from './TalentPostCard';
 // Talent tab of the Students Hub — self-marketing Talent Posts (opt-in listings
 // the owner writes themselves). Distinct from the Students tab, which reuses the
 // existing auto-listed profile directory (TalentDirectory.jsx).
-export default function TalentPostBoard({ viewerId }) {
+export default function TalentPostBoard({ viewerId, viewerRole }) {
   const { talentPosts, pagination, loading, error, fetchTalentPosts } = useTalentPosts();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+
+  // Talent Posts are self-marketing listings by people looking for work — startups
+  // invite talent (see the Invite button on each card), they don't post themselves.
+  const canPostTalent = viewerRole !== 'startup';
 
   const doFetch = useCallback(() => {
     fetchTalentPosts({ q, page });
@@ -32,9 +36,11 @@ export default function TalentPostBoard({ viewerId }) {
             className="input-mono text-sm w-full pl-9 h-10"
           />
         </div>
-        <Link to="/startupark/students-hub/talent/create" className="btn-mono text-sm px-4 py-2 shrink-0">
-          + Post your talent
-        </Link>
+        {canPostTalent && (
+          <Link to="/startupark/students-hub/talent/create" className="btn-mono text-sm px-4 py-2 shrink-0">
+            + Post your talent
+          </Link>
+        )}
       </div>
 
       {!loading && (
@@ -67,11 +73,13 @@ export default function TalentPostBoard({ viewerId }) {
           </div>
           <p className="text-zinc-700 dark:text-zinc-300 font-semibold text-base">No talent posts yet</p>
           <p className="text-zinc-400 dark:text-zinc-600 text-sm text-center max-w-xs">
-            Be the first to post your skills and let startups invite you directly.
+            {canPostTalent ? 'Be the first to post your skills and let startups invite you directly.' : 'Once people post their skills here, you can invite them directly.'}
           </p>
-          <Link to="/startupark/students-hub/talent/create" className="btn-mono text-sm px-5 py-2 mt-1">
-            + Post your talent
-          </Link>
+          {canPostTalent && (
+            <Link to="/startupark/students-hub/talent/create" className="btn-mono text-sm px-5 py-2 mt-1">
+              + Post your talent
+            </Link>
+          )}
         </div>
       ) : (
         <>

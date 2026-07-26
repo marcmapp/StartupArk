@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useTalentPosts } from './useTalentPosts';
+import { useProjectArk } from './useProjectArk';
 
 export default function CreateTalentPost() {
   const navigate = useNavigate();
   const { talentPostId } = useParams();
   const isEdit = !!talentPostId;
   const { fetchTalentPost, createTalentPost, updateTalentPost } = useTalentPosts();
+  const { fetchViewerContext } = useProjectArk();
 
+  const [viewer, setViewer] = useState(null);
+  const [viewerLoading, setViewerLoading] = useState(true);
   const [form, setForm] = useState({
     headline: '',
     pitch: '',
@@ -17,6 +21,13 @@ export default function CreateTalentPost() {
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  // Talent Posts are self-marketing listings by people looking for work — a startup
+  // has no reason to post one, and letting them would confuse the invite direction
+  // (startups are meant to invite talent, not list themselves as talent).
+  useEffect(() => {
+    fetchViewerContext().then(setViewer).catch(() => setViewer(null)).finally(() => setViewerLoading(false));
+  }, [fetchViewerContext]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -59,7 +70,7 @@ export default function CreateTalentPost() {
     }
   }
 
-  if (loading) {
+  if (loading || viewerLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="text-zinc-600 text-sm">Loading...</div>
@@ -67,10 +78,21 @@ export default function CreateTalentPost() {
     );
   }
 
+  if (viewer?.role === 'startup') {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="text-sm text-zinc-300">Talent Posts are for people looking for work — startups invite talent instead.</p>
+        <Link to="/startupark/students-hub?tab=talent" className="text-xs text-zinc-500 hover:text-zinc-300">
+          Back to Students Hub
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="border-b border-zinc-800/60 px-4 md:px-6 py-4 sticky top-0 z-10 bg-zinc-950/90 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
+        <div className="max-w-2xl lg:max-w-[1600px] mx-auto flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="btn-ghost text-xs px-3 py-1.5 shrink-0">← Back</button>
           <div>
             <h1 className="text-base font-bold">{isEdit ? 'Edit Talent Post' : 'Post Your Talent'}</h1>
@@ -79,7 +101,7 @@ export default function CreateTalentPost() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 space-y-4">
+      <div className="max-w-2xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-4">
         {error && (
           <div className="glass-inset p-3 text-red-400 text-sm flex items-center gap-2">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

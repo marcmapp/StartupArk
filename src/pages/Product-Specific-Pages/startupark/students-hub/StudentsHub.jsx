@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Users2, Sparkles } from 'lucide-react';
 import TalentDirectory from '../projectark/TalentDirectory';
 import TalentPostBoard from '../projectark/TalentPostBoard';
@@ -18,12 +19,21 @@ const TABS = [
 // surfaces the new self-marketing Talent Posts on the Talent tab. Reachable by
 // all three roles, no gating beyond login.
 export default function StudentsHub() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { fetchViewerContext } = useProjectArk();
   const [viewer, setViewer] = useState(null);
 
   const initialTab = ['students', 'talent'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'students';
   const [tab, setTab] = useState(initialTab);
+
+  function switchTab(v) {
+    setTab(v);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', v);
+      return next;
+    }, { replace: true });
+  }
 
   useEffect(() => {
     fetchViewerContext().then(setViewer).catch(() => setViewer(null));
@@ -32,7 +42,7 @@ export default function StudentsHub() {
   return (
     <div className="min-h-screen">
       <div className="border-b border-zinc-200 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-10 px-4 md:px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center gap-3">
+        <div className="max-w-6xl lg:max-w-[1600px] mx-auto flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/10 dark:ring-white/10 flex items-center justify-center shrink-0">
             <Users2 className="w-4 h-4 text-zinc-600 dark:text-zinc-300" strokeWidth={1.75} />
           </div>
@@ -43,14 +53,14 @@ export default function StudentsHub() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 space-y-5">
+      <div className="max-w-6xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-5 space-y-5">
         <div className="flex items-center gap-1.5 flex-wrap">
           {TABS.map(t => {
             const Icon = t.icon;
             return (
               <button
                 key={t.v}
-                onClick={() => setTab(t.v)}
+                onClick={() => switchTab(t.v)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                   tab === t.v ? PILL_ACTIVE : PILL_INACTIVE
                 }`}
@@ -63,7 +73,17 @@ export default function StudentsHub() {
           })}
         </div>
 
-        {tab === 'students' ? <TalentDirectory /> : <TalentPostBoard viewerId={viewer?.userId} />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+          >
+            {tab === 'students' ? <TalentDirectory /> : <TalentPostBoard viewerId={viewer?.userId} viewerRole={viewer?.role} />}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
