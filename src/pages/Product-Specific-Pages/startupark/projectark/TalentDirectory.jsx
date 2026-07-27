@@ -86,7 +86,7 @@ export default function TalentDirectory() {
           </div>
           <p className="text-zinc-700 dark:text-zinc-300 font-semibold text-base">No profiles found</p>
           <p className="text-zinc-400 dark:text-zinc-600 text-sm text-center max-w-xs">
-            Profiles show up here once a student or professional adds at least one skill or portfolio item.
+            {q ? `No profile has a skill matching "${q}".` : 'No student or professional profiles yet.'}
           </p>
         </div>
       ) : (

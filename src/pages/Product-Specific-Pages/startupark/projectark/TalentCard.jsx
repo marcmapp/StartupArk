@@ -36,7 +36,7 @@ export default function TalentCard({ profile }) {
         {profile.posterTrust && <TrustBadge trust={profile.posterTrust} size="xs" />}
       </div>
 
-      {profile.skills?.length > 0 && (
+      {profile.skills?.length > 0 ? (
         <div className="flex flex-wrap gap-1">
           {profile.skills.slice(0, 4).map(s => (
             <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-black/[0.04] dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 ring-1 ring-black/10 dark:ring-zinc-700/60">
@@ -47,6 +47,11 @@ export default function TalentCard({ profile }) {
             <span className="text-[10px] text-zinc-400 dark:text-zinc-600 self-center">+{profile.skills.length - 4}</span>
           )}
         </div>
+      ) : (
+        // Every active profile is listed regardless of completion (see
+        // routes/projectark-talent.cjs) — a plain placeholder keeps the card from
+        // looking broken/empty instead of just omitting the row.
+        <span className="text-[10px] text-zinc-400 dark:text-zinc-600 italic">No skills listed yet</span>
       )}
 
       <div className="flex items-center justify-between pt-2 border-t border-black/[0.06] dark:border-zinc-800/60 text-[11px] text-zinc-500 dark:text-zinc-500">
