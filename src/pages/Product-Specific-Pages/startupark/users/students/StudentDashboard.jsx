@@ -134,6 +134,7 @@ export default function StudentDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <ActionCard title="Browse Startups" desc="Find startups to apply to" icon="rocket" onClick={() => navigate('/startupark/startupsList')} />
               <ActionCard title="Career LaunchPad" desc="Jobs, internships & opportunities" icon="briefcase" onClick={() => navigate('/startupark/projectark?mode=role')} />
+              <ActionCard title="Pitch Yourself to Startups" desc="Post what you're looking for — startups reach out to you" icon="megaphone" onClick={() => navigate('/startupark/projectark/create')} />
               <ActionCard title="Explore Products" desc="Discover startup products" icon="box" onClick={() => navigate('/products')} />
               <ActionCard title="My Meetings" desc="Track your meeting requests" icon="calendar-check" onClick={() => navigate('/startupark/my-bookings')} />
               <ActionCard title="Messages" desc="Chat with founders & mentors" icon="chat" onClick={() => navigate('/startupark/chat')} />

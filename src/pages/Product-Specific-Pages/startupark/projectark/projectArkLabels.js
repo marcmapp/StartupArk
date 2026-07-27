@@ -14,40 +14,26 @@ import {
 
 // C#8: the Talent Directory mode moved out of Project Ark entirely, onto the
 // Students Hub page (see students-hub/StudentsHub.jsx) alongside the new
-// self-marketing Talent Posts. Project Ark is now a two-level toggle, not three
-// flat tabs — a flat gig/role/opportunity tab bar made "Jobs & Internships" (role)
-// and "Opportunities" look like two competing versions of the same thing, when
-// they're deliberately different: role postings live under a project, Opportunities
-// don't. Top level: Projects (wraps gig + role) vs Opportunities. Second level,
-// shown only inside Projects: gig vs role.
+// self-marketing Talent Posts. Project Ark is a flat two-tab split: Projects
+// (a single feed mixing startup projects, pitches, and role postings — each
+// card shows its own type via a badge, gig-mode "project" posts get an
+// expandable required-positions breakdown) vs Opportunities (standalone
+// jobs/internships/courses/freelance, not tied to a project). No nested
+// tabs/toggles beneath either — that's what made "Jobs & Internships" and
+// "Opportunities" read as two competing versions of the same thing before.
 export const TAB_LABELS = {
   projects: 'Projects',
   opportunity: 'Opportunities',
 };
 
 export const TAB_HINTS = {
-  projects: 'Startup projects, and the jobs/internships tied to them',
+  projects: 'Startup projects, pitches, and the jobs/internships tied to them',
   opportunity: 'Standalone jobs, internships, courses & freelance work — not tied to a project',
 };
 
 export const TAB_ICONS = {
   projects: Rocket,
   opportunity: GraduationCap,
-};
-
-export const MODE_LABELS = {
-  gig: 'Startup Projects',
-  role: 'Jobs & Internships',
-};
-
-export const MODE_HINTS = {
-  gig: 'Collaborative work — startup projects & the positions inside them',
-  role: 'Structured jobs, internships, courses & freelance openings, tied to a project',
-};
-
-export const MODE_ICONS = {
-  gig: Rocket,
-  role: Briefcase,
 };
 
 // postType:'requirement' is unrelated to the Talent Directory / Talent Posts

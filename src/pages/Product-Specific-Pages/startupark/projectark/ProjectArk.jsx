@@ -1,16 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, X, Sparkles } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 import { useProjectArk } from './useProjectArk';
 import WorkPostCard from './WorkPostCard';
 import OpportunityBoard from './OpportunityBoard';
-import {
-  TAB_LABELS, TAB_HINTS, TAB_ICONS,
-  MODE_LABELS, MODE_HINTS, MODE_ICONS,
-  POST_TYPE_LABELS, POST_TYPE_HINTS,
-  ROLE_TYPE_LABELS, ROLE_TYPE_ICONS,
-} from './projectArkLabels';
+import { TAB_LABELS, TAB_HINTS, TAB_ICONS } from './projectArkLabels';
 
 const CATEGORIES = [
   { value: '', label: 'All' },
@@ -39,30 +34,11 @@ const CATEGORIES = [
 const TOP_CATEGORIES = CATEGORIES.slice(0, 5); // All, Tech, Design, Marketing, Content
 const MORE_CATEGORIES = CATEGORIES.slice(5);
 
-// Compact, content-sized select — deliberately not `.input-mono` (which is w-full and
-// meant for form fields), so filter dropdowns sit inline like pills instead of
-// stretching to fill the row.
 const SELECT_PILL = 'w-auto shrink-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-lg px-2.5 h-8 text-xs text-zinc-700 dark:text-zinc-300 ' +
   'outline-none focus:border-zinc-400 dark:focus:border-zinc-500 [&>option]:bg-white dark:[&>option]:bg-zinc-900 [&>option]:text-zinc-900 dark:[&>option]:text-zinc-100';
 
-// Selected vs. unselected pill treatment, shared by every filter row below —
-// keeps the tab/mode/type/category toggles visually consistent with each other.
 const PILL_ACTIVE = 'ring-transparent bg-zinc-900 text-white dark:bg-white dark:text-zinc-900';
 const PILL_INACTIVE = 'ring-1 ring-black/10 dark:ring-white/10 bg-black/[0.03] dark:bg-white/[0.04] text-zinc-500 dark:text-zinc-400 hover:ring-black/20 dark:hover:ring-white/20 hover:text-zinc-700 dark:hover:text-zinc-200';
-
-// Secondary toggle (gig vs role, inside Projects) is deliberately smaller/quieter
-// than the primary tab row above it — visual weight signals "this is a filter
-// within Projects", not a third sibling tab competing with Opportunities.
-const SUBTAB_ACTIVE = 'ring-transparent bg-zinc-700 text-white dark:bg-white dark:text-zinc-900';
-const SUBTAB_INACTIVE = 'ring-1 ring-black/10 dark:ring-white/10 bg-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200';
-
-const ROLE_TYPES = [
-  { v: '', label: 'All' },
-  { v: 'job', label: ROLE_TYPE_LABELS.job },
-  { v: 'internship', label: ROLE_TYPE_LABELS.internship },
-  { v: 'course', label: ROLE_TYPE_LABELS.course },
-  { v: 'freelance', label: ROLE_TYPE_LABELS.freelance },
-];
 
 export default function ProjectArk() {
   const [searchParams] = useSearchParams();
@@ -85,21 +61,12 @@ export default function ProjectArk() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Two-level toggle: activeTab (Projects | Opportunities) is the primary switch;
-  // engagementMode (gig | role) only matters inside Projects. ?mode=role and
-  // ?mode=opportunity both still work as deep-link targets (existing redirects in
-  // RoutesConfig.jsx point at ?mode=role).
-  const urlMode = searchParams.get('mode');
-  const [activeTab, setActiveTab] = useState(urlMode === 'opportunity' ? 'opportunity' : 'projects');
-  const [engagementMode, setEngagementMode] = useState(urlMode === 'role' ? 'role' : 'gig');
-  const [activeType, setActiveType] = useState('');
-  const [activeRoleType, setActiveRoleType] = useState('');
+  // Only ?mode=opportunity is a real deep-link target now — ?mode=role/gig
+  // used to pick a sub-tab that no longer exists; Projects is a single feed.
+  const [activeTab, setActiveTab] = useState(searchParams.get('mode') === 'opportunity' ? 'opportunity' : 'projects');
   const [activeCategory, setActiveCategory] = useState('');
-  const [workLocation, setWorkLocation] = useState('');
-  const [budgetType, setBudgetType] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchViewerContext().then(setViewer).catch(() => setViewer(null));
@@ -111,87 +78,46 @@ export default function ProjectArk() {
 
   const isProjects = activeTab === 'projects';
   const isOpportunity = activeTab === 'opportunity';
-  const isGig = engagementMode === 'gig';
 
   const doFetch = useCallback(() => {
     // The Opportunities tab manages its own fetching (standalone Opportunity
-    // records, not WorkPosts) — see OpportunityBoard.
+    // records, not WorkPosts) — see OpportunityBoard. Projects deliberately
+    // omits engagementMode/postType/roleType/budgetType/workLocation filters —
+    // it's one feed now; each card shows its own type via a badge.
     if (!isProjects) return;
-    fetchPosts({
-      engagementMode,
-      postType: isGig ? activeType : '',
-      roleType: !isGig ? activeRoleType : '',
-      category: activeCategory,
-      workLocation,
-      budgetType: isGig ? budgetType : '',
-      q,
-      page
-    });
-  }, [isProjects, engagementMode, isGig, activeType, activeRoleType, activeCategory, workLocation, budgetType, q, page, fetchPosts]);
+    fetchPosts({ category: activeCategory, q, page });
+  }, [isProjects, activeCategory, q, page, fetchPosts]);
 
   useEffect(() => { doFetch(); }, [doFetch]);
 
   function switchTab(tab) {
     setActiveTab(tab);
-    setActiveType('');
-    setActiveRoleType('');
-    setBudgetType('');
+    setActiveCategory('');
+    setQ('');
     setPage(1);
   }
 
-  function switchMode(mode) {
-    setEngagementMode(mode);
-    setActiveType('');
-    setActiveRoleType('');
-    setBudgetType('');
-    setPage(1);
-  }
-
-  function clearAll() {
-    setActiveType(''); setActiveRoleType(''); setActiveCategory(''); setWorkLocation('');
-    setBudgetType(''); setQ(''); setPage(1);
-  }
-
-  const hasFilter = activeType || activeRoleType || activeCategory || workLocation || budgetType || q;
   const userRole = viewer?.role || 'user';
 
-  // Role-aware primary CTA. Once authenticated, the server-derived role decides the
-  // label/target — a startup always gets "Post a startup project", talent (user or
-  // student) always gets "Post a talent request". Only when we genuinely don't know
-  // who's asking (logged out) do we fall back to whatever sub-tab is active, so the
-  // button still matches what the visitor is looking at. Opportunities are
-  // startup-only, and post through the standalone Opportunity model instead of
-  // WorkPost — a distinct create route from Jobs & Internships (role mode).
-  let postLabel, postType, postHref;
+  // Role-aware primary CTA. A startup can post either a project or a job/internship
+  // — that choice lives inside CreateWorkPost's own mode picker, not here, so this
+  // page doesn't need to know about it. Everyone else pitches themselves.
+  let postLabel, postHref;
   if (isOpportunity) {
     postLabel = 'Post an Opportunity';
-    postType = 'opportunity';
     postHref = '/startupark/projectark/opportunities/create';
-  } else if (!isGig) {
-    postLabel = 'Post a Job / Internship';
-    postType = 'role';
-    postHref = '/startupark/projectark/create';
   } else if (isAuthenticated && userRole === 'startup') {
-    postLabel = 'Post a Startup Project';
-    postType = 'project';
+    postLabel = 'Post a Project';
     postHref = '/startupark/projectark/create';
   } else if (isAuthenticated) {
     postLabel = 'Pitch Yourself to Startups';
-    postType = 'requirement';
     postHref = '/startupark/projectark/create';
   } else {
-    postType = activeType === 'project' ? 'project' : 'requirement';
-    postLabel = postType === 'project' ? 'Post a Startup Project' : 'Pitch Yourself to Startups';
+    postLabel = 'Post a Project';
     postHref = '/startupark/projectark/create';
   }
-
-  const postHint = isGig
-    ? (postType === 'project' ? `You need talent — ${POST_TYPE_HINTS.project}` : `You need a startup — ${POST_TYPE_HINTS.requirement}`)
-    : 'Hire talent — post a job, internship, course, or freelance opening';
-  // Jobs & Internships and Opportunities are both startup-only; Startup Projects
-  // mode is open to everyone (the label above already routes each visitor to the
-  // right side of it).
-  const canPost = isGig || userRole === 'startup';
+  // Opportunities are startup-only; Projects is open to everyone.
+  const canPost = isProjects || userRole === 'startup';
 
   return (
     <div className="min-h-screen">
@@ -205,7 +131,7 @@ export default function ProjectArk() {
             <div>
               <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">Project Ark</h1>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                {isOpportunity ? 'Standalone jobs, internships, courses & freelance work' : isGig ? 'Startups & talent, connected' : 'Jobs, internships, courses & freelance work'}
+                {isOpportunity ? 'Standalone jobs, internships, courses & freelance work' : 'Startup projects, pitches & jobs, connected'}
               </p>
             </div>
           </div>
@@ -219,7 +145,7 @@ export default function ProjectArk() {
 
       <div className="max-w-6xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-5 space-y-5">
 
-        {/* Primary tabs: Projects | Opportunities */}
+        {/* Primary tabs: Projects | Opportunities — the only toggle on this page */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {['projects', 'opportunity'].map(v => {
             const Icon = TAB_ICONS[v];
@@ -253,8 +179,7 @@ export default function ProjectArk() {
               <OpportunityBoard userRole={userRole} viewerStartupId={viewer?.startupId} />
             ) : (
               <>
-                {/* Stat row — live counts pulled from the posts collection, not hardcoded.
-                    Projects-only: Opportunities shows its own count inline instead. */}
+                {/* Stat row — live counts pulled from the posts collection */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: 'Live listings', value: stats?.total },
@@ -270,163 +195,56 @@ export default function ProjectArk() {
                   ))}
                 </div>
 
-                {/* Secondary toggle: Startup Projects vs Jobs & Internships — a filter
-                    within Projects, deliberately smaller than the tab row above. */}
-                <div className="flex items-center gap-1 flex-wrap">
-                  {['gig', 'role'].map(v => {
-                    const Icon = MODE_ICONS[v];
-                    return (
-                      <button
-                        key={v}
-                        onClick={() => switchMode(v)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
-                          engagementMode === v ? SUBTAB_ACTIVE : SUBTAB_INACTIVE
-                        }`}
-                        title={MODE_HINTS[v]}
-                      >
-                        <Icon className="w-3 h-3" strokeWidth={2} />
-                        {MODE_LABELS[v]}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Type tabs + search row */}
+                {/* Search + category — the only filters. Each card carries its own type
+                    badge (Project / Pitch / Job / Internship / Course / Freelance) and,
+                    for projects with sub-roles, an expandable required-positions list. */}
                 <div className="glass-card p-4 space-y-4">
-                  {/* Search */}
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
-                      <input
-                        type="text"
-                        placeholder="Search by title, skill, or keyword…"
-                        value={q}
-                        onChange={e => { setQ(e.target.value); setPage(1); }}
-                        className="input-mono text-sm w-full pl-9 h-10"
-                      />
-                    </div>
-                    <button
-                      onClick={() => setShowFilters(f => !f)}
-                      className={`sm:hidden shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                        showFilters ? PILL_ACTIVE : PILL_INACTIVE
-                      }`}
-                    >
-                      <SlidersHorizontal className="w-4 h-4" strokeWidth={2} />
-                    </button>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+                    <input
+                      type="text"
+                      placeholder="Search by title, skill, or keyword…"
+                      value={q}
+                      onChange={e => { setQ(e.target.value); setPage(1); }}
+                      className="input-mono text-sm w-full pl-9 h-10"
+                    />
                   </div>
 
-                  <div className={`${showFilters ? 'flex' : 'hidden'} sm:flex flex-col gap-4`}>
-                    {/* Type toggle (gig mode) / Role type toggle (role mode) */}
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {isGig ? (
-                        [
-                          { v: '', label: 'All' },
-                          { v: 'project', label: POST_TYPE_LABELS.project, sub: POST_TYPE_HINTS.project },
-                          { v: 'requirement', label: POST_TYPE_LABELS.requirement, sub: POST_TYPE_HINTS.requirement },
-                        ].map(opt => (
-                          <button
-                            key={opt.v}
-                            onClick={() => { setActiveType(opt.v); setPage(1); }}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              activeType === opt.v ? PILL_ACTIVE : PILL_INACTIVE
-                            }`}
-                          >
-                            {opt.label}
-                            {opt.sub && <span className="text-zinc-400 dark:text-zinc-500 font-normal hidden lg:inline">· {opt.sub}</span>}
-                          </button>
-                        ))
-                      ) : (
-                        ROLE_TYPES.map(opt => {
-                          const Icon = ROLE_TYPE_ICONS[opt.v];
-                          return (
-                            <button
-                              key={opt.v}
-                              onClick={() => { setActiveRoleType(opt.v); setPage(1); }}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                activeRoleType === opt.v ? PILL_ACTIVE : PILL_INACTIVE
-                              }`}
-                            >
-                              {Icon && <Icon className="w-3 h-3" strokeWidth={2} />}
-                              {opt.label}
-                            </button>
-                          );
-                        })
-                      )}
-                      {hasFilter && (
-                        <button onClick={clearAll} className="ml-auto btn-ghost text-xs px-3 py-1.5 flex items-center gap-1">
-                          <X className="w-3 h-3" strokeWidth={2} /> Clear
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-600 uppercase tracking-wider">Category</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {TOP_CATEGORIES.map(cat => (
+                        <button
+                          key={cat.value}
+                          onClick={() => { setActiveCategory(cat.value); setPage(1); }}
+                          className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all ${
+                            activeCategory === cat.value ? PILL_ACTIVE : PILL_INACTIVE
+                          }`}
+                        >
+                          {cat.label}
                         </button>
-                      )}
-                    </div>
-
-                    {/* Category — top pills + a dropdown for the long tail, so a 16-entry list
-                        never needs a scrollbar */}
-                    <div className="pt-3 border-t border-black/[0.06] dark:border-zinc-800/60 space-y-2">
-                      <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-600 uppercase tracking-wider">Category</div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {TOP_CATEGORIES.map(cat => (
-                          <button
-                            key={cat.value}
-                            onClick={() => { setActiveCategory(cat.value); setPage(1); }}
-                            className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all ${
-                              activeCategory === cat.value ? PILL_ACTIVE : PILL_INACTIVE
-                            }`}
-                          >
-                            {cat.label}
-                          </button>
-                        ))}
-                        <select
-                          value={MORE_CATEGORIES.some(c => c.value === activeCategory) ? activeCategory : ''}
-                          onChange={e => { setActiveCategory(e.target.value); setPage(1); }}
-                          className={`${SELECT_PILL} rounded-full`}
-                        >
-                          <option value="">More categories</option>
-                          {MORE_CATEGORIES.map(cat => (
-                            <option key={cat.value} value={cat.value}>{cat.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Secondary filters — compact, content-sized selects (not full-width inputs) */}
-                    <div className="flex flex-wrap gap-2">
+                      ))}
                       <select
-                        value={workLocation}
-                        onChange={e => { setWorkLocation(e.target.value); setPage(1); }}
-                        className={SELECT_PILL}
+                        value={MORE_CATEGORIES.some(c => c.value === activeCategory) ? activeCategory : ''}
+                        onChange={e => { setActiveCategory(e.target.value); setPage(1); }}
+                        className={`${SELECT_PILL} rounded-full`}
                       >
-                        <option value="">Any location</option>
-                        <option value="remote">Remote</option>
-                        <option value="onsite">On-site</option>
-                        <option value="hybrid">Hybrid</option>
+                        <option value="">More categories</option>
+                        {MORE_CATEGORIES.map(cat => (
+                          <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        ))}
                       </select>
-                      {isGig && (
-                        <select
-                          value={budgetType}
-                          onChange={e => { setBudgetType(e.target.value); setPage(1); }}
-                          className={SELECT_PILL}
-                        >
-                          <option value="">Any budget</option>
-                          <option value="fixed">Fixed</option>
-                          <option value="hourly">Hourly</option>
-                          <option value="equity">Equity</option>
-                          <option value="volunteer">Volunteer</option>
-                          <option value="negotiable">Negotiable</option>
-                        </select>
-                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Results header */}
                 {!loading && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {pagination.total} {pagination.total === 1 ? 'post' : 'posts'}
-                      {activeCategory ? ` in ${CATEGORIES.find(c => c.value === activeCategory)?.label}` : ''}
-                      {q ? ` matching "${q}"` : ''}
-                    </p>
-                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {pagination.total} {pagination.total === 1 ? 'post' : 'posts'}
+                    {activeCategory ? ` in ${CATEGORIES.find(c => c.value === activeCategory)?.label}` : ''}
+                    {q ? ` matching "${q}"` : ''}
+                  </p>
                 )}
 
                 {/* Error */}
@@ -460,14 +278,12 @@ export default function ProjectArk() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
-                    <p className="text-zinc-700 dark:text-zinc-300 font-semibold text-base">
-                      No {isGig ? 'projects' : 'jobs'} posted yet
-                    </p>
+                    <p className="text-zinc-700 dark:text-zinc-300 font-semibold text-base">No projects posted yet</p>
                     <p className="text-zinc-400 dark:text-zinc-600 text-sm text-center max-w-xs">
-                      {canPost ? `Be the first to ${postLabel.toLowerCase()} and start connecting.` : postHint}
+                      {canPost ? `Be the first to ${postLabel.toLowerCase()} and start connecting.` : 'Check back soon for new listings.'}
                     </p>
                     {canPost && (
-                      <Link to="/startupark/projectark/create" className="btn-mono text-sm px-5 py-2 mt-1">
+                      <Link to={postHref} className="btn-mono text-sm px-5 py-2 mt-1">
                         + {postLabel}
                       </Link>
                     )}
