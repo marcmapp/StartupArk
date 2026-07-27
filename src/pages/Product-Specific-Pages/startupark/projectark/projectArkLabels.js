@@ -50,19 +50,23 @@ export const MODE_ICONS = {
   role: Briefcase,
 };
 
+// postType:'requirement' is unrelated to the Talent Directory / Talent Posts
+// (students-hub) — it's a WorkPost someone posts saying "I want to join a
+// startup". Renamed off the word "Talent" entirely (was "Talent Requests")
+// because it kept getting mistaken for the Students Hub feature by name alone.
 export const POST_TYPE_LABELS = {
   project: 'Startup Projects',
-  requirement: 'Talent Requests',
+  requirement: 'Looking for a Startup',
 };
 
 export const POST_TYPE_SHORT = {
   project: 'PROJECT',
-  requirement: 'TALENT REQUEST',
+  requirement: 'OPEN TO JOIN',
 };
 
 export const POST_TYPE_HINTS = {
   project: 'startups looking for talent',
-  requirement: 'talent looking for a startup',
+  requirement: 'people looking to join a startup',
 };
 
 export const POST_TYPE_ICONS = {
