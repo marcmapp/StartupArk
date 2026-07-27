@@ -232,7 +232,12 @@ const LoginPage = () => {
             disabled={isLoading}
             className="btn-mono w-full rounded-full py-3.5 text-base gap-2"
           >
-            {isLoading ? 'Logging in…' : (
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                Logging in…
+              </>
+            ) : (
               <>
                 Login
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -258,12 +263,6 @@ const LoginPage = () => {
           <p className="mt-6 text-center text-[11px] text-zinc-400 dark:text-zinc-600">
             Secure sign-in · MAPP ARKS platform
           </p>
-
-          {isLoading && (
-            <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center">
-              <div className="text-zinc-900 dark:text-white font-medium">Processing…</div>
-            </div>
-          )}
       </form>
     </div>
   );

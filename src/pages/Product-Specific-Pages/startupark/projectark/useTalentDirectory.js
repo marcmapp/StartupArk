@@ -45,19 +45,21 @@ export function useTalentDirectory() {
     return data.data;
   }, []);
 
-  // Reuses the existing chat module (same "initiate then navigate" pattern as
-  // StartupProfileHeader/index.jsx) — no new messaging system.
-  const initiateProfileConversation = useCallback(async ({ userId, profileId, profileType }) => {
-    const { data } = await axios.post(
-      `${CHAT}/initiate`,
-      { recipientId: userId, contextType: profileType, contextId: profileId },
-      { headers: authHeader() }
-    );
-    return data.conversation;
-  }, []);
-
   return {
     profiles, pagination, loading, error,
-    fetchTalent, fetchTalentProfile, initiateProfileConversation,
+    fetchTalent, fetchTalentProfile,
   };
+}
+
+// Shared by TalentCard (quick-message icon) and TalentDetail (Message button):
+// initiate/reuse the conversation, then navigate by conversation _id — not by
+// the talent profile id — so ChatInterface can select it directly without
+// having to resolve a recipient from an arbitrary context id.
+export async function startConversationAndNavigate({ userId, profileId, profileType }, navigate) {
+  const { data } = await axios.post(
+    `${CHAT}/initiate`,
+    { recipientId: userId, contextType: profileType, contextId: profileId },
+    { headers: authHeader() }
+  );
+  navigate(`/startupark/chat/${data.conversation._id}`);
 }

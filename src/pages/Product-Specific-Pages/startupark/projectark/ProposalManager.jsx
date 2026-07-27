@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useProjectArk } from './useProjectArk';
+import { formatCurrency } from '../../../../utils/currency';
 
 const STATUS_STYLES = {
   pending:     'text-zinc-400 bg-zinc-800/60 ring-zinc-700',
@@ -105,7 +106,7 @@ export default function ProposalManager({ workPostId, positions = [] }) {
             {/* Budget / timeline */}
             <div className="flex items-center gap-4 text-xs text-zinc-500">
               {p.proposedBudget && (
-                <span>Budget: <span className="text-zinc-300">₹{p.proposedBudget.toLocaleString()}</span></span>
+                <span>Budget: <span className="text-zinc-300">{formatCurrency(p.proposedBudget)}</span></span>
               )}
               {p.proposedTimeline && (
                 <span>Timeline: <span className="text-zinc-300">{p.proposedTimeline}</span></span>

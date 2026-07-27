@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { formatDate as formatDateTz, formatTime } from '../../../../utils/datetime';
 import { 
   FiChevronLeft, 
   FiChevronRight, 
@@ -461,7 +462,7 @@ const CalendarWrapper = ({ type }) => {
                 </span>
               </div>
               <div className="text-xs opacity-90 truncate">
-                {moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}
+                {formatTime(event.start, { hour12: false, hour: '2-digit' })} - {formatTime(event.end, { hour12: false, hour: '2-digit' })}
               </div>
             </div>
           </div>
@@ -627,10 +628,10 @@ const CalendarWrapper = ({ type }) => {
                 <div>
                   <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Schedule</p>
                   <p className="text-zinc-900 dark:text-white font-semibold">
-                    {moment(selectedEvent.start).format('dddd, MMMM Do YYYY')}
+                    {formatDateTz(selectedEvent.start, { weekday: 'long', month: 'long' })}
                   </p>
                   <p className="text-zinc-500 dark:text-zinc-400">
-                    {moment(selectedEvent.start).format('h:mm A')} - {moment(selectedEvent.end).format('h:mm A')}
+                    {formatTime(selectedEvent.start)} - {formatTime(selectedEvent.end)}
                   </p>
                 </div>
               </div>

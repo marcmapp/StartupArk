@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiBriefcase, FiUsers, FiTool, FiRadio } from 'react-icons/fi';
+
+const EVENT_TYPES = [
+  { key: 'conference', label: 'Conference', icon: FiBriefcase },
+  { key: 'networking', label: 'Networking', icon: FiUsers },
+  { key: 'workshop', label: 'Workshop', icon: FiTool },
+  { key: 'webinar', label: 'Webinar', icon: FiRadio }
+];
 
 const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
   const [formData, setFormData] = useState({
@@ -98,52 +105,81 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {/* Content */}
           <div className="p-6 space-y-4 overflow-y-auto">
-            {/* Event Title */}
+            {/* Basics */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Event Title *
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className={`input-mono ${errors.title ? '!border-red-500' : ''}`}
-                placeholder="Enter event title"
-              />
-              {errors.title && <p className="text-red-500 text-xs mt-1.5">{errors.title}</p>}
-            </div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-3">Basics</h3>
 
-            {/* Date and Time */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                  Date *
+                  Event Title *
                 </label>
                 <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className={`input-mono ${errors.date ? '!border-red-500' : ''}`}
-                  min={new Date().toISOString().split('T')[0]}
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  className={`input-mono ${errors.title ? '!border-red-500' : ''}`}
+                  placeholder="Enter event title"
                 />
-                {errors.date && <p className="text-red-500 text-xs mt-1.5">{errors.date}</p>}
+                {errors.title && <p className="text-red-500 text-xs mt-1.5">{errors.title}</p>}
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                  Time *
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Event Type
                 </label>
-                <input
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData({...formData, time: e.target.value})}
-                  className={`input-mono ${errors.time ? '!border-red-500' : ''}`}
-                />
-                {errors.time && <p className="text-red-500 text-xs mt-1.5">{errors.time}</p>}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* eslint-disable-next-line no-unused-vars -- Icon is used in JSX below; no jsx-uses-vars plugin in this project's eslint config */}
+                  {EVENT_TYPES.map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFormData({...formData, eventType: key})}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                        formData.eventType === key
+                          ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white'
+                          : 'border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Duration and Type */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Schedule */}
+            <div className="border-t border-zinc-200 dark:border-white/10 pt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-3">Schedule</h3>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className={`input-mono ${errors.date ? '!border-red-500' : ''}`}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  {errors.date && <p className="text-red-500 text-xs mt-1.5">{errors.date}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData({...formData, time: e.target.value})}
+                    className={`input-mono ${errors.time ? '!border-red-500' : ''}`}
+                  />
+                  {errors.time && <p className="text-red-500 text-xs mt-1.5">{errors.time}</p>}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                   Duration *
@@ -163,65 +199,51 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
                 </select>
                 {errors.duration && <p className="text-red-500 text-xs mt-1.5">{errors.duration}</p>}
               </div>
-              <div>
+            </div>
+
+            {/* Audience */}
+            <div className="border-t border-zinc-200 dark:border-white/10 pt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-3">Audience</h3>
+
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                  Event Type
+                  Maximum Attendees *
                 </label>
-                <select
-                  value={formData.eventType}
-                  onChange={(e) => setFormData({...formData, eventType: e.target.value})}
-                  className="input-mono appearance-none"
-                >
-                  <option value="conference">Conference</option>
-                  <option value="networking">Networking</option>
-                  <option value="workshop">Workshop</option>
-                  <option value="webinar">Webinar</option>
-                  <option value="demo">Product Demo</option>
-                  <option value="qna">Q&A Session</option>
-                </select>
+                <input
+                  type="number"
+                  value={formData.maxAttendees}
+                  onChange={(e) => setFormData({...formData, maxAttendees: parseInt(e.target.value)})}
+                  className={`input-mono ${errors.maxAttendees ? '!border-red-500' : ''}`}
+                  min="1"
+                  max="500"
+                />
+                {errors.maxAttendees && <p className="text-red-500 text-xs mt-1.5">{errors.maxAttendees}</p>}
               </div>
-            </div>
 
-            {/* Max Attendees */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Maximum Attendees *
-              </label>
-              <input
-                type="number"
-                value={formData.maxAttendees}
-                onChange={(e) => setFormData({...formData, maxAttendees: parseInt(e.target.value)})}
-                className={`input-mono ${errors.maxAttendees ? '!border-red-500' : ''}`}
-                min="1"
-                max="500"
-              />
-              {errors.maxAttendees && <p className="text-red-500 text-xs mt-1.5">{errors.maxAttendees}</p>}
-            </div>
-
-            {/* Invitees */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Invite User Types *
-              </label>
-              <div className="glass-inset p-3 space-y-2.5">
-                {['startups', 'students', 'users'].map((type) => (
-                  <label key={type} className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.invitees.includes(type)}
-                      onChange={() => toggleInvitee(type)}
-                      className={checkboxClass}
-                    />
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300 capitalize">{type}</span>
-                  </label>
-                ))}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Invite User Types *
+                </label>
+                <div className="glass-inset p-3 space-y-2.5">
+                  {['startups', 'students', 'users'].map((type) => (
+                    <label key={type} className="flex items-center gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.invitees.includes(type)}
+                        onChange={() => toggleInvitee(type)}
+                        className={checkboxClass}
+                      />
+                      <span className="text-sm text-zinc-700 dark:text-zinc-300 capitalize">{type}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.invitees && <p className="text-red-500 text-xs mt-1.5">{errors.invitees}</p>}
               </div>
-              {errors.invitees && <p className="text-red-500 text-xs mt-1.5">{errors.invitees}</p>}
             </div>
 
             {/* Event Settings */}
             <div className="border-t border-zinc-200 dark:border-white/10 pt-4">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Event Settings</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-3">Settings</h3>
               <div className="glass-inset p-3 space-y-3">
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="text-sm text-zinc-700 dark:text-zinc-300">Require Registration</span>
@@ -255,8 +277,9 @@ const CreateEventModal = ({ onClose, onSubmit, editingEvent = null }) => {
               </div>
             </div>
 
-            {/* Description */}
-            <div>
+            {/* Details */}
+            <div className="border-t border-zinc-200 dark:border-white/10 pt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-3">Details</h3>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                 Description *
               </label>

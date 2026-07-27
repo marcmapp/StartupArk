@@ -148,7 +148,7 @@ export default function ProductManagement() {
   if (showForm) {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-3xl lg:max-w-[1600px] mx-auto space-y-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setShowForm(false); setEditing(null); }}
@@ -174,7 +174,7 @@ export default function ProductManagement() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Header */}
       <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10 px-4 md:px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-6xl lg:max-w-[1600px] mx-auto flex items-center justify-between gap-4">
           <div>
             <h1 className="text-lg font-bold">Product Management</h1>
             {startupProfile && (
@@ -192,7 +192,7 @@ export default function ProductManagement() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 space-y-5">
+      <div className="max-w-6xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-5 space-y-5">
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

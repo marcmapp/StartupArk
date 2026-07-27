@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProjectArk } from './useProjectArk';
 import MilestoneCard from './MilestoneCard';
 import RatingForm from './RatingForm';
+import { formatCurrency } from '../../../../utils/currency';
 
 function getCurrentUser() {
   try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
@@ -120,7 +121,7 @@ export default function EngagementDetail() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Header */}
       <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10 px-4 md:px-6 py-3">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="max-w-4xl lg:max-w-[1600px] mx-auto flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
             ← Back
           </button>
@@ -131,7 +132,7 @@ export default function EngagementDetail() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
+      <div className="max-w-4xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-6">
         {/* Status + title */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -178,7 +179,7 @@ export default function EngagementDetail() {
           <div>
             <div className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Agreed Budget</div>
             <div className="text-sm font-semibold text-zinc-200">
-              {engagement.agreedBudget ? `₹${engagement.agreedBudget.toLocaleString()}` : 'Not set'}
+              {engagement.agreedBudget ? formatCurrency(engagement.agreedBudget) : 'Not set'}
             </div>
           </div>
           {engagement.agreedTimeline && (

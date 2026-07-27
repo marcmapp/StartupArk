@@ -32,6 +32,20 @@ const ThemeToggleButton = ({ darkMode, toggleTheme }) => (
   </button>
 );
 
+const GuideButton = () => (
+  <Link
+    to="/guide"
+    className="flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-full
+              glass-inset transition-colors hover:bg-black/[0.06] dark:hover:bg-white/[0.08]"
+    aria-label="Open guide"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-zinc-700 dark:text-zinc-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  </Link>
+);
+
 const Header = ({ user, darkMode, toggleTheme, showProductWidgets }) => {
   return (
     <header className="fixed top-0 inset-x-0 z-50 h-16 flex items-center gap-3 px-4 lg:px-6
@@ -48,6 +62,7 @@ const Header = ({ user, darkMode, toggleTheme, showProductWidgets }) => {
       <div className="flex items-center gap-2 shrink-0">
         {showProductWidgets && <FavoritesBell user={user} />}
         {showProductWidgets && <NotificationBell user={user} />}
+        <GuideButton />
         <ThemeToggleButton darkMode={darkMode} toggleTheme={toggleTheme} />
         <HeaderAvatar user={user} />
       </div>

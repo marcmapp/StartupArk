@@ -167,7 +167,7 @@ export default function ProductShowcase() {
   // Shared across both tabs so switching feels like one page, not a route
   // change — sits above ProductManagement's own header when "My Products" is active.
   const tabBar = isStartup && (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 flex justify-end">
+    <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 md:px-6 pt-6 flex justify-end">
       <div className="flex items-center gap-1 bg-zinc-900 ring-1 ring-zinc-800 rounded-lg p-1">
         <button
           onClick={() => setTab('browse')}
@@ -201,7 +201,7 @@ export default function ProductShowcase() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {tabBar}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-6">
+      <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-8 space-y-6">
 
         {/* Page header */}
         <div>

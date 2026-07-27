@@ -5,10 +5,34 @@
 @tailwind utilities;
 
 @layer base {
+  /* App-wide compact density — shrinks every rem-based Tailwind size (text,
+     padding, gap, radius) uniformly, so the UI reads at the same density as
+     an 80%-zoomed browser without anyone having to actually zoom out.
+     Doesn't affect Tailwind's responsive breakpoints (those are keyed to the
+     browser's default 16px, not this override). */
+  html {
+    font-size: 87.5%;
+  }
+
   body {
     /* Light: visible neutral so white cards lift off the surface. Dark: deep near-black. */
     @apply bg-zinc-200 text-zinc-900;
     @apply dark:bg-zinc-950 dark:text-zinc-100;
+  }
+
+  /* Native <select> popups are a separate OS-rendered surface — they don't
+     inherit the page's dark classes, only the browser's color-scheme. Without
+     this, the popup falls back to light rendering while inheriting the
+     select's own (translucent, near-white) dark text color — options end up
+     white-on-white and unreadable. Applies to every dropdown in the app. */
+  select {
+    color-scheme: light;
+  }
+  .dark select {
+    color-scheme: dark;
+  }
+  select option {
+    @apply bg-white text-zinc-900 dark:bg-zinc-900 dark:text-white;
   }
 
   /* Headings inherit neutral text — NO forced accent color.

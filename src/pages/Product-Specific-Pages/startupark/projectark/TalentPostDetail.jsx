@@ -90,7 +90,7 @@ export default function TalentPostDetail() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10 px-4 md:px-6 py-3">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="max-w-4xl lg:max-w-[1600px] mx-auto flex items-center gap-3">
           <button onClick={() => navigate('/startupark/students-hub?tab=talent')} className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
             ← Students Hub
           </button>
@@ -99,7 +99,7 @@ export default function TalentPostDetail() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
+      <div className="max-w-4xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             {owner?.profilePicture ? (

@@ -50,7 +50,7 @@ const FollowersPage = ({ type = 'followers' }) => {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 space-y-5">
+    <div className="max-w-2xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-5">
       <div className="glass-card p-1.5 flex gap-1 w-fit">
         <button
           onClick={() => navigate(`/startupark/users/${userId}/followers`)}

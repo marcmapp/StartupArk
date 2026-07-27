@@ -33,7 +33,7 @@ export function useActiveProduct() {
   return matchProduct(pathname);
 }
 
-function deriveRole(user) {
+export function deriveRole(user) {
   return user?.startuparkRole || user?.role || (user?.isStartup ? 'startup' : 'user');
 }
 

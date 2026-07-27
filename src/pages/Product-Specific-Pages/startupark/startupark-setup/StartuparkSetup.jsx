@@ -155,7 +155,7 @@ export default function StartuparkSetup() {
 
   return (
     <div ref={contentRef} className="min-h-screen py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl lg:max-w-[1600px] mx-auto">
 
         {/* Top bar: compact stepper (top-left) + title */}
         <div className="mb-6">

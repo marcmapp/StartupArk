@@ -75,7 +75,7 @@ export default function CreateOpportunity() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="border-b border-zinc-800/60 px-4 md:px-6 py-4 sticky top-0 z-10 bg-zinc-950/90 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
+        <div className="max-w-2xl lg:max-w-[1600px] mx-auto flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="btn-ghost text-xs px-3 py-1.5 shrink-0">← Back</button>
           <div>
             <h1 className="text-base font-bold">Post an Opportunity</h1>
@@ -84,7 +84,7 @@ export default function CreateOpportunity() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 space-y-4">
+      <div className="max-w-2xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-4">
         {error && (
           <div className="glass-inset p-3 text-red-400 text-sm flex items-center gap-2">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

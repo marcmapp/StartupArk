@@ -502,6 +502,11 @@ const handleSubmit = async (e) => {
       }
       if (submissionData.fundingStage) {
         submissionData.fundingStage = submissionData.fundingStage.toLowerCase().replace(/\s+/g, '-');
+      } else {
+        delete submissionData.fundingStage;
+      }
+      if (!submissionData.teamSize) {
+        delete submissionData.teamSize;
       }
       // Build location object from city/state fields
       if (submissionData.locationCity || submissionData.locationState) {

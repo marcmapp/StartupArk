@@ -8,6 +8,7 @@ import { getImageUrl } from '../../../../utils/imageUrls';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import RatingModal from '../../../../components/RatingModal';
 import { MEETING_PURPOSES, purposeLabel } from '../../../../services/bookingRatings';
+import { formatDate as formatDateTz } from '../../../../utils/datetime';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -154,11 +155,7 @@ const StartupBookingsPage = () => {
     } catch { return false; }
   };
 
-  const formatDate = (date) => {
-    try {
-      return new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-    } catch { return 'Invalid Date'; }
-  };
+  const formatDate = (date) => formatDateTz(date);
 
   const stats = {
     total:     bookings.length,
@@ -187,7 +184,7 @@ const StartupBookingsPage = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>

@@ -252,11 +252,16 @@ const ChatInterface = () => {
           setConversations(convList);
 
           if (startupId) {
-            // Conversations key the startup via contextId (no startupId field on the model).
-            let conv = convList.find(c =>
-              String(c.contextId) === String(startupId) ||
-              c.startupId?._id === startupId || c.startupId === startupId
-            );
+            // Talent Directory (students/professionals) navigates here using the
+            // conversation's own _id, since there's no generic recipient resolver
+            // for those context types — the conversation is already created before
+            // navigation. Startup chats still navigate using contextId (no startupId
+            // field on the model), so fall back to that match.
+            let conv = convList.find(c => String(c._id) === String(startupId)) ||
+              convList.find(c =>
+                String(c.contextId) === String(startupId) ||
+                c.startupId?._id === startupId || c.startupId === startupId
+              );
 
             if (!conv) {
               // Not in the list yet — let the backend resolve the recipient from the
@@ -348,26 +353,34 @@ const ChatInterface = () => {
             userId: userId
           };
         } else {
-          // For regular users: resolve the startup from contextId (the model has no startupId).
+          // For regular users: only startup-context conversations need the extra
+          // startup-profile lookup (the model has no startupId field, just contextId).
+          // Every other context (general/student/user/product/opportunity/booking/
+          // application) resolves directly from the already-populated other
+          // participant — no extra fetch needed, and it's what makes peer (student/
+          // professional) chats show the right name/avatar instead of 404-ing
+          // against the startups endpoint on every render.
           let startupName = '';
           let startupLogo = null;
-          const sid = conversation.contextId || conversation.startupId?._id || conversation.startupId;
 
-          if (sid && conversation.contextType !== 'general') {
-            try {
-              const sres = await fetch(`${baseUrl}/startupark/api/profile/startups/${sid}`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-              });
-              if (sres.ok) {
-                const sj = await sres.json();
-                const s = sj.startup || sj;
-                startupName = s.companyName || s.startupName || '';
-                startupLogo = s.logo;
-              }
-            } catch { /* fall through to participant */ }
+          if (conversation.contextType === 'startup') {
+            const sid = conversation.contextId || conversation.startupId?._id || conversation.startupId;
+            if (sid) {
+              try {
+                const sres = await fetch(`${baseUrl}/startupark/api/profile/startups/${sid}`, {
+                  headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (sres.ok) {
+                  const sj = await sres.json();
+                  const s = sj.startup || sj;
+                  startupName = s.companyName || s.startupName || '';
+                  startupLogo = s.logo;
+                }
+              } catch { /* fall through to participant */ }
+            }
           }
 
-          // Fallback: show the other participant if the startup couldn't be resolved.
+          // Fallback (and the primary path for peer chats): show the other participant.
           if (!startupName) {
             const op = getParticipantIds(conversation).find(
               p => String(typeof p === 'object' ? p?._id : p) !== String(currentUser.id)
@@ -380,10 +393,11 @@ const ChatInterface = () => {
             }
           }
 
-          // Presence is keyed by the OTHER participant's user id (the startup owner),
-          // not the startup id — so the online dot reflects the person, not the company.
+          // Presence is keyed by the OTHER participant's user id (the startup owner
+          // for startup chats, the peer themself otherwise) — so the online dot
+          // reflects the person, not the company.
           const ownerId = otherParticipantId(conversation, currentUser.id);
-          displayInfo[conversation._id] = { name: startupName, image: startupLogo, isStartup: true, userId: ownerId };
+          displayInfo[conversation._id] = { name: startupName, image: startupLogo, isStartup: conversation.contextType === 'startup', userId: ownerId };
         }
       }
       
@@ -424,10 +438,12 @@ const ChatInterface = () => {
           setOtherUser(otherParticipant);
         }
 
-        // Resolve the startup from contextId for non-startup users.
+        // Resolve the startup profile only for startup-context conversations —
+        // peer (student/professional/general) chats already have everything they
+        // need from the populated `otherParticipant` set above.
         const sid = selectedConversation.contextId
           || selectedConversation.startupId?._id || selectedConversation.startupId;
-        if (currentUser.role !== 'startup' && sid && selectedConversation.contextType !== 'general') {
+        if (selectedConversation.contextType === 'startup' && sid) {
           const startupRes = await fetch(`${baseUrl}/startupark/api/profile/startups/${sid}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
@@ -435,6 +451,8 @@ const ChatInterface = () => {
             const startupJson = await startupRes.json();
             setStartup(startupJson.startup || startupJson);
           }
+        } else {
+          setStartup(null);
         }
 
       } catch (error) {

@@ -9,9 +9,10 @@ import TalentPostCard from './TalentPostCard';
 // the owner writes themselves). Distinct from the Students tab, which reuses the
 // existing auto-listed profile directory (TalentDirectory.jsx).
 export default function TalentPostBoard({ viewerId, viewerRole }) {
-  const { talentPosts, pagination, loading, error, fetchTalentPosts } = useTalentPosts();
+  const { talentPosts, pagination, loading, error, fetchTalentPosts, fetchMyTalentPosts } = useTalentPosts();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [myPosts, setMyPosts] = useState([]);
 
   // Talent Posts are self-marketing listings by people looking for work — startups
   // invite talent (see the Invite button on each card), they don't post themselves.
@@ -22,6 +23,15 @@ export default function TalentPostBoard({ viewerId, viewerRole }) {
   }, [q, page, fetchTalentPosts]);
 
   useEffect(() => { doFetch(); }, [doFetch]);
+
+  // The public list above only ever returns visibility: 'published' posts, so a
+  // saved draft would otherwise be unreachable after the initial create redirect.
+  // Published posts of the viewer's own already surface there (with a "Yours"
+  // badge), so this only needs to backfill the drafts that list omits.
+  useEffect(() => {
+    if (!canPostTalent || !viewerId) { setMyPosts([]); return; }
+    fetchMyTalentPosts().then(posts => setMyPosts(posts.filter(p => p.visibility === 'draft'))).catch(() => setMyPosts([]));
+  }, [canPostTalent, viewerId, fetchMyTalentPosts]);
 
   return (
     <div className="space-y-5">
@@ -42,6 +52,17 @@ export default function TalentPostBoard({ viewerId, viewerRole }) {
           </Link>
         )}
       </div>
+
+      {myPosts.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Your drafts</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myPosts.map(tp => (
+              <TalentPostCard key={tp._id} talentPost={tp} isOwner />
+            ))}
+          </div>
+        </div>
+      )}
 
       {!loading && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">

@@ -95,7 +95,7 @@ export default function ProductDetail() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Top nav */}
       <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10 px-4 md:px-6 py-3">
-        <div className="max-w-6xl mx-auto flex items-center gap-3">
+        <div className="max-w-6xl lg:max-w-[1600px] mx-auto flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
             className="btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5"
@@ -110,7 +110,7 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-6">
+      <div className="max-w-6xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-6">
 
         {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

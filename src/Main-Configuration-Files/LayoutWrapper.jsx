@@ -66,7 +66,7 @@ const LayoutWrapper = ({ children }) => {
         />
 
         <main className="flex-1 p-6 pt-20" style={{ paddingBottom: 'var(--dock-clearance, 120px)' }}>
-          <PageHeader />
+          <PageHeader user={user} />
 
           {/* Page content */}
           {children}

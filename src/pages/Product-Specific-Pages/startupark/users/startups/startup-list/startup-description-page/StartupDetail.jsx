@@ -72,7 +72,7 @@ const StartupDetail = () => {
   if (!startupDataWithProducts) return <EmptyState />;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header Section */}
       <StartupProfileHeader
         startupData={startupDataWithProducts}
@@ -371,7 +371,7 @@ const ContactCard = ({ email, phone, website, contactName }) => (
 
 // Loading State Component
 const LoadingStartupDetail = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div className="mb-6">
       <div className="h-6 w-24 glass-inset rounded animate-pulse"></div>
     </div>
@@ -397,7 +397,7 @@ const LoadingStartupDetail = () => (
 
 // Error State Component
 const ErrorState = ({ error }) => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div className="bg-red-50 border-l-4 border-red-500 p-4 max-w-3xl mx-auto">
       <div className="flex">
         <div className="flex-shrink-0">
@@ -426,7 +426,7 @@ const ErrorState = ({ error }) => (
 
 // Empty State Component
 const EmptyState = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+  <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
     <svg
       className="mx-auto h-12 w-12 text-gray-400"
       fill="none"

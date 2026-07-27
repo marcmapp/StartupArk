@@ -21,21 +21,10 @@ const ROLE_META = {
   user: { label: 'User Dashboard', icon: 'user', description: 'Browse startups, book meetings, and explore the ecosystem.' },
 };
 
-// Rotating one-liners for the inline Guide widget — a taste of what's in the
-// full guide, not a duplicate of it. Generic across roles on purpose; the
-// full breakdown at /guide is where role-specific detail lives.
-const GUIDE_TIPS = [
-  { icon: 'layout', text: "The Hub is your cross-product switcher — jump between StartupArk, Flowboard, and DocArc from the dock." },
-  { icon: 'bell', text: "The bell in the header surfaces bookings, proposals, and replies that need your attention." },
-  { icon: 'search', text: "Use search to find people, startups, and posts without leaving the page you're on." },
-  { icon: 'id-card', text: "Your profile is shared across every product — update it once in Settings." },
-];
-
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [roleStatus, setRoleStatus] = useState(null); // { startuparkRole, agreements, profiles }
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [tipIndex, setTipIndex] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,11 +43,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => setTipIndex((i) => (i + 1) % GUIDE_TIPS.length), 4500);
     return () => clearInterval(timer);
   }, []);
 
@@ -86,13 +70,12 @@ const Dashboard = () => {
       ? (agreed ? 'Finish Your Profile' : 'Continue Setup')
       : `Go to ${roleMeta?.label}`;
 
-  const tip = GUIDE_TIPS[tipIndex];
   // Once a role's set up, the Hub's dock already gets you into that product —
   // this card only needs to exist while onboarding isn't finished yet.
   const showSetupCard = !role || setupIncomplete;
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:ml-8">
+    <div className="min-h-screen max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* Welcome header — mono glass */}
       <div className="glass-panel p-6 sm:p-7 mb-6">
@@ -134,11 +117,11 @@ const Dashboard = () => {
         <BillboardSection />
       </div>
 
-      <div className={`grid grid-cols-1 gap-5 ${showSetupCard ? 'md:grid-cols-2' : ''}`}>
-        {/* Your space — setup status / entry point into StartupArk. Only shown
-            while onboarding isn't finished; once a role's set up, the dock
-            already gets you into that product. */}
-        {showSetupCard && (
+      {/* Your space — setup status / entry point into StartupArk. Only shown
+          while onboarding isn't finished; once a role's set up, the dock
+          already gets you into that product. */}
+      {showSetupCard && (
+        <div className="max-w-md">
           <div className="glass-card relative overflow-hidden p-5">
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] blur-3xl pointer-events-none" />
             <div className="relative flex items-start justify-between gap-3">
@@ -173,43 +156,8 @@ const Dashboard = () => {
               {primaryLabel}
             </button>
           </div>
-        )}
-
-        {/* Guide — interactive, inline. Full breakdown lives at /guide. */}
-        <button
-          onClick={() => navigate('/guide')}
-          className="hud-grid text-zinc-900 dark:text-white relative overflow-hidden p-5 text-left glass-card
-                     hover:border-zinc-400/60 dark:hover:border-white/25 hover:-translate-y-0.5 transition-all duration-300 group"
-          style={{ backgroundSize: '20px 20px' }}
-        >
-          <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] blur-3xl pointer-events-none" />
-          <div className="relative flex items-start justify-between gap-3 mb-3">
-            <p className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Guide</p>
-            <div className="w-10 h-10 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0 text-zinc-700 dark:text-zinc-200">
-              <box-icon name="help-circle" type="solid" color="currentColor" size="20px"></box-icon>
-            </div>
-          </div>
-          <div key={tipIndex} className="relative animate-fade-in min-h-[52px]">
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex-shrink-0 text-zinc-400 dark:text-zinc-500">
-                <box-icon name={tip.icon} size="16px" color="currentColor"></box-icon>
-              </span>
-              <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-snug">{tip.text}</p>
-            </div>
-          </div>
-          <div className="relative flex items-center justify-between mt-3">
-            <div className="flex items-center gap-1">
-              {GUIDE_TIPS.map((_, i) => (
-                <span key={i} className={`h-1 rounded-full transition-all ${i === tipIndex ? 'w-4 bg-zinc-900 dark:bg-white' : 'w-1 bg-black/15 dark:bg-white/15'}`} />
-              ))}
-            </div>
-            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors flex items-center gap-1">
-              Open guide
-              <box-icon name="chevron-right" size="14px" color="currentColor"></box-icon>
-            </span>
-          </div>
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

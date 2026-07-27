@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { eventService } from '../../../../services/eventService';
 import { track } from '../../../../services/analytics';
 import EventReviewsSection from '../../../../components/EventReviewsSection';
+import { formatDateTime } from '../../../../utils/datetime';
 
 const getCurrentUserId = () => {
   try {
@@ -79,7 +80,7 @@ const EventDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-zinc-200 dark:bg-zinc-950 py-8">
-      <div className="max-w-4xl mx-auto px-4 space-y-6">
+      <div className="max-w-4xl lg:max-w-[1600px] mx-auto px-4 space-y-6">
         <div className="glass-card overflow-hidden">
           {/* Header */}
           <div className="glass-panel !rounded-none border-x-0 border-t-0 p-8">
@@ -116,7 +117,7 @@ const EventDetailPage = () => {
                       <svg className="w-5 h-5 text-zinc-400 dark:text-zinc-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span>{new Date(event.date).toLocaleString()}</span>
+                      <span>{formatDateTime(event.date)}</span>
                     </div>
                     <div className="flex items-center">
                       <svg className="w-5 h-5 text-zinc-400 dark:text-zinc-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -7,6 +7,9 @@ import {
 import { getImageUrl } from '../../../../utils/imageUrls';
 import { relativeTime } from '../../../../utils/relativeTime';
 import Loader from '../../../../components/Loader';
+import ShowcaseImage from '../../../../components/ShowcaseImage';
+import LikeButton from '../../../../components/LikeButton';
+import CommentsPanel from '../../../../components/CommentsPanel';
 import 'boxicons';
 
 const TYPE_LABEL = Object.fromEntries(UPDATE_TYPES.map((t) => [t.value, t.label]));
@@ -45,19 +48,24 @@ const UpdateCard = ({ update }) => {
   const startup = update.startupId || {};
   const logoUrl = startup.logo ? getImageUrl(startup.logo) : null;
   const imgUrl = update.imageUrl ? getImageUrl(update.imageUrl) : null;
+  const [imgError, setImgError] = useState(false);
 
   return (
-    <button
-      onClick={() => navigate(`/updates/${update._id}`)}
-      className="glass-card overflow-hidden text-left flex flex-col group
+    <div
+      className="glass-card overflow-hidden flex flex-col group
                  hover:-translate-y-0.5 hover:border-zinc-400/60 dark:hover:border-white/25 transition-all duration-300"
     >
-      {imgUrl ? (
+      <button
+        onClick={() => navigate(`/updates/${update._id}`)}
+        className="text-left flex flex-col flex-1"
+      >
+      {imgUrl && !imgError ? (
         <div className="relative aspect-video w-full overflow-hidden flex-shrink-0">
-          <img
+          <ShowcaseImage
             src={imgUrl}
-            alt=""
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            wrapperClassName="w-full h-full"
+            imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={() => setImgError(true)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
           <div className="absolute bottom-2.5 left-3 right-3 flex items-center gap-2 min-w-0">
@@ -101,6 +109,12 @@ const UpdateCard = ({ update }) => {
         </div>
       </div>
     </button>
+
+      <div className="px-4 pb-4 flex items-center gap-4">
+        <LikeButton updateId={update._id} liked={update.liked} likeCount={update.likeCount} compact />
+        <CommentsPanel updateId={update._id} postedBy={update.postedBy} initialCount={update.commentCount} className="flex-1" />
+      </div>
+    </div>
   );
 };
 
@@ -203,23 +217,36 @@ const FeedTab = () => {
 
 // ── Mine tab (compose + manage) ─────────────────────────────────────────
 
-const emptyForm = { title: '', body: '', updateType: 'general', imageFile: null, imagePreview: null, existingImageUrl: null };
+const emptyForm = { title: '', body: '', updateType: 'general', imageFile: null, imagePreview: null, existingImageUrl: null, imageRemoved: false };
 
 const ComposeForm = ({ editing, onSaved, onCancel }) => {
   const [form, setForm] = useState(() => editing
     ? {
         title: editing.title, body: editing.body, updateType: editing.updateType,
         imageFile: null, imagePreview: editing.imageUrl ? getImageUrl(editing.imageUrl) : null,
-        existingImageUrl: editing.imageUrl || null
+        existingImageUrl: editing.imageUrl || null, imageRemoved: false
       }
     : emptyForm);
   const [saving, setSaving] = useState(null); // 'draft' | 'publish' | null
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
 
-  const handleFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setForm((f) => ({ ...f, imageFile: file, imagePreview: URL.createObjectURL(file) }));
+  const applyFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setForm((f) => ({ ...f, imageFile: file, imagePreview: URL.createObjectURL(file), imageRemoved: false }));
+  };
+
+  const handleFile = (e) => applyFile(e.target.files?.[0]);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    applyFile(e.dataTransfer.files?.[0]);
+  };
+
+  const removeImage = () => {
+    setForm((f) => ({ ...f, imageFile: null, imagePreview: null, existingImageUrl: null, imageRemoved: true }));
   };
 
   // action: 'draft' (new, save as draft) | 'publish' (new, or promote a draft) | 'save' (edit an already-published post — never re-publishes)
@@ -229,6 +256,7 @@ const ComposeForm = ({ editing, onSaved, onCancel }) => {
     setError(null);
     try {
       const payload = { title: form.title.trim(), body: form.body.trim(), updateType: form.updateType };
+      if (form.imageRemoved) payload.imageUrl = null;
       let update;
       if (editing) {
         update = (await editUpdate(editing._id, payload)).data;
@@ -237,8 +265,13 @@ const ComposeForm = ({ editing, onSaved, onCancel }) => {
       }
 
       if (form.imageFile) {
-        const key = await uploadUpdateImage(update._id, form.imageFile);
-        update = (await editUpdate(update._id, { imageUrl: key })).data;
+        setUploadingImage(true);
+        try {
+          const key = await uploadUpdateImage(update._id, form.imageFile);
+          update = (await editUpdate(update._id, { imageUrl: key })).data;
+        } finally {
+          setUploadingImage(false);
+        }
       }
 
       // Promoting a draft goes through the dedicated publish action so the
@@ -282,13 +315,53 @@ const ComposeForm = ({ editing, onSaved, onCancel }) => {
         >
           {UPDATE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        <label className="btn-ghost px-3 py-2 text-xs cursor-pointer">
-          {form.imagePreview ? 'Change image' : 'Add image (optional)'}
+        {!form.imagePreview && (
+          <label className="btn-ghost px-3 py-2 text-xs cursor-pointer inline-flex items-center gap-1.5">
+            <box-icon name="image-add" size="14px" color="currentColor"></box-icon>
+            Add image (optional)
+            <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+          </label>
+        )}
+      </div>
+
+      {form.imagePreview ? (
+        <div className="relative rounded-xl overflow-hidden border border-black/10 dark:border-white/15 animate-scale-in group">
+          <img src={form.imagePreview} alt="Preview" className="w-full max-h-64 object-cover" />
+          {uploadingImage && (
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+              <div className="w-6 h-6 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span className="text-xs font-medium text-white">Uploading…</span>
+            </div>
+          )}
+          {!uploadingImage && (
+            <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <label className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white cursor-pointer hover:bg-black/80 transition-colors">
+                <box-icon name="pencil" size="14px" color="currentColor"></box-icon>
+                <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+              </label>
+              <button
+                type="button"
+                onClick={removeImage}
+                className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500/80 transition-colors"
+              >
+                <box-icon name="trash" size="14px" color="currentColor"></box-icon>
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <label
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-colors ${
+            dragOver ? 'border-zinc-400 dark:border-white/40 bg-black/[0.03] dark:bg-white/[0.05]' : 'border-black/10 dark:border-white/15'
+          }`}
+        >
+          <box-icon name="cloud-upload" size="22px" color="currentColor" class="text-zinc-400 dark:text-zinc-500"></box-icon>
+          <span className="text-xs text-zinc-400 dark:text-zinc-500">Drag an image here, or use "Add image" above</span>
           <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
         </label>
-      </div>
-      {form.imagePreview && (
-        <img src={form.imagePreview} alt="Preview" className="w-full max-h-64 object-cover rounded-xl border border-black/10 dark:border-white/15" />
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
       <div className="flex items-center gap-3 pt-1">
@@ -445,7 +518,7 @@ const UpdatesFeedPage = () => {
   const [tab, setTab] = useState('feed'); // 'feed' | 'mine'
 
   return (
-    <div className="min-h-screen max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:ml-8">
+    <div className="min-h-screen max-w-3xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-start sm:items-center justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl glass-inset flex items-center justify-center text-zinc-500 dark:text-zinc-400 flex-shrink-0">

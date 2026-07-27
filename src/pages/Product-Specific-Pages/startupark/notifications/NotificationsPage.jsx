@@ -223,7 +223,7 @@ const NotificationsPage = () => {
   const weekCount = notifications.filter((n) => ['Today', 'Yesterday', 'Earlier this week'].includes(bucketOf(n.createdAt))).length;
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-10 max-w-5xl mx-auto">
+    <div className="px-4 sm:px-6 lg:px-8 py-10 max-w-5xl lg:max-w-[1600px] mx-auto">
       {/* Hero */}
       <div className="text-center mb-10">
         <div className="inline-flex items-center gap-2 glass-inset text-zinc-600 dark:text-zinc-300 px-4 py-1.5 rounded-full text-xs font-semibold mb-4 uppercase tracking-wider">

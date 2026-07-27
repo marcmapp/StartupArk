@@ -48,6 +48,11 @@ export default function TalentPostCard({ talentPost, isOwner }) {
             Yours
           </span>
         )}
+        {talentPost.visibility === 'draft' && (
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded ring-1 ring-amber-700/50 bg-amber-950/30 text-amber-400 shrink-0">
+            Draft
+          </span>
+        )}
       </div>
 
       <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2">{talentPost.pitch}</p>

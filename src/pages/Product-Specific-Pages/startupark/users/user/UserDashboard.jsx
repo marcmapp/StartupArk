@@ -45,16 +45,35 @@ export default function UserDashboard() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ savedStartups: null, savedProducts: null, bookings: null, unreadMessages: null });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/'); return; }
+    const headers = { Authorization: `Bearer ${token}` };
     Promise.allSettled([
-      axios.get(`${baseUrl}/api/mappuser/me`, { headers: { Authorization: `Bearer ${token}` } }),
-      axios.get(`${baseUrl}/startupark/api/profile/user`, { headers: { Authorization: `Bearer ${token}` } }),
-    ]).then(([u, p]) => {
+      axios.get(`${baseUrl}/api/mappuser/me`, { headers }),
+      axios.get(`${baseUrl}/startupark/api/profile/user`, { headers }),
+      axios.get(`${baseUrl}/startupark/api/favorites?entityType=startup`, { headers }),
+      axios.get(`${baseUrl}/startupark/api/favorites?entityType=product`, { headers }),
+      axios.get(`${baseUrl}/startupark/api/bookings`, { headers }),
+      axios.get(`${baseUrl}/startupark/api/chat/conversations`, { headers }),
+    ]).then(([u, p, savedStartups, savedProducts, bookings, conversations]) => {
       if (u.status === 'fulfilled') setUser(u.value.data); else navigate('/');
       setProfile(p.status === 'fulfilled' ? p.value.data?.profile : null);
+
+      const userId = u.status === 'fulfilled' ? u.value.data?._id : null;
+      const unreadMessages = conversations.status === 'fulfilled'
+        ? (conversations.value.data?.conversations || []).reduce(
+            (sum, c) => sum + (Number(c.unreadCount?.[userId]) || 0), 0)
+        : null;
+
+      setStats({
+        savedStartups: savedStartups.status === 'fulfilled' ? (savedStartups.value.data?.favorites?.length ?? 0) : null,
+        savedProducts: savedProducts.status === 'fulfilled' ? (savedProducts.value.data?.favorites?.length ?? 0) : null,
+        bookings: bookings.status === 'fulfilled' ? (bookings.value.data?.bookings?.length ?? 0) : null,
+        unreadMessages,
+      });
     }).finally(() => setLoading(false));
   }, [navigate]);
 
@@ -66,7 +85,7 @@ export default function UserDashboard() {
   const avatarUrl = avatarKey ? getImageUrl(avatarKey, baseUrl) : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* Welcome banner — mono glass */}
       <div className="glass-panel p-6 sm:p-8 mb-6">
@@ -101,10 +120,10 @@ export default function UserDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Saved Startups" value="—" icon="bookmark" />
-        <StatCard label="My Bookings" value="—" icon="calendar-check" />
-        <StatCard label="Messages" value="—" icon="chat" />
-        <StatCard label="Products Viewed" value="—" icon="box" />
+        <StatCard label="Saved Startups" value={stats.savedStartups ?? '—'} icon="bookmark" />
+        <StatCard label="My Bookings" value={stats.bookings ?? '—'} icon="calendar-check" />
+        <StatCard label="Messages" value={stats.unreadMessages ?? '—'} icon="chat" />
+        <StatCard label="Saved Products" value={stats.savedProducts ?? '—'} icon="box" />
       </div>
 
       {/* Main grid */}
@@ -136,29 +155,6 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          {/* ── Become a Startup CTA ── */}
-          <button
-            onClick={() => navigate('/startupark', { state: { forceSetup: true, role: 'startup' } })}
-            className="w-full text-left glass-panel p-5 group hover:ring-1 hover:ring-zinc-400/30 dark:hover:ring-zinc-500/30 transition-all duration-200"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                <box-icon name="rocket" type="solid" color="currentColor" size="22px" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-zinc-900 dark:text-white text-base">Launch Your Startup</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Register as a Founder — build your profile, post jobs, showcase products & grow.</p>
-              </div>
-              <div className="flex-shrink-0 text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-                <box-icon name="chevron-right" color="currentColor" size="20px" />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {['Startup Profile', 'Product Showcase', 'Post Jobs', 'Project Ark', 'Investor Connections'].map(f => (
-                <span key={f} className="text-[10px] glass-inset text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded-full">{f}</span>
-              ))}
-            </div>
-          </button>
         </div>
 
         {/* Profile card */}

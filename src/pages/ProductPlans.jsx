@@ -5,6 +5,7 @@ import MarkPayment from "../components/Specific-Usecase-Components/MarkPayment";
 import Loader from "../components/Loader";
 import Modal from "../components/Model";
 import pricingConfig from "../Jsons/Data/PricingDetails.json";
+import { formatCurrency } from "../utils/currency";
 import {
   CheckIcon,
   StarIcon,
@@ -143,7 +144,9 @@ const ProductPlans = () => {
         <div className="text-center mb-6">
           <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">{plan.name}</h3>
           <div className="flex items-baseline justify-center gap-1 mb-2">
-            <span className="text-3xl font-bold text-zinc-900 dark:text-white">{plan.price}</span>
+            <span className="text-3xl font-bold text-zinc-900 dark:text-white">
+              {plan.amount > 0 ? formatCurrency(plan.amount / 100) : 'Free'}
+            </span>
             {plan.amount > 0 && <span className="text-zinc-500 dark:text-zinc-400 text-sm">/month</span>}
           </div>
           {plan.amount > 0 && (
@@ -177,7 +180,7 @@ const ProductPlans = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Back Button */}
         <div className="mb-8">
           <button

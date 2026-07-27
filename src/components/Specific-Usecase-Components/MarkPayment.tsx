@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { loadRazorpayScript } from "../../utils/razorpayUtils";
+import { formatCurrency } from "../../utils/currency";
 
 interface RazorpayResponse {
   razorpay_payment_id: string;
@@ -128,7 +129,7 @@ const MarkPayment: React.FC<MarkPaymentProps> = ({ amount, plan, product, onSucc
         onClick={handlePayment}
         disabled={loading || disabled}
       >
-        {loading ? "Processing..." : buttonText || (amount > 0 ? `Pay ₹${amount / 100}` : "Get Started")}
+        {loading ? "Processing..." : buttonText || (amount > 0 ? `Pay ${formatCurrency(amount / 100)}` : "Get Started")}
       </button>
     </div>
   );

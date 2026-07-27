@@ -103,6 +103,10 @@ const NotificationBell = ({ user }) => {
         setOpen(false);
         if (n.data?.productId) navigate(`/products/${n.data.productId}`);
         break;
+      case 'new_message':
+        setOpen(false);
+        if (n.data?.conversationId) navigate(`/startupark/chat/${n.data.conversationId}`);
+        break;
       default:
         break;
     }

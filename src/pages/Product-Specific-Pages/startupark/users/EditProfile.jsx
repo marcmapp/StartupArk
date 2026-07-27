@@ -39,7 +39,7 @@ export default function EditProfile() {
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl lg:max-w-[1600px] mx-auto">
         <div className="mb-6">
           <button onClick={() => navigate(dashRoute)} className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition mb-3">
             ← Back to dashboard

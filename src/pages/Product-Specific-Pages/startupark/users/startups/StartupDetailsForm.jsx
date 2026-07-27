@@ -1,4 +1,5 @@
 import React from 'react';
+import PhoneInput from '../../../../../components/PhoneInput';
 
 const StartupDetailsForm = ({
   formData,
@@ -336,13 +337,12 @@ const StartupDetailsForm = ({
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2">Phone</label>
-            <input
-              type="tel"
+            <PhoneInput
               name="phone"
+              countryName="phoneCountry"
               value={formData.phone}
+              countryValue={formData.phoneCountry}
               onChange={handleChange}
-              className="w-full border border-black/10 dark:border-white/15 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:ring-white/20"
-              placeholder="+1 (123) 456-7890"
               disabled={isUploading}
             />
           </div>
@@ -564,7 +564,7 @@ const StartupDetailsForm = ({
                             type="text"
                             value={member.name}
                             onChange={(e) => updateTeamMember(index, 'name', e.target.value)}
-                            className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm"
+                            className="w-full bg-zinc-100 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 rounded px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20"
                             placeholder="Full name"
                             disabled={isUploading}
                           />
@@ -575,7 +575,7 @@ const StartupDetailsForm = ({
                             type="text"
                             value={member.position}
                             onChange={(e) => updateTeamMember(index, 'position', e.target.value)}
-                            className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm"
+                            className="w-full bg-zinc-100 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 rounded px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20"
                             placeholder="Role/Title"
                             disabled={isUploading}
                           />
@@ -586,7 +586,7 @@ const StartupDetailsForm = ({
                         <textarea
                           value={member.bio}
                           onChange={(e) => updateTeamMember(index, 'bio', e.target.value)}
-                          className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm h-16"
+                          className="w-full bg-zinc-100 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 rounded px-3 py-1 text-sm h-16 outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20"
                           placeholder="Brief background"
                           disabled={isUploading}
                         ></textarea>

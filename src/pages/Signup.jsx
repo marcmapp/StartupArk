@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import { Listbox } from '@headlessui/react';
 import { authService, storageService } from '../services/auth';
 import AuthBrandPanel from '../components/AuthBrandPanel';
-
-const COUNTRY_CODES = ['+91', '+1', '+44', '+81', '+61'];
+import PhoneInput from '../components/PhoneInput';
+import { isValidPhone } from '../utils/phone';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +12,7 @@ const Signup = () => {
     username: '',
     password: '',
     whatsappNumber: '',
-    countryCode: '+91'
+    whatsappCountry: ''
   });
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -49,37 +48,13 @@ const Signup = () => {
     return true;
   };
 
-  const validatePhoneNumber = (number, code) => {
-    let regex;
-    switch (code) {
-      case '+91': // India
-        regex = /^[6-9]\d{9}$/;
-        break;
-      case '+1': // US/Canada
-        regex = /^\d{10}$/;
-        break;
-      case '+44': // UK
-        regex = /^\d{10,11}$/;
-        break;
-      case '+81': // Japan
-        regex = /^\d{9,10}$/;
-        break;
-      case '+61': // Australia
-        regex = /^\d{9}$/;
-        break;
-      default: 
-        return /^\d{8,15}$/.test(number);
-    }
-    return regex.test(number);
-  };
-
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setMessage({ text: '', type: '' });
 
     if (!validateForm()) return;
 
-    if (!validatePhoneNumber(formData.whatsappNumber, formData.countryCode)) {
+    if (!isValidPhone(formData.whatsappNumber, formData.whatsappCountry)) {
       showMessage('Please enter a valid phone number for the selected country');
       return;
     }
@@ -103,12 +78,11 @@ const Signup = () => {
     try {
       // Verify OTP first
       await authService.verifyOTP(formData.email, otp);
-      
-      // Register user
-      const fullWhatsappNumber = `${formData.countryCode}${formData.whatsappNumber}`;
+
+      // Register user — whatsappNumber is already E.164-normalized by PhoneInput,
+      // whatsappCountry travels alongside it so the backend can validate/parse.
       const result = await authService.register({
         ...formData,
-        whatsappNumber: fullWhatsappNumber,
         otp
       });
 
@@ -221,46 +195,17 @@ const Signup = () => {
                 required
                 disabled={isLoading}
               />
-              <div className="flex sm:col-span-2">
-                <Listbox
-                  value={formData.countryCode}
-                  onChange={(val) => updateFormData('countryCode', val)}
-                  disabled={isLoading}
-                >
-                  <div className="relative w-1/4">
-                    <Listbox.Button className="input-mono w-full rounded-2xl rounded-r-none py-3.5 text-base flex items-center justify-between gap-1 disabled:opacity-50">
-                      <span>{formData.countryCode}</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 shrink-0">
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </Listbox.Button>
-                    <Listbox.Options className="absolute z-20 mt-2 w-full min-w-[5.5rem] rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden focus:outline-none">
-                      {COUNTRY_CODES.map((code) => (
-                        <Listbox.Option
-                          key={code}
-                          value={code}
-                          className={({ active }) =>
-                            `cursor-pointer px-4 py-2.5 text-sm text-zinc-700 dark:text-zinc-300 ${
-                              active ? 'bg-black/5 dark:bg-white/10' : ''
-                            }`
-                          }
-                        >
-                          {code}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </div>
-                </Listbox>
-                <input
-                  type="tel"
-                  placeholder="WhatsApp Number"
-                  value={formData.whatsappNumber}
-                  onChange={(e) => updateFormData('whatsappNumber', e.target.value)}
-                  className="input-mono w-3/4 rounded-2xl rounded-l-none border-l-0 py-3.5 text-base"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+              <PhoneInput
+                name="whatsappNumber"
+                countryName="whatsappCountry"
+                value={formData.whatsappNumber}
+                countryValue={formData.whatsappCountry}
+                onChange={(e) => updateFormData(e.target.name, e.target.value)}
+                placeholder="WhatsApp Number"
+                required
+                disabled={isLoading}
+                className="sm:col-span-2"
+              />
             </div>
           ) : (
             <input

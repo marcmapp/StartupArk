@@ -60,6 +60,18 @@ export const deleteUpdate = (id) =>
 export const toggleUpdateLike = (id) =>
   request(`${UPDATES}/${id}/like`, { method: 'PATCH' });
 
+// ── Comments ───────────────────────────────────────────────────────────────
+export const fetchComments = (id, { page = 1, limit = 20 } = {}) => {
+  const params = new URLSearchParams({ page, limit });
+  return request(`${UPDATES}/${id}/comments?${params.toString()}`);
+};
+
+export const addComment = (id, text) =>
+  request(`${UPDATES}/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) });
+
+export const deleteComment = (id, commentId) =>
+  request(`${UPDATES}/${id}/comments/${commentId}`, { method: 'DELETE' });
+
 // Presigned-URL upload, mirroring the Products image flow: ask the backend for
 // a PUT URL, upload the file directly to R2, then save the returned key as imageUrl.
 export const uploadUpdateImage = async (id, file) => {
@@ -67,6 +79,10 @@ export const uploadUpdateImage = async (id, file) => {
     method: 'POST',
     body: JSON.stringify({ filename: file.name, contentType: file.type })
   });
-  await fetch(meta.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+  const put = await fetch(meta.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+  // The PUT goes straight to R2, bypassing our request() wrapper's ok-check —
+  // without this, a failed upload (expired URL, CORS, signature mismatch)
+  // still gets its key persisted as imageUrl, rendering as a broken image.
+  if (!put.ok) throw new Error(`Image upload failed (${put.status})`);
   return meta.key;
 };

@@ -103,7 +103,7 @@ const Profile = () => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-5xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* Header banner */}
       <div className="glass-panel p-6 sm:p-8 mb-6">
@@ -125,9 +125,28 @@ const Profile = () => {
               <p className="text-zinc-500 dark:text-zinc-400 text-sm">{user.email}</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-            <box-icon name="log-out-circle" size="16px" color="currentColor" /> Logout
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Founder CTA — user-role accounts only. The one deliberate accent
+                exception on this page: everything else stays mono, this alone
+                gets a teal glow so it reads as "the interesting thing to click." */}
+            {user.startuparkRole === 'user' && (
+              <button
+                onClick={() => navigate('/startupark', { state: { forceSetup: true, role: 'startup' } })}
+                title="Register as a Founder — launch your startup"
+                aria-label="Register as a Founder"
+                className="relative inline-flex items-center justify-center w-11 h-11 rounded-full glass-inset
+                           border border-teal-400/50 dark:border-teal-300/40
+                           shadow-[0_0_16px_rgba(45,212,191,0.45)] dark:shadow-[0_0_20px_rgba(45,212,191,0.5)]
+                           hover:shadow-[0_0_26px_rgba(45,212,191,0.7)] dark:hover:shadow-[0_0_30px_rgba(45,212,191,0.8)]
+                           hover:-translate-y-0.5 transition-all duration-300 animate-glow-pulse flex-shrink-0"
+              >
+                <box-icon name="rocket" type="solid" color="#2dd4bf" size="20px" />
+              </button>
+            )}
+            <button onClick={handleLogout} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+              <box-icon name="log-out-circle" size="16px" color="currentColor" /> Logout
+            </button>
+          </div>
         </div>
       </div>
 

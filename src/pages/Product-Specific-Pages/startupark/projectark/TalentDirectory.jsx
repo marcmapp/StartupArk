@@ -4,10 +4,10 @@ import { Search } from 'lucide-react';
 import { useTalentDirectory } from './useTalentDirectory';
 import TalentCard from './TalentCard';
 
-// Students Hub's "Students" tab — student profiles only, not general "user"
-// (professional) profiles. This directory used to also list professionals when
-// it lived on ProjectArk; now that it's scoped under Students Hub, mixing in
-// non-student profiles doesn't match the page.
+// Students Hub's "Students" tab — student profiles only. This module is
+// scoped to students and startups; general "user" (professional) profiles
+// aren't listed here since role-based connect isn't the point — anyone can
+// already reach anyone else through Follow/Chat regardless of role.
 export default function TalentDirectory() {
   const { profiles, pagination, loading, error, fetchTalent } = useTalentDirectory();
   const [q, setQ] = useState('');

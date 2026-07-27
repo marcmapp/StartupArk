@@ -1,5 +1,6 @@
 import React from 'react';
 import { getImageUrl } from '../../../../../utils/imageUrls';
+import PhoneInput from '../../../../../components/PhoneInput';
 
 const CommonFieldsForm = ({
   formData, 
@@ -194,13 +195,12 @@ const CommonFieldsForm = ({
           <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Phone Number
           </label>
-          <input
-            type="tel"
+          <PhoneInput
             name="phone"
+            countryName="phoneCountry"
             value={formData.phone}
+            countryValue={formData.phoneCountry}
             onChange={handleChange}
-            className="input-mono"
-            placeholder="+1 (123) 456-7890"
           />
         </div>
         

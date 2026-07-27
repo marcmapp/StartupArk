@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FiEdit2, FiUpload, FiX, FiPlus, FiMinus, FiExternalLink, FiNavigation } from 'react-icons/fi';
+import PhoneInput from '../../../../../../components/PhoneInput';
+
+// Backend stores fundingStage as lowercase-hyphenated (enum in startupark.cjs);
+// the dropdown shows human-readable labels — map DB value back to its label on load.
+const FUNDING_STAGE_LABELS = {
+  'bootstrapped': 'Bootstrapped',
+  'pre-seed': 'Pre-seed',
+  'seed': 'Seed',
+  'series-a': 'Series A',
+  'series-b+': 'Series B+',
+};
 
 const EditStartupProfile = () => {
   const navigate = useNavigate();
@@ -118,6 +129,7 @@ const [filesToUpload, setFilesToUpload] = useState({
           const processed = processStartupData({ ...profile, startupName: profile.companyName || profile.startupName });
           setFormData({
             ...processed,
+            fundingStage: FUNDING_STAGE_LABELS[processed.fundingStage] || processed.fundingStage || '',
             location: '',
             locationCity: profile.location?.city || '',
             locationState: profile.location?.state || '',
@@ -549,6 +561,21 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
       delete submissionData.startupName;
     }
 
+    // Backend enum expects lowercase-hyphenated values (e.g. "series-a"), while
+    // the dropdown shows human-readable labels (e.g. "Series A")
+    if (submissionData.fundingStage) {
+      submissionData.fundingStage = submissionData.fundingStage.toLowerCase().replace(/\s+/g, '-');
+    } else {
+      delete submissionData.fundingStage;
+    }
+
+    // teamSize/fundingStage are enum fields on the backend — "" (the unselected
+    // "Select" option) isn't a member of either enum and fails validation, so
+    // drop the key entirely rather than send an empty string.
+    if (!submissionData.teamSize) {
+      delete submissionData.teamSize;
+    }
+
     // Drop any string location value (legacy field)
     if (typeof submissionData.location === 'string') {
       delete submissionData.location;
@@ -654,7 +681,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold mb-6">Edit Startup Profile</h1>
       
       {uploadError && (
@@ -972,12 +999,12 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2">Phone</label>
-            <input
-              type="tel"
+            <PhoneInput
               name="phone"
+              countryName="phoneCountry"
               value={formData.phone}
+              countryValue={formData.phoneCountry}
               onChange={handleChange}
-              className="input-mono"
               disabled={isSubmitting}
             />
           </div>
@@ -1195,24 +1222,13 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                         />
                         <button
                           type="button"
-                          onClick={() => {
-                            const acceptLarge = window.confirm(
-                              'Team avatar image requirements:\n' +
-                              '• Max file size: 2MB\n' +
-                              '• Allowed formats: JPEG, PNG, WebP\n' +
-                              '• Recommended size: 200x200px\n\n' +
-                              'Click OK to select a file.'
-                            );
-                            if (acceptLarge) {
-                              document.getElementById(`team-avatar-${index}`).click();
-                            }
-                          }}
-                          className="text-xs text-zinc-700 dark:text-zinc-300 hover:text-zinc-700 dark:text-zinc-300"
+                          onClick={() => document.getElementById(`team-avatar-${index}`).click()}
+                          className="text-xs text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
                           disabled={isSubmitting}
                         >
                           {member.profilePhoto ? 'Change' : 'Add Photo'}
                         </button>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Max 2MB</span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Max 2MB, JPEG/PNG/WebP</span>
                         {filesToUpload.teamAvatars[index] && (
                           <span className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                             ✓ Ready
@@ -1228,7 +1244,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                             type="text"
                             value={member.name}
                             onChange={(e) => updateTeamMember(index, 'name', e.target.value)}
-                            className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm bg-transparent"
+                            className="w-full bg-zinc-100 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 rounded px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20"
                             placeholder="Full name"
                             disabled={isSubmitting}
                           />
@@ -1239,7 +1255,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                             type="text"
                             value={member.position}
                             onChange={(e) => updateTeamMember(index, 'position', e.target.value)}
-                            className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm bg-transparent"
+                            className="w-full bg-zinc-100 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 rounded px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20"
                             placeholder="Role/Title"
                             disabled={isSubmitting}
                           />
@@ -1250,7 +1266,7 @@ const galleryItems = galleryItemsRaw.filter(item => item.url !== null);
                         <textarea
                           value={member.bio}
                           onChange={(e) => updateTeamMember(index, 'bio', e.target.value)}
-                          className="w-full border border-black/10 dark:border-white/15 rounded px-3 py-1 text-sm h-16"
+                          className="w-full bg-zinc-100 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 rounded px-3 py-1 text-sm h-16 outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-white/20"
                           placeholder="Brief background"
                           disabled={isSubmitting}
                         ></textarea>

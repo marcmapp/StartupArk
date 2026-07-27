@@ -42,19 +42,29 @@ const ActionCard = ({ title, desc, icon, onClick }) => (
 export default function StartupDashboard() {
   const navigate = useNavigate();
   const [startup, setStartup] = useState(null);
+  const [productCount, setProductCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
-    axios.get(`${baseUrl}/startupark/api/profile/startup`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => setStartup(r.data?.profile || null))
-      .catch(err => {
-        if (err.response?.status === 401) navigate('/login');
-        else setError(err.response?.data?.error || 'Failed to load');
-      })
-      .finally(() => setLoading(false));
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.allSettled([
+      axios.get(`${baseUrl}/startupark/api/profile/startup`, { headers }),
+      // Products live in a separate collection, not embedded on the profile —
+      // ?mine=1 scopes the count to this founder's own products (any status).
+      axios.get(`${baseUrl}/startupark/api/products?mine=1&limit=1`, { headers }),
+    ]).then(([profileRes, productsRes]) => {
+      if (profileRes.status === 'fulfilled') {
+        setStartup(profileRes.value.data?.profile || null);
+      } else {
+        const err = profileRes.reason;
+        if (err?.response?.status === 401) navigate('/login');
+        else setError(err?.response?.data?.error || 'Failed to load');
+      }
+      setProductCount(productsRes.status === 'fulfilled' ? (productsRes.value.data?.total ?? 0) : null);
+    }).finally(() => setLoading(false));
   }, [navigate]);
 
   if (loading) return <Loader />;
@@ -71,7 +81,7 @@ export default function StartupDashboard() {
   const hasAvailability = startup.availability?.days?.length > 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl lg:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* Welcome banner — mono glass */}
       <div className="glass-panel p-6 sm:p-8 mb-6">
@@ -136,7 +146,7 @@ export default function StartupDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <StatCard label="Team Members" value={startup.team?.length || 0} icon="group" />
-        <StatCard label="Products" value={startup.products?.length || '—'} icon="box" />
+        <StatCard label="Products" value={productCount ?? '—'} icon="box" />
         <StatCard label="Gallery Items" value={startup.gallery?.length || 0} icon="image-alt" />
         <StatCard label="Funding Stage" value={startup.fundingStage || '—'} icon="rocket" />
       </div>

@@ -1,12 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Briefcase } from 'lucide-react';
 import TrustBadge from './TrustBadge';
+import Avatar from '../../../../components/Avatar';
+import { MessageIcon } from './projectArkLabels';
+import { startConversationAndNavigate } from './useTalentDirectory';
+
+function getCurrentUserId() {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    return u._id || u.id;
+  } catch { return null; }
+}
 
 export default function TalentCard({ profile }) {
   const navigate = useNavigate();
   const detailPath = `/startupark/projectark/talent/${profile.profileType}/${profile.id}`;
+  const [messaging, setMessaging] = useState(false);
+  const isOwnProfile = String(profile.userId) === String(getCurrentUserId());
+
+  async function handleQuickMessage(e) {
+    e.stopPropagation();
+    setMessaging(true);
+    try {
+      await startConversationAndNavigate(
+        { userId: profile.userId, profileId: profile.id, profileType: profile.profileType },
+        navigate
+      );
+    } catch {
+      setMessaging(false);
+    }
+  }
 
   return (
     <motion.div
@@ -16,13 +41,7 @@ export default function TalentCard({ profile }) {
       className="glass-card flex flex-col gap-3 p-4 cursor-pointer hover:ring-1 hover:ring-black/10 dark:hover:ring-zinc-600 transition-all duration-200"
     >
       <div className="flex items-center gap-3">
-        {profile.profilePicture ? (
-          <img src={profile.profilePicture} alt="" className="w-11 h-11 rounded-full object-cover shrink-0" />
-        ) : (
-          <div className="w-11 h-11 rounded-full bg-black/[0.06] dark:bg-zinc-800 flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400 shrink-0">
-            {profile.username?.[0]?.toUpperCase() || '?'}
-          </div>
-        )}
+        <Avatar src={profile.profilePicture} name={profile.username} />
         <div className="min-w-0 flex-1">
           <Link
             to={detailPath}
@@ -34,6 +53,16 @@ export default function TalentCard({ profile }) {
           <div className="text-[11px] text-zinc-500 dark:text-zinc-500 truncate">{profile.headline}</div>
         </div>
         {profile.posterTrust && <TrustBadge trust={profile.posterTrust} size="xs" />}
+        {!isOwnProfile && (
+          <button
+            onClick={handleQuickMessage}
+            disabled={messaging}
+            title="Message"
+            className="shrink-0 w-8 h-8 rounded-full glass-inset flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-50"
+          >
+            <MessageIcon className="w-3.5 h-3.5" strokeWidth={2} />
+          </button>
+        )}
       </div>
 
       {profile.skills?.length > 0 ? (
