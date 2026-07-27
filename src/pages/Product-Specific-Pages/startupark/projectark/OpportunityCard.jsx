@@ -7,6 +7,11 @@ import { formatCurrency } from '../../../../utils/currency';
 
 const LOCATION_ICON = { remote: Globe, onsite: MapPin, hybrid: GitMerge };
 
+const STATUS_STYLE = {
+  draft:  { label: 'Draft', className: 'text-zinc-400 dark:text-zinc-500 ring-black/10 dark:ring-zinc-800 bg-black/[0.03] dark:bg-zinc-900/60' },
+  closed: { label: 'Closed', className: 'text-zinc-400 dark:text-zinc-500 ring-black/10 dark:ring-zinc-800 bg-black/[0.03] dark:bg-zinc-900/60' },
+};
+
 function formatPrice(n) {
   if (n == null) return '';
   return formatCurrency(n, { compact: true });
@@ -35,6 +40,11 @@ export default function OpportunityCard({ opportunity, isOwner }) {
             {ROLE_TYPE_LABELS[opportunity.type] || 'Job'}
           </span>
           <span className="text-[10px] text-zinc-400 dark:text-zinc-500 capitalize">{opportunity.category}</span>
+          {STATUS_STYLE[opportunity.status] && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ring-1 ${STATUS_STYLE[opportunity.status].className}`}>
+              {STATUS_STYLE[opportunity.status].label}
+            </span>
+          )}
           {isOwner && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded ring-1 ring-black/10 dark:ring-zinc-600 bg-black/[0.05] dark:bg-zinc-700/60 text-zinc-700 dark:text-zinc-200">
               Your Post
@@ -76,6 +86,10 @@ export default function OpportunityCard({ opportunity, isOwner }) {
           <LocationIcon className="w-3 h-3" strokeWidth={2} />
           <span className="capitalize">{opportunity.location || 'remote'}</span>
         </span>
+      </div>
+
+      <div className="flex items-center justify-between text-[10px] text-zinc-400 dark:text-zinc-600 -mt-1">
+        <span>{opportunity.applicationCount || 0} {opportunity.applicationCount === 1 ? 'applicant' : 'applicants'}</span>
       </div>
 
       {startup && (

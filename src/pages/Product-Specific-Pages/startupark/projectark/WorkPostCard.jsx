@@ -5,8 +5,9 @@ import { ChevronDown, MapPin, Globe, GitMerge, Users2 } from 'lucide-react';
 import TrustBadge from './TrustBadge';
 import {
   POST_TYPE_SHORT, ROLE_TYPE_LABELS, ROLE_TYPE_ICONS,
-  POSITION_CATEGORY, POSITION_STATUS_STYLE,
+  POSITION_CATEGORY, POSITION_STATUS_STYLE, POST_STATUS_STYLE,
 } from './projectArkLabels';
+import { formatCurrency } from '../../../../utils/currency';
 
 const LOCATION_ICON = { remote: Globe, onsite: MapPin, hybrid: GitMerge };
 
@@ -15,7 +16,7 @@ function formatBudget(post) {
   if (post.budgetType === 'equity') return 'Equity';
   if (post.budgetType === 'negotiable') return 'Negotiable';
   if (!post.budgetMin && !post.budgetMax) return 'Open';
-  const fmt = (n) => n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : n >= 1000 ? `₹${(n / 1000).toFixed(0)}k` : `₹${n}`;
+  const fmt = (n) => formatCurrency(n, { compact: true });
   if (post.budgetMin && post.budgetMax) return `${fmt(post.budgetMin)} – ${fmt(post.budgetMax)}`;
   if (post.budgetMax) return `≤ ${fmt(post.budgetMax)}`;
   return `${fmt(post.budgetMin)}+`;
@@ -23,7 +24,7 @@ function formatBudget(post) {
 
 function formatPrice(n) {
   if (!n && n !== 0) return '';
-  return n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : n >= 1000 ? `₹${(n / 1000).toFixed(0)}k` : `₹${n}`;
+  return formatCurrency(n, { compact: true });
 }
 
 const VISIBLE_POSITIONS = 3;
@@ -67,6 +68,11 @@ export default function WorkPostCard({ post, userRole, viewerId }) {
               {typeLabel}
             </span>
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500 capitalize">{post.category?.replace('-', ' ')}</span>
+            {post.status !== 'open' && POST_STATUS_STYLE[post.status] && (
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ring-1 ${POST_STATUS_STYLE[post.status].className}`}>
+                {POST_STATUS_STYLE[post.status].label}
+              </span>
+            )}
             {isOwner && (
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded ring-1 ring-black/10 dark:ring-zinc-600 bg-black/[0.05] dark:bg-zinc-700/60 text-zinc-700 dark:text-zinc-200">
                 Your Post
@@ -203,8 +209,10 @@ export default function WorkPostCard({ post, userRole, viewerId }) {
           }`}
         >
           {isOwner
-            ? (isRole ? 'Manage Applicants' : 'Manage Proposals')
-            : (canApply && post.status === 'open' ? 'View & Apply' : 'View Details')}
+            ? (isRole ? 'Manage Applicants' : post.postType === 'requirement' ? 'Manage Responses' : 'Manage Proposals')
+            : canApply && post.status === 'open'
+              ? (!isRole && post.postType === 'requirement' ? 'Reach Out' : 'View & Apply')
+              : 'View Details'}
         </button>
       </div>
     </motion.div>

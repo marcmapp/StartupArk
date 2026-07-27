@@ -51,22 +51,25 @@ export const MODE_ICONS = {
 };
 
 // postType:'requirement' is unrelated to the Talent Directory / Talent Posts
-// (students-hub) — it's a WorkPost someone posts saying "I want to join a
-// startup". Renamed off the word "Talent" entirely (was "Talent Requests")
-// because it kept getting mistaken for the Students Hub feature by name alone.
+// (students-hub) — it's a WorkPost someone posts to pitch themselves to
+// startups directly ("I want to join a startup"). Named around "pitch" — the
+// same word used for the response CTA below — instead of "talent"/"open to
+// join", which both read as the Students Hub feature by name alone. The
+// poster (not the responding startup) has the upper hand here: a startup
+// reaches out to the person, it doesn't "apply" to them.
 export const POST_TYPE_LABELS = {
   project: 'Startup Projects',
-  requirement: 'Looking for a Startup',
+  requirement: 'Startup Pitches',
 };
 
 export const POST_TYPE_SHORT = {
   project: 'PROJECT',
-  requirement: 'OPEN TO JOIN',
+  requirement: 'PITCH',
 };
 
 export const POST_TYPE_HINTS = {
   project: 'startups looking for talent',
-  requirement: 'people looking to join a startup',
+  requirement: 'people pitching themselves to startups',
 };
 
 export const POST_TYPE_ICONS = {
@@ -119,6 +122,18 @@ export const POSITION_STATUS_STYLE = {
   open:   { label: 'Open', className: 'text-emerald-600 dark:text-emerald-400 ring-emerald-300 dark:ring-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30' },
   filled: { label: 'Filled', className: 'text-zinc-500 dark:text-zinc-400 ring-black/10 dark:ring-zinc-700 bg-black/[0.04] dark:bg-zinc-800/60' },
   closed: { label: 'Closed', className: 'text-zinc-400 dark:text-zinc-500 ring-black/10 dark:ring-zinc-800 bg-black/[0.03] dark:bg-zinc-900/60' },
+};
+
+// WorkPost.status — shown on cards/detail whenever it's not 'open', so "why
+// can't I apply" is answered on the card instead of only after clicking in.
+// 'open' itself has no badge (the default, unremarkable state).
+export const POST_STATUS_STYLE = {
+  draft:      { label: 'Draft', className: 'text-zinc-400 dark:text-zinc-500 ring-black/10 dark:ring-zinc-800 bg-black/[0.03] dark:bg-zinc-900/60' },
+  in_review:  { label: 'In Review', className: 'text-amber-600 dark:text-amber-400 ring-amber-300 dark:ring-amber-800/60 bg-amber-50 dark:bg-amber-950/30' },
+  in_progress:{ label: 'In Progress', className: 'text-zinc-600 dark:text-zinc-300 ring-black/10 dark:ring-zinc-700 bg-black/[0.05] dark:bg-zinc-800/60' },
+  completed:  { label: 'Filled', className: 'text-zinc-500 dark:text-zinc-400 ring-black/10 dark:ring-zinc-700 bg-black/[0.04] dark:bg-zinc-800/60' },
+  cancelled:  { label: 'Closed', className: 'text-zinc-400 dark:text-zinc-500 ring-black/10 dark:ring-zinc-800 bg-black/[0.03] dark:bg-zinc-900/60' },
+  expired:    { label: 'Expired', className: 'text-zinc-400 dark:text-zinc-500 ring-black/10 dark:ring-zinc-800 bg-black/[0.03] dark:bg-zinc-900/60' },
 };
 
 export const MessageIcon = MessageCircle;

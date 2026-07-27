@@ -176,12 +176,12 @@ export default function ProjectArk() {
     postType = 'project';
     postHref = '/startupark/projectark/create';
   } else if (isAuthenticated) {
-    postLabel = 'Post: Looking for a Startup';
+    postLabel = 'Pitch Yourself to Startups';
     postType = 'requirement';
     postHref = '/startupark/projectark/create';
   } else {
     postType = activeType === 'project' ? 'project' : 'requirement';
-    postLabel = postType === 'project' ? 'Post a Startup Project' : 'Post: Looking for a Startup';
+    postLabel = postType === 'project' ? 'Post a Startup Project' : 'Pitch Yourself to Startups';
     postHref = '/startupark/projectark/create';
   }
 
@@ -259,7 +259,7 @@ export default function ProjectArk() {
                   {[
                     { label: 'Live listings', value: stats?.total },
                     { label: 'Startup projects', value: stats?.projects },
-                    { label: 'Open to join', value: stats?.requirements },
+                    { label: 'Startup pitches', value: stats?.requirements },
                   ].map(stat => (
                     <div key={stat.label} className="glass-card px-4 py-3">
                       <div className="text-[11px] text-zinc-500 dark:text-zinc-400">{stat.label}</div>

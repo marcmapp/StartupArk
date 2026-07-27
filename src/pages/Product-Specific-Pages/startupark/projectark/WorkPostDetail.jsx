@@ -232,7 +232,7 @@ export default function WorkPostDetail() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Header */}
       <div className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10 px-4 md:px-6 py-3">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="max-w-4xl lg:max-w-[1600px] mx-auto flex items-center gap-3">
           <button
             onClick={() => navigate('/startupark/projectark')}
             className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
@@ -244,7 +244,7 @@ export default function WorkPostDetail() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
+      <div className="max-w-4xl lg:max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-6">
         {/* Title block */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2 flex-1">
@@ -290,14 +290,14 @@ export default function WorkPostDetail() {
             <div className="shrink-0">
               {myResponses.flat ? (
                 <div className="text-xs px-3 py-2 rounded-lg ring-1 ring-green-800/50 bg-green-950/20 text-green-400 flex flex-col items-end gap-1">
-                  <span>{isRole ? 'Application' : 'Proposal'} {myResponses.flat.status}</span>
+                  <span>{isRole ? 'Application' : post.postType === 'requirement' ? 'Outreach' : 'Proposal'} {myResponses.flat.status}</span>
                   {myResponses.flat.status === 'accepted' && myResponses.flat.conversationId && (
                     <a href="/startupark/chat" className="text-emerald-300 underline underline-offset-2">Open chat</a>
                   )}
                 </div>
               ) : canApplyFlat && post.status === 'open' ? (
                 <button onClick={() => setActivePosition('flat')} className="btn-mono px-4 py-2 text-sm">
-                  {isRole ? 'Apply Now' : 'Submit Proposal'}
+                  {isRole ? 'Apply Now' : post.postType === 'requirement' ? 'Reach Out' : 'Submit Proposal'}
                 </button>
               ) : null}
             </div>

@@ -46,13 +46,13 @@ type FloatingDockProps = {
 
 const DOCK_PADDING = 32;       // px-4 each side = 16 * 2
 const SIDE_MARGIN  = 16;       // clearance on each side of the dock bar
-const GAP          = 12;       // gap-3
-const BASE_MAX     = 44;
-const BASE_MIN     = 28;
-const LABEL_H      = 14;       // text-[11px] rendered line height
+const GAP          = 10;       // gap-2.5
+const BASE_MAX     = 36;
+const BASE_MIN     = 24;
+const LABEL_H      = 13;       // text-[10px] rendered line height
 const LABEL_GAP    = 4;        // gap-1 between icon circle and label
-const PB           = 12;       // pb-3
-const PT           = 8;        // pt-2
+const PB           = 10;       // pb-2.5
+const PT           = 6;        // pt-1.5
 
 function computeSizing(itemCount: number, viewportWidth: number) {
   const available = viewportWidth - SIDE_MARGIN * 2 - DOCK_PADDING;
@@ -170,7 +170,7 @@ function FloatingDockBar({
           (CSS forces overflow-y:auto too, but magnify never fires on touch). */}
       <div
         className={cn(
-          "relative flex items-end gap-3 px-4 pb-3 pt-2",
+          "relative flex items-end gap-2.5 px-4 pb-2.5 pt-1.5",
           needsScroll
             ? "overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
             : "overflow-visible",
@@ -182,7 +182,7 @@ function FloatingDockBar({
             axis="x"
             values={dockItems}
             onReorder={onReorder}
-            className="flex items-end gap-3"
+            className="flex items-end gap-2.5"
             data-tour="dock-pinned"
           >
             {dockItems.map((item) => (
@@ -190,7 +190,7 @@ function FloatingDockBar({
             ))}
           </Reorder.Group>
         ) : (
-          <div className="flex items-end gap-3" data-tour="dock-pinned">
+          <div className="flex items-end gap-2.5" data-tour="dock-pinned">
             {dockItems.map((item) => (
               <DockIcon key={item.id} item={item} mouseX={mouseX} base={base} reorderable={false} />
             ))}
@@ -269,7 +269,7 @@ function DockIcon({
       {/* Label — sibling of Link, zero transform inheritance */}
       <span
         className={cn(
-          "pointer-events-none text-center text-[11px] leading-none truncate",
+          "pointer-events-none text-center text-[10px] leading-none truncate",
           active
             ? "font-semibold text-teal-700 dark:text-teal-300"
             : "text-zinc-500 dark:text-zinc-400",

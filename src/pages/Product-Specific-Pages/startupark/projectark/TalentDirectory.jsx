@@ -1,34 +1,28 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search } from 'lucide-react';
 import { useTalentDirectory } from './useTalentDirectory';
 import TalentCard from './TalentCard';
 
-const PROFILE_TYPE_PILL = 'w-auto shrink-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-lg px-2.5 h-8 text-xs text-zinc-700 dark:text-zinc-300 ' +
-  'outline-none focus:border-zinc-400 dark:focus:border-zinc-500 [&>option]:bg-white dark:[&>option]:bg-zinc-900 [&>option]:text-zinc-900 dark:[&>option]:text-zinc-100';
-
+// Students Hub's "Students" tab — student profiles only, not general "user"
+// (professional) profiles. This directory used to also list professionals when
+// it lived on ProjectArk; now that it's scoped under Students Hub, mixing in
+// non-student profiles doesn't match the page.
 export default function TalentDirectory() {
   const { profiles, pagination, loading, error, fetchTalent } = useTalentDirectory();
-  const [searchParams] = useSearchParams();
-  // Tier 3 C#9: startup-only "Students" nav entry opens this same directory via
-  // ?type=student instead of forking a new page. Filter stays interactive after
-  // landing — a startup can still switch back to "All profiles" if they want.
-  const initialType = ['student', 'user'].includes(searchParams.get('type')) ? searchParams.get('type') : '';
   const [q, setQ] = useState('');
-  const [profileType, setProfileType] = useState(initialType);
   const [page, setPage] = useState(1);
 
   const doFetch = useCallback(() => {
-    fetchTalent({ q, profileType, page });
-  }, [q, profileType, page, fetchTalent]);
+    fetchTalent({ q, profileType: 'student', page });
+  }, [q, page, fetchTalent]);
 
   useEffect(() => { doFetch(); }, [doFetch]);
 
   return (
     <div className="space-y-5">
-      {/* Search + filters */}
-      <div className="glass-card p-4 space-y-3">
+      {/* Search */}
+      <div className="glass-card p-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
           <input
@@ -39,15 +33,6 @@ export default function TalentDirectory() {
             className="input-mono text-sm w-full pl-9 h-10"
           />
         </div>
-        <select
-          value={profileType}
-          onChange={e => { setProfileType(e.target.value); setPage(1); }}
-          className={PROFILE_TYPE_PILL}
-        >
-          <option value="">All profiles</option>
-          <option value="student">Students</option>
-          <option value="user">Professionals</option>
-        </select>
       </div>
 
       {/* Results header */}
@@ -86,7 +71,7 @@ export default function TalentDirectory() {
           </div>
           <p className="text-zinc-700 dark:text-zinc-300 font-semibold text-base">No profiles found</p>
           <p className="text-zinc-400 dark:text-zinc-600 text-sm text-center max-w-xs">
-            {q ? `No profile has a skill matching "${q}".` : 'No student or professional profiles yet.'}
+            {q ? `No student profile has a skill matching "${q}".` : 'No student profiles yet.'}
           </p>
         </div>
       ) : (

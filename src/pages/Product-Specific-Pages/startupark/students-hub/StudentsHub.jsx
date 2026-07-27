@@ -10,7 +10,7 @@ const PILL_ACTIVE = 'ring-transparent bg-zinc-900 text-white dark:bg-white dark:
 const PILL_INACTIVE = 'ring-1 ring-black/10 dark:ring-white/10 bg-black/[0.03] dark:bg-white/[0.04] text-zinc-500 dark:text-zinc-400 hover:ring-black/20 dark:hover:ring-white/20 hover:text-zinc-700 dark:hover:text-zinc-200';
 
 const TABS = [
-  { v: 'students', label: 'Students', icon: Users2, hint: 'Browse student & professional profiles — skills, portfolios, and how to reach them' },
+  { v: 'students', label: 'Students', icon: Users2, hint: 'Browse student profiles — skills, portfolios, and how to reach them' },
   { v: 'talent', label: 'Talent', icon: Sparkles, hint: 'Self-posted talent listings — startups can invite you directly' },
 ];
 
