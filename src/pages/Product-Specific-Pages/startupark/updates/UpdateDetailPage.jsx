@@ -85,9 +85,12 @@ const UpdateDetailPage = () => {
             <p className="font-semibold text-zinc-900 dark:text-white truncate">{startup.companyName || 'A startup'}</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(update.publishedAt || update.createdAt).toLocaleString()}</p>
           </div>
-          <span className="ml-auto text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full glass-inset text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-            {TYPE_LABEL[update.updateType] || update.updateType}
-          </span>
+          <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+            <LikeButton updateId={update._id} liked={update.liked} likeCount={update.likeCount} />
+            <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full glass-inset text-zinc-500 dark:text-zinc-400">
+              {TYPE_LABEL[update.updateType] || update.updateType}
+            </span>
+          </div>
         </div>
 
         <h1 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">{update.title}</h1>
@@ -112,7 +115,6 @@ const UpdateDetailPage = () => {
         <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">{renderInlineMarkup(update.body)}</p>
 
         <div className="mt-6 pt-4 border-t border-black/[0.06] dark:border-white/10">
-          <LikeButton updateId={update._id} liked={update.liked} likeCount={update.likeCount} />
           <CommentsPanel updateId={update._id} postedBy={update.postedBy} initialCount={update.commentCount} startExpanded />
         </div>
       </div>

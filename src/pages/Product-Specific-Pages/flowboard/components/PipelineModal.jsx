@@ -32,7 +32,7 @@ export default function PipelineModal({ open, flowboardRole, hasAudio, resultCou
 
   if (!open) return null;
 
-  const isManager = flowboardRole === 'admin';
+  const isManager = flowboardRole === 'manager';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 dark:bg-black/70 backdrop-blur-sm">
@@ -67,6 +67,26 @@ export default function PipelineModal({ open, flowboardRole, hasAudio, resultCou
                 </span>
               ))}
             </div>
+          </>
+        ) : resultCount === 0 ? (
+          <>
+            <div className="fb-success-check">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 9v4M12 17h.01" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mt-4">
+              Nothing {isManager ? 'to extract' : 'to match'}
+            </h3>
+            <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-1.5">
+              {isManager
+                ? "Couldn't find an actionable task in that text."
+                : 'No open tasks matched that check-in.'}
+            </p>
+            <button className="btn-mono w-full mt-7" onClick={() => onDone?.()}>
+              Back to canvas
+            </button>
           </>
         ) : (
           <>

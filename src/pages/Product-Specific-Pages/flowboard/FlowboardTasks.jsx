@@ -2,35 +2,62 @@
 // Route: /flowboard/tasks — review/push generated tasks (Manager) or
 // review/post drafted status updates (Contributor).
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Loader from '../../../components/Loader';
 import { useFlowboardUser } from './useFlowboardUser';
-import { getTickets, setTickets } from './flowboardStore';
+import { fetchTasks, editTask, pushTask, postUpdate, toTicket, isAuthError, needsOnboarding, apiErrorMessage } from './flowboardApi';
 import TicketCard from './components/TicketCard';
-import RoleSwitcher from './components/RoleSwitcher';
 
 export default function FlowboardTasks() {
-  const { flowboardRole, setFlowboardRole, loading } = useFlowboardUser();
-  const isManager = flowboardRole === 'admin';
+  const navigate = useNavigate();
+  const { flowboardRole, loading } = useFlowboardUser();
+  const isManager = flowboardRole === 'manager';
   const [tickets, setLocalTickets] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [actionError, setActionError] = useState(null);
 
   useEffect(() => {
-    setLocalTickets(getTickets()[flowboardRole] ?? []);
+    if (!flowboardRole) return;
+    let cancelled = false;
+    setTasksLoading(true);
+    fetchTasks()
+      .then((tasks) => {
+        if (cancelled) return;
+        setLocalTickets(tasks.map((t) => toTicket(t, isManager)));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (isAuthError(err)) { navigate('/login'); return; }
+        if (needsOnboarding(err)) { navigate('/flowboard/setup'); return; }
+        setActionError(apiErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setTasksLoading(false);
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowboardRole]);
 
-  function handlePush(id, editedText) {
-    const next = tickets.map((t) => {
-      if (t.id !== id) return t;
-      const updated = { ...t, pushed: true };
-      if (isManager) updated.description = editedText;
-      else updated.comment = editedText;
-      return updated;
-    });
-    setLocalTickets(next);
-    const allTickets = getTickets();
-    setTickets({ ...allTickets, [flowboardRole]: next });
+  async function handlePush(id, editedText) {
+    setActionError(null);
+    try {
+      if (isManager) {
+        await editTask(id, { description: editedText });
+        const updated = await pushTask(id, 'jira');
+        setLocalTickets((prev) => prev.map((t) => (t.id === id ? toTicket(updated, isManager) : t)));
+      } else {
+        await editTask(id, { draft_comment: editedText });
+        const updated = await postUpdate(id);
+        setLocalTickets((prev) => prev.map((t) => (t.id === id ? toTicket(updated, isManager) : t)));
+      }
+    } catch (err) {
+      if (isAuthError(err)) { navigate('/login'); return; }
+      if (needsOnboarding(err)) { navigate('/flowboard/setup'); return; }
+      setActionError(apiErrorMessage(err));
+    }
   }
 
-  if (loading) return <Loader />;
+  if (loading || tasksLoading) return <Loader />;
 
   return (
     <div className="flex-1">
@@ -43,8 +70,13 @@ export default function FlowboardTasks() {
             {isManager ? 'Review, edit, and push to your tracker.' : 'Matched from your check-in, ready to post.'}
           </p>
         </div>
-        <RoleSwitcher flowboardRole={flowboardRole} onChange={setFlowboardRole} />
       </div>
+
+      {actionError && (
+        <div className="mb-5 px-4 py-3 rounded-xl text-[13px] text-center text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20">
+          {actionError}
+        </div>
+      )}
 
       {tickets.length === 0 ? (
         <div className="glass-card p-10 text-center">

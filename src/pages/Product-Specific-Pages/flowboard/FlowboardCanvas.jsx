@@ -1,16 +1,16 @@
 // pages/Product-Specific-Pages/flowboard/FlowboardCanvas.jsx
 // Flowboard's main working surface — type, paste, or record, then extract into
 // tasks. Route: /flowboard. Ported from the flowboard prototype's canvas page,
-// restyled onto the mono glass design system. Role comes from Flowboard's own
-// RoleSwitcher (not StartupArk's startuparkRole — see useFlowboardUser.js).
+// restyled onto the mono glass design system. Role is permanent, set once via
+// /flowboard/setup (see useFlowboardUser.js) — no in-app switcher.
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../../../components/Loader';
 import { useFlowboardUser } from './useFlowboardUser';
-import { SAMPLES, DEFAULT_TICKETS } from './flowboardData';
-import { getDraft, setDraft, getTickets, setTickets, addActivity } from './flowboardStore';
+import { SAMPLES } from './flowboardData';
+import { getDraft, setDraft } from './flowboardStore';
+import { extractCanvas, isAuthError, needsOnboarding, apiErrorMessage } from './flowboardApi';
 import PipelineModal from './components/PipelineModal';
-import RoleSwitcher from './components/RoleSwitcher';
 
 const chipBase = "inline-flex items-center gap-1.5 text-[11.5px] font-medium px-3 py-1.5 rounded-full border border-black/10 dark:border-white/15 bg-black/[0.03] dark:bg-white/[0.05] text-zinc-600 dark:text-zinc-300";
 const chipClickable = "hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:text-zinc-900 dark:hover:text-white cursor-pointer transition-colors";
@@ -32,7 +32,7 @@ function fmtTime(s) {
 
 export default function FlowboardCanvas() {
   const navigate = useNavigate();
-  const { flowboardRole, setFlowboardRole, loading } = useFlowboardUser();
+  const { flowboardRole, loading } = useFlowboardUser();
 
   const draft = getDraft();
   const [text, setText] = useState(draft.text);
@@ -42,14 +42,17 @@ export default function FlowboardCanvas() {
   const [transcribing, setTranscribing] = useState(false);
   const [showAutosave, setShowAutosave] = useState(false);
   const [pipelineOpen, setPipelineOpen] = useState(false);
+  const [resultCount, setResultCount] = useState(2);
+  const [extractError, setExtractError] = useState(null);
 
   const timerRef = useRef(null);
+  const extractionRef = useRef(null);
   const autosaveTimeoutRef = useRef(null);
   const textareaRef = useRef(null);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
-  const isManager = flowboardRole === 'admin';
+  const isManager = flowboardRole === 'manager';
 
   function flashAutosave() {
     setShowAutosave(true);
@@ -111,27 +114,46 @@ export default function FlowboardCanvas() {
       textareaRef.current?.focus();
       return;
     }
+    setExtractError(null);
+    const promise = extractCanvas(text, hasAudio);
+    extractionRef.current = promise;
+    promise
+      .then((result) => {
+        const count = (result.created?.length ?? 0) + (result.updated?.length ?? 0);
+        setResultCount(count);
+      })
+      .catch(() => {}); // surfaced via handlePipelineDone below
     setPipelineOpen(true);
   }
 
-  function handlePipelineDone() {
+  async function handlePipelineDone() {
     setPipelineOpen(false);
-    const generated = DEFAULT_TICKETS[flowboardRole];
-    const tickets = getTickets();
-    setTickets({ ...tickets, [flowboardRole]: generated.map((t) => ({ ...t, pushed: false })) });
-    addActivity({
-      verb: isManager
-        ? (hasAudio ? 'Recorded and summarised a meeting into' : 'Extracted from the canvas')
-        : (hasAudio ? 'Recorded and posted an update to' : 'Posted a check-in update to'),
-      count: generated.length,
-      unit: 'tasks',
-      role: isManager ? 'Manager' : 'Contributor',
-      audio: hasAudio,
-    });
-    setText('');
-    setHasAudio(false);
-    persistDraft('', false);
-    navigate('/flowboard/tasks');
+    try {
+      const result = await extractionRef.current;
+      const count = (result.created?.length ?? 0) + (result.updated?.length ?? 0);
+      if (count === 0) {
+        setExtractError(
+          isManager
+            ? "Didn't find any actionable tasks in that text — try adding more detail (who, what, when)."
+            : 'No open tasks matched that check-in — a manager needs to extract it into a task first.'
+        );
+        return;
+      }
+      setText('');
+      setHasAudio(false);
+      persistDraft('', false);
+      navigate('/flowboard/tasks');
+    } catch (err) {
+      if (isAuthError(err)) {
+        navigate('/login');
+        return;
+      }
+      if (needsOnboarding(err)) {
+        navigate('/flowboard/setup');
+        return;
+      }
+      setExtractError(apiErrorMessage(err));
+    }
   }
 
   if (loading) return <Loader />;
@@ -139,10 +161,6 @@ export default function FlowboardCanvas() {
   return (
     <div className="flex-1 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-[760px]">
-        <div className="flex justify-center mb-5">
-          <RoleSwitcher flowboardRole={flowboardRole} onChange={setFlowboardRole} />
-        </div>
-
         <div className="text-center mb-8">
           <span className={`${chipBase} mb-4`}>{isManager ? 'FREEFORM' : 'CHECK IN'}</span>
           <h1 className="text-3xl md:text-4xl font-semibold text-zinc-900 dark:text-white mt-4">
@@ -207,6 +225,15 @@ export default function FlowboardCanvas() {
           </div>
         </div>
 
+        {extractError && (
+          <div className="mt-4 px-4 py-3 rounded-xl text-[13px] text-center text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20">
+            {extractError} —{' '}
+            <button className="underline font-medium" onClick={handleExtract}>
+              try again
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mt-5 flex-wrap justify-center">
           <span className="text-[11.5px] mr-1 text-zinc-400 dark:text-zinc-500">Try:</span>
           <span className={`${chipBase} ${chipClickable}`} onClick={() => handleExampleClick('sample')}>Standup notes</span>
@@ -219,7 +246,7 @@ export default function FlowboardCanvas() {
         open={pipelineOpen}
         flowboardRole={flowboardRole}
         hasAudio={hasAudio}
-        resultCount={DEFAULT_TICKETS[flowboardRole]?.length ?? 2}
+        resultCount={resultCount}
         onDone={handlePipelineDone}
       />
     </div>

@@ -1,20 +1,29 @@
 // pages/Product-Specific-Pages/flowboard/useFlowboardUser.js
-// Shared by all three Flowboard routes (Canvas/Tasks/Activity). Fetches only
-// the universal identity (`/api/mappuser/me`, the MappArks_User collection) —
-// never StartupArk's product-specific routes/fields — and pairs it with
-// Flowboard's own independent role choice (see flowboardStore.js).
+// Shared by every Flowboard route (Canvas/Tasks/Activity/Setup). Fetches the
+// universal identity (`/api/mappuser/me`) and reads Flowboard's permanent,
+// server-side role off it (flowboardRole + hasAgreedToFlowboardX — set once
+// via the /flowboard/setup wizard, see flowboardOnboardingApi.js). Not yet
+// onboarded -> redirected to /flowboard/setup; already onboarded and landing
+// on /flowboard/setup -> redirected into the product. No in-app role switch.
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { getFlowboardRole, setFlowboardRole as persistFlowboardRole } from './flowboardStore';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
+const SETUP_PATH = '/flowboard/setup';
+
+function isAgreed(user) {
+  if (!user?.flowboardRole) return false;
+  return user.flowboardRole === 'manager'
+    ? !!user.hasAgreedToFlowboardManager
+    : !!user.hasAgreedToFlowboardContributor;
+}
 
 export function useFlowboardUser() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [flowboardRole, setFlowboardRoleState] = useState('user');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -22,17 +31,20 @@ export function useFlowboardUser() {
     axios
       .get(`${baseUrl}/api/mappuser/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
+        const onboarded = isAgreed(res.data);
+        const onSetupPage = location.pathname === SETUP_PATH;
+        if (!onboarded && !onSetupPage) { navigate(SETUP_PATH); return; }
+        if (onboarded && onSetupPage) { navigate('/flowboard'); return; }
         setUser(res.data);
-        setFlowboardRoleState(getFlowboardRole(res.data?._id));
       })
       .catch(() => navigate('/login'))
       .finally(() => setLoading(false));
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
-  function setFlowboardRole(role) {
-    setFlowboardRoleState(role);
-    persistFlowboardRole(user?._id, role);
-  }
-
-  return { user, flowboardRole, setFlowboardRole, loading };
+  return {
+    user,
+    flowboardRole: user?.flowboardRole ?? null,
+    onboarded: isAgreed(user),
+    loading,
+  };
 }

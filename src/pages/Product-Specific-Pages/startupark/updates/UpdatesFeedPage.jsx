@@ -9,7 +9,7 @@ import { relativeTime } from '../../../../utils/relativeTime';
 import Loader from '../../../../components/Loader';
 import ShowcaseImage from '../../../../components/ShowcaseImage';
 import LikeButton from '../../../../components/LikeButton';
-import CommentsPanel from '../../../../components/CommentsPanel';
+import { useCommentsThread, CommentsToggleButton, CommentsThread } from '../../../../components/CommentsPanel';
 import 'boxicons';
 
 const TYPE_LABEL = Object.fromEntries(UPDATE_TYPES.map((t) => [t.value, t.label]));
@@ -49,12 +49,18 @@ const UpdateCard = ({ update }) => {
   const logoUrl = startup.logo ? getImageUrl(startup.logo) : null;
   const imgUrl = update.imageUrl ? getImageUrl(update.imageUrl) : null;
   const [imgError, setImgError] = useState(false);
+  const thread = useCommentsThread(update._id, update.commentCount);
 
   return (
     <div
-      className="glass-card overflow-hidden flex flex-col group
+      className="glass-card overflow-hidden flex flex-col group relative
                  hover:-translate-y-0.5 hover:border-zinc-400/60 dark:hover:border-white/25 transition-all duration-300"
     >
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-2 rounded-full pl-2.5 pr-3 py-1.5 shadow-lg backdrop-blur-sm bg-zinc-900/90 text-white dark:bg-white/90 dark:text-zinc-900">
+        <LikeButton updateId={update._id} liked={update.liked} likeCount={update.likeCount} compact theme="onDark" />
+        <span className="w-px h-3.5 bg-white/25 dark:bg-zinc-900/20" />
+        <CommentsToggleButton thread={thread} compact theme="onDark" />
+      </div>
       <button
         onClick={() => navigate(`/updates/${update._id}`)}
         className="text-left flex flex-col flex-1"
@@ -82,7 +88,7 @@ const UpdateCard = ({ update }) => {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3 p-4 pb-0 flex-shrink-0">
+        <div className="flex items-center gap-3 p-4 pb-0 pr-24 flex-shrink-0">
           {logoUrl ? (
             <img src={logoUrl} alt={startup.companyName} className="w-9 h-9 rounded-xl object-cover border border-black/10 dark:border-white/15 flex-shrink-0" />
           ) : (
@@ -110,10 +116,11 @@ const UpdateCard = ({ update }) => {
       </div>
     </button>
 
-      <div className="px-4 pb-4 flex items-center gap-4">
-        <LikeButton updateId={update._id} liked={update.liked} likeCount={update.likeCount} compact />
-        <CommentsPanel updateId={update._id} postedBy={update.postedBy} initialCount={update.commentCount} className="flex-1" />
-      </div>
+      {thread.expanded && (
+        <div className="px-4 pb-4 pt-3 border-t border-black/[0.06] dark:border-white/10" onClick={(e) => e.stopPropagation()}>
+          <CommentsThread thread={thread} postedBy={update.postedBy} />
+        </div>
+      )}
     </div>
   );
 };

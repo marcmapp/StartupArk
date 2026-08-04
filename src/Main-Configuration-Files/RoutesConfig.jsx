@@ -77,6 +77,7 @@ import CreateTalentPost from "../pages/Product-Specific-Pages/startupark/project
 import FlowboardCanvas from "../pages/Product-Specific-Pages/flowboard/FlowboardCanvas";
 import FlowboardTasks from "../pages/Product-Specific-Pages/flowboard/FlowboardTasks";
 import FlowboardActivity from "../pages/Product-Specific-Pages/flowboard/FlowboardActivity";
+import FlowboardSetup from "../pages/Product-Specific-Pages/flowboard/FlowboardSetup";
 
 // DocArc (document management / AI lab — ported 1:1 from the standalone R&D prototype)
 import DocArc from "../pages/Product-Specific-Pages/docarc/DocArc";
@@ -95,6 +96,9 @@ const FlowboardTasksOrComingSoon = SHOW_WIP_PRODUCTS
   : () => <ComingSoon productName="Flowboard" icon={IconMicrophone} />;
 const FlowboardActivityOrComingSoon = SHOW_WIP_PRODUCTS
   ? FlowboardActivity
+  : () => <ComingSoon productName="Flowboard" icon={IconMicrophone} />;
+const FlowboardSetupOrComingSoon = SHOW_WIP_PRODUCTS
+  ? FlowboardSetup
   : () => <ComingSoon productName="Flowboard" icon={IconMicrophone} />;
 const DocArcOrComingSoon = SHOW_WIP_PRODUCTS
   ? DocArc
@@ -208,6 +212,7 @@ export const privateRoutes = [
   { path: "/flowboard",          element: <PrivateRoute><LayoutWrapper><FlowboardCanvasOrComingSoon /></LayoutWrapper></PrivateRoute> },
   { path: "/flowboard/tasks",    element: <PrivateRoute><LayoutWrapper><FlowboardTasksOrComingSoon /></LayoutWrapper></PrivateRoute> },
   { path: "/flowboard/activity", element: <PrivateRoute><LayoutWrapper><FlowboardActivityOrComingSoon /></LayoutWrapper></PrivateRoute> },
+  { path: "/flowboard/setup",    element: <PrivateRoute><LayoutWrapper><FlowboardSetupOrComingSoon /></LayoutWrapper></PrivateRoute> },
 
   // DocArc
   { path: "/docarc", element: <PrivateRoute><LayoutWrapper><DocArcOrComingSoon /></LayoutWrapper></PrivateRoute> },

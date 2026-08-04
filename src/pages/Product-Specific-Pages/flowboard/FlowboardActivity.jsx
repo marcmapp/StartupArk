@@ -1,9 +1,10 @@
 // pages/Product-Specific-Pages/flowboard/FlowboardActivity.jsx
 // Route: /flowboard/activity — what's happened in this Flowboard workspace.
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Loader from '../../../components/Loader';
 import { useFlowboardUser } from './useFlowboardUser';
-import { getActivity } from './flowboardStore';
-import RoleSwitcher from './components/RoleSwitcher';
+import { fetchActivity, toActivityEntry, isAuthError, needsOnboarding, apiErrorMessage } from './flowboardApi';
 
 function ActivityIcon({ audio }) {
   return audio ? (
@@ -18,10 +19,35 @@ function ActivityIcon({ audio }) {
 }
 
 export default function FlowboardActivity() {
-  const { flowboardRole, setFlowboardRole, loading } = useFlowboardUser();
-  const activity = getActivity();
+  const navigate = useNavigate();
+  const { flowboardRole, loading } = useFlowboardUser();
+  const [activity, setActivity] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [activityError, setActivityError] = useState(null);
 
-  if (loading) return <Loader />;
+  useEffect(() => {
+    if (!flowboardRole) return;
+    let cancelled = false;
+    setActivityLoading(true);
+    fetchActivity()
+      .then((entries) => {
+        if (cancelled) return;
+        setActivity(entries.map(toActivityEntry));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (isAuthError(err)) { navigate('/login'); return; }
+        if (needsOnboarding(err)) { navigate('/flowboard/setup'); return; }
+        setActivityError(apiErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setActivityLoading(false);
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flowboardRole]);
+
+  if (loading || activityLoading) return <Loader />;
 
   return (
     <div className="flex-1">
@@ -30,8 +56,13 @@ export default function FlowboardActivity() {
           <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white">Activity</h2>
           <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-1">What's happened in your Flowboard workspace.</p>
         </div>
-        <RoleSwitcher flowboardRole={flowboardRole} onChange={setFlowboardRole} />
       </div>
+
+      {activityError && (
+        <div className="mb-5 px-4 py-3 rounded-xl text-[13px] text-center text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20">
+          {activityError}
+        </div>
+      )}
 
       {activity.length === 0 ? (
         <div className="glass-card p-10 text-center">
