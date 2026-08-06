@@ -38,7 +38,6 @@ import FavoritesPage from "../pages/Product-Specific-Pages/startupark/favourite-
 import NotificationsPage from "../pages/Product-Specific-Pages/startupark/notifications/NotificationsPage";
 import FollowersPage from "../pages/FollowersPage";
 
-import BlogPage from "../pages/Product-Specific-Pages/startupark/blog/BlogPage"
 import VirtualCardPublicView from "../pages/Product-Specific-Pages/startupark/virtualcard-module/VirtualCardPublicView";
 
 
@@ -166,9 +165,6 @@ export const privateRoutes = [
   // Chat
   { path: "/startupark/chat",           element: <PrivateRoute><LayoutWrapper><ChatInterface /></LayoutWrapper></PrivateRoute> },
   { path: "/startupark/chat/:startupId", element: <PrivateRoute><LayoutWrapper><ChatInterface /></LayoutWrapper></PrivateRoute> },
-
-  // Blog
-  { path: "/startupark/blog",           element: <PrivateRoute><LayoutWrapper><BlogPage /></LayoutWrapper></PrivateRoute> },
 
   // Virtual cards
   { path: "/vc/:id",                    element: <PrivateRoute><LayoutWrapper><VirtualCardPublicView /></LayoutWrapper></PrivateRoute> },
