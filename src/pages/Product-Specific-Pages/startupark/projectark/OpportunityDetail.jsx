@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MessageCircle, Globe, MapPin, GitMerge } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { useOpportunities } from './useOpportunities';
 import { useProjectArk } from './useProjectArk';
 import RoleApplyForm from './RoleApplyForm';
@@ -60,6 +61,8 @@ export default function OpportunityDetail() {
       const application = await applyToOpportunity(opportunityId, payload);
       setMyResponse(application || { status: 'pending' });
       setShowApply(false);
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Failed to submit application. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -71,8 +74,8 @@ export default function OpportunityDetail() {
     try {
       await initiateStartupConversation(opportunity.startupId._id);
       navigate('/startupark/chat');
-    } catch {
-      navigate('/startupark/chat');
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Could not start chat. Please try again.');
     } finally {
       setMessaging(false);
     }

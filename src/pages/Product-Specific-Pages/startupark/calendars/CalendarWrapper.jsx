@@ -3,6 +3,7 @@ import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { formatDate as formatDateTz, formatTime } from '../../../../utils/datetime';
+import NewEventModal from './NewEventModal';
 import { 
   FiChevronLeft, 
   FiChevronRight, 
@@ -26,7 +27,6 @@ import {
   FiFilter,
   FiDownload,
   FiUpload,
-  FiShare2,
   FiSettings,
   FiEye,
   FiEyeOff
@@ -45,6 +45,7 @@ const CalendarWrapper = ({ type }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   // Enhanced event categories with colors
@@ -426,11 +427,9 @@ const CalendarWrapper = ({ type }) => {
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2">
-            <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <FiShare2 className="h-4 w-4 mr-2" />
-              Share
-            </button>
-            <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-white dark:text-zinc-900 bg-zinc-900 dark:bg-white border border-transparent rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-sm">
+            <button
+              onClick={() => setIsNewEventModalOpen(true)}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-white dark:text-zinc-900 bg-zinc-900 dark:bg-white border border-transparent rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-sm">
               <FiPlus className="h-4 w-4 mr-2" />
               New Event
             </button>
@@ -762,6 +761,16 @@ const CalendarWrapper = ({ type }) => {
           </div>
         </div>
       )}
+
+      {/* New Event Modal — instant, auto-confirmed meeting from an existing conversation */}
+      <NewEventModal
+        isOpen={isNewEventModalOpen}
+        onClose={() => setIsNewEventModalOpen(false)}
+        onSuccess={() => {
+          setIsNewEventModalOpen(false);
+          fetchEvents();
+        }}
+      />
     </div>
   );
 };

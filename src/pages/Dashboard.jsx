@@ -4,6 +4,7 @@ import axios from "axios";
 import HyperText from "../components/HyperText";
 import Loader from "../components/Loader";
 import BillboardSection from "../components/hub/BillboardSection";
+import DiscoverySection from "./Product-Specific-Pages/startupark/projectark/DiscoverySection";
 import { getImageUrl } from "../utils/imageUrls";
 import "boxicons";
 
@@ -116,6 +117,8 @@ const Dashboard = () => {
       <div className="mb-6">
         <BillboardSection />
       </div>
+
+      <DiscoverySection role={role} />
 
       {/* Your space — setup status / entry point into StartupArk. Only shown
           while onboarding isn't finished; once a role's set up, the dock

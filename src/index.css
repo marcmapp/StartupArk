@@ -384,3 +384,33 @@
     animation: scale-in 0.25s ease-out both;
   }
 }
+
+/* ───────── Toasts (react-toastify) — mono glass, matches .glass-card ───────── */
+.Toastify__toast {
+  background: #ffffff;
+  color: #18181b;
+  border: 1px solid rgb(228 228 231);
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-family: inherit;
+}
+.dark .Toastify__toast {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+.Toastify__progress-bar {
+  background: rgba(24, 24, 27, 0.35);
+}
+.dark .Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.35);
+}
+.Toastify__close-button {
+  color: currentColor;
+  opacity: 0.6;
+}
+.Toastify__close-button:hover {
+  opacity: 1;
+}

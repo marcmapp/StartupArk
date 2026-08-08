@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MessageCircle, TrendingUp, Globe, MapPin, GitMerge } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { useProjectArk } from './useProjectArk';
 import TrustBadge from './TrustBadge';
 import ProposalForm from './ProposalForm';
@@ -169,6 +170,8 @@ export default function WorkPostDetail() {
       const key = activePosition === 'flat' ? 'flat' : activePosition._id;
       setMyResponses(prev => ({ ...prev, [key]: { status: 'pending' } }));
       setActivePosition(null);
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -181,8 +184,8 @@ export default function WorkPostDetail() {
       const startupId = post.startupId._id || post.startupId;
       await initiateStartupConversation(startupId);
       navigate(`/startupark/chat/${startupId}`);
-    } catch {
-      navigate(`/startupark/chat/${post.startupId._id || post.startupId}`);
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Could not start chat. Please try again.');
     } finally {
       setMessaging(false);
     }
@@ -195,7 +198,7 @@ export default function WorkPostDetail() {
       setInvestSent(true);
       setShowInvest(false);
     } catch (e) {
-      setErr(e.response?.data?.error || e.message);
+      toast.error(e.response?.data?.error || e.message || 'Failed to send interest. Please try again.');
     } finally {
       setInvestSubmitting(false);
     }

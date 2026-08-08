@@ -182,7 +182,7 @@ const Profile = () => {
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Pill>{user.startuparkRole || 'User'}</Pill>
-                  <Pill>{user.subscriptionPlan || 'Basic'} plan</Pill>
+                  <Pill>{subscription?.plan || 'No active subscription'}</Pill>
                 </div>
               </div>
             ) : (
@@ -234,7 +234,7 @@ const Profile = () => {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <span className="text-zinc-500 dark:text-zinc-400">Current Plan</span>
-                <Pill>{subscription?.plan || 'Basic'}</Pill>
+                <Pill>{subscription?.plan || 'No active subscription'}</Pill>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-zinc-500 dark:text-zinc-400">Status</span>

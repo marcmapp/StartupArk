@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiEdit2, FiCalendar, FiClock, FiMessageCircle, FiCheckCircle, FiLoader } from 'react-icons/fi';
 import { formatAvailability } from '../../shared/utils/startupDataFormatter';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import BookingModal from '../../../../bookings/BookingModal';
 import FollowButton from '../../../../../../../components/FollowButton';
 import TrustBadge from '../../../../../../../components/TrustBadge';
@@ -52,11 +53,11 @@ const StartupProfileHeader = ({ startupData, onEdit, onEditAvailability, isPubli
         { recipientId: startupData.userId?._id || startupData.userId, contextType: 'startup', contextId: startupData._id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      navigate(`/startupark/chat/${startupData._id}`);
     } catch (e) {
-      console.warn('initiate failed, navigating anyway', e?.response?.status);
+      toast.error(e?.response?.data?.error || e?.response?.data?.message || 'Could not start chat. Please try again.');
     } finally {
       setChatLoading(false);
-      navigate(`/startupark/chat/${startupData._id}`);
     }
   };
 

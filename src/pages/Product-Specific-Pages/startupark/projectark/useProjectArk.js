@@ -73,6 +73,14 @@ export function useProjectArk() {
     return data.data;
   }, []);
 
+  // Pro-only personalized "For You" feed (feature: discovery_digest). Throws on
+  // 403 (free-tier) / 400 (startup role) — callers decide how to present that.
+  const fetchDiscovery = useCallback(async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const { data } = await axios.get(`${PA}/discovery?${query}`, { headers: authHeader() });
+    return data;
+  }, []);
+
   const expressInvestInterest = useCallback(async (postId, message) => {
     const { data } = await axios.post(`${PA}/posts/${postId}/invest-interest`, { message }, { headers: authHeader() });
     return data.data;
@@ -214,7 +222,7 @@ export function useProjectArk() {
   return {
     posts, pagination, myPosts, loading, error,
     fetchPosts, fetchMyPosts, fetchPost, createPost, updatePost, cancelPost,
-    fetchViewerContext, fetchStats, expressInvestInterest, initiateStartupConversation,
+    fetchViewerContext, fetchStats, fetchDiscovery, expressInvestInterest, initiateStartupConversation,
     submitProposal, fetchProposals, updateProposalStatus, withdrawProposal,
     fetchEngagements, fetchEngagement, updateMilestone, markEngagementComplete, cancelEngagement,
     applyToPost, fetchApplications, fetchApplicationStats, updateApplicationStatus, fetchApplicationResumeUrl,

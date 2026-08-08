@@ -194,7 +194,7 @@ const Pricing = () => {
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Can I change plans anytime?</h3>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">You can upgrade anytime — it takes effect immediately. Downgrades and cancellations are handled by our team during beta; contact support to request one.</p>
             </div>
             <div>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">What payment methods do you accept?</h3>

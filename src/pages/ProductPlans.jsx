@@ -27,10 +27,25 @@ const iconMap = {
   BuildingOfficeIcon
 };
 
+// startuparkRole → userTypes tab key. All three tabs stay visible and clickable;
+// this only decides which one opens first.
+const ROLE_TAB_KEY = { user: "users", student: "students", startup: "startups" };
+
+// Falls back to "users" for an account with no role yet, or a product that has
+// no tab matching the role.
+const tabKeyForRole = (role, productKey) => {
+  const key = ROLE_TAB_KEY[role];
+  const userTypes = pricingConfig.products[productKey]?.userTypes || {};
+  return key && userTypes[key] ? key : "users";
+};
+
 const ProductPlans = () => {
   const [user, setUser] = useState(null);
   const [modalMessage, setModalMessage] = useState("");
+  const [modalVariant, setModalVariant] = useState("success");
   const [showModal, setShowModal] = useState(false);
+  // Placeholder only — replaced with the account's own role tab once /me
+  // resolves, and nothing renders before then (the !user Loader guard below).
   const [activeUserType, setActiveUserType] = useState("users");
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -64,6 +79,7 @@ const ProductPlans = () => {
         };
 
         setUser(userData);
+        setActiveUserType(tabKeyForRole(userData.startuparkRole, productId));
       } catch (error) {
         console.error("Error fetching user data:", error);
         navigate("/");
@@ -85,6 +101,7 @@ const ProductPlans = () => {
     }));
 
     setModalMessage("Payment Successful! Subscription updated.");
+    setModalVariant("success");
     setShowModal(true);
 
     setTimeout(() => {
@@ -94,6 +111,7 @@ const ProductPlans = () => {
 
   const handlePaymentError = (errorMessage) => {
     setModalMessage(errorMessage);
+    setModalVariant("error");
     setShowModal(true);
   };
 
@@ -114,8 +132,8 @@ const ProductPlans = () => {
 
   const PlanCard = ({ plan, userType, product }) => {
     const isCurrentPlan = user.subscriptionPlan === plan.name;
-    const isDisabled = isCurrentPlan ||
-      (user.subscriptionPlan?.endsWith("Pro") && plan.name.endsWith("Free"));
+    const isBlockedDowngrade = !isCurrentPlan && user.subscriptionPlan?.endsWith("Pro") && plan.name.endsWith("Free");
+    const isDisabled = isCurrentPlan || isBlockedDowngrade;
 
     return (
       <div className={`glass-card relative p-8 transition-all duration-300 ${
@@ -174,6 +192,11 @@ const ProductPlans = () => {
           buttonText={isCurrentPlan ? "Current Plan" : plan.cta}
           className={isCurrentPlan ? 'btn-ghost w-full py-3 opacity-60 cursor-not-allowed' : plan.popular ? 'btn-mono w-full py-3' : 'btn-ghost w-full py-3'}
         />
+        {isBlockedDowngrade && (
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs text-center mt-2">
+            Downgrades are handled by our team during beta — contact support to switch to this plan.
+          </p>
+        )}
       </div>
     );
   };
@@ -292,7 +315,7 @@ const ProductPlans = () => {
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Can I change plans anytime?</h3>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">You can upgrade anytime — it takes effect immediately. Downgrades and cancellations are handled by our team during beta; contact support to request one.</p>
             </div>
             <div>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">What payment methods do you accept?</h3>
@@ -313,6 +336,7 @@ const ProductPlans = () => {
       {showModal && (
         <Modal
           message={modalMessage}
+          variant={modalVariant}
           onClose={() => setShowModal(false)}
         />
       )}
